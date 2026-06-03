@@ -3,6 +3,7 @@ node_modules
 out
 dist
 coverage
+test-results
 .vercel
 .env
 .env.local
@@ -13,4 +14,5 @@ yarn-error.log*
 pnpm-debug.log*
 .dev-server.log
 .dev-server.err.log
+.dev-server.pid
 .qa

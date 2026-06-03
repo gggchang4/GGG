@@ -1,17 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Footer } from "@/components/layout/footer";
-import { Navbar } from "@/components/layout/navbar";
-import { LenisProvider } from "@/components/motion/lenis-provider";
-import "./globals.css";
+import "@/styles/global.css";
 
 export const metadata: Metadata = {
-  title: "Personal Digital Space",
-  description:
-    "A personal digital space for frontend engineering, AI exploration, and interaction design.",
+  title: {
+    default: "Personal Profile Web",
+    template: "%s | Personal Profile Web",
+  },
+  description: "A personal profile website with multiple visual style entries.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#050505",
+  themeColor: "#f7f7f2",
 };
 
 export default function RootLayout({
@@ -20,14 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className="dark font-sans">
-      <body>
-        <LenisProvider>
-          <Navbar />
-          {children}
-          <Footer />
-        </LenisProvider>
-      </body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   );
 }
