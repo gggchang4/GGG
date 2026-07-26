@@ -9,16 +9,26 @@ export function Navbar() {
           Profile Web
         </Link>
 
-        <nav className="flex items-center gap-1" aria-label="Profile styles">
-          {stylesConfig.map((style) => (
-            <Link
-              key={style.id}
-              href={style.route}
-              className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              {style.name}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-1 sm:flex" aria-label="Profile styles">
+          {stylesConfig.map((style) =>
+            style.status === "available" ? (
+              <Link
+                key={style.id}
+                href={style.route}
+                className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                {style.name}
+              </Link>
+            ) : (
+              <span
+                key={style.id}
+                aria-disabled="true"
+                className="rounded-md px-3 py-2 text-sm text-muted-foreground/70"
+              >
+                {style.name}
+              </span>
+            )
+          )}
         </nav>
       </div>
     </header>
