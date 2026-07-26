@@ -25,7 +25,7 @@ export function Navbar() {
                 aria-disabled="true"
                 className="rounded-md px-3 py-2 text-sm text-muted-foreground/70"
               >
-                {style.name}
+                {style.name} · soon
               </span>
             )
           )}

@@ -1,43 +1,59 @@
-export type ProfileStyleConfig = {
+type ProfileStyleBase = {
   id: string;
+  index: string;
   name: string;
+  shortLabel: string;
   description: string;
-  route: string;
-  status: "available" | "coming-soon";
   previewImage: string | null;
   tags: string[];
 };
 
+export type ProfileStyleConfig =
+  | (ProfileStyleBase & {
+      status: "available";
+      route: string;
+    })
+  | (ProfileStyleBase & {
+      status: "placeholder" | "coming-soon";
+      route: null;
+    });
+
 export const stylesConfig: ProfileStyleConfig[] = [
   {
     id: "classic",
+    index: "01",
     name: "Classic",
+    shortLabel: "Quiet / Structured",
     description:
       "A calm, readable profile layout that works well as the default resume-style experience.",
-    route: "/profile/classic",
-    status: "available",
+    route: null,
+    status: "placeholder",
     previewImage: null,
     tags: ["Readable", "Resume", "Default"],
   },
   {
-    id: "experimental",
-    name: "Experimental",
+    id: "editorial",
+    index: "02",
+    name: "Editorial",
+    shortLabel: "Type / Narrative",
     description:
-      "A separate profile route reserved for a more expressive visual system in later iterations.",
-    route: "/profile/experimental",
-    status: "available",
+      "A typography-led profile style for long-form storytelling and selected project case studies.",
+    route: null,
+    status: "placeholder",
     previewImage: null,
-    tags: ["Expressive", "Future UI", "Flexible"],
+    tags: ["Typography", "Case Study", "Narrative"],
   },
   {
-    id: "editorial",
-    name: "Editorial",
+    id: "experimental",
+    index: "03",
+    name: "Experimental",
+    shortLabel: "Motion / WebGL",
     description:
-      "A future typography-led profile style for long-form storytelling and project case studies.",
-    route: "/profile/editorial",
-    status: "coming-soon",
+      "An expressive profile route for motion systems, creative coding, and realtime visual experiments.",
+    route: null,
+    status: "placeholder",
     previewImage: null,
-    tags: ["Typography", "Case Study", "Planned"],
+    tags: ["Expressive", "WebGL", "Interaction"],
   },
 ];
 

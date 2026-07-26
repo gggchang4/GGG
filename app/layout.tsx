@@ -1,16 +1,31 @@
 import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import "@/styles/global.css";
+
+const sans = Manrope({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["400", "500"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
-    default: "Personal Profile Web",
-    template: "%s | Personal Profile Web",
+    default: "Profile Index",
+    template: "%s — Profile Index",
   },
-  description: "A personal profile website with multiple visual style entries.",
+  description:
+    "A personal digital gallery for frontend engineering, interaction design, and creative code.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f7f7f2",
+  themeColor: "#ebeae4",
 };
 
 export default function RootLayout({
@@ -20,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${sans.variable} ${mono.variable}`}>{children}</body>
     </html>
   );
 }

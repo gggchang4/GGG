@@ -4,6 +4,7 @@ import type { ProfileStyleConfig } from "@/data/stylesConfig";
 
 const statusLabel: Record<ProfileStyleConfig["status"], string> = {
   available: "Available",
+  placeholder: "Reserved",
   "coming-soon": "Coming soon",
 };
 
@@ -35,7 +36,7 @@ export function StyleCard({ style }: { style: ProfileStyleConfig }) {
           >
             {statusLabel[style.status]}
           </span>
-          <span className="text-xs text-muted-foreground">{style.route}</span>
+          <span className="text-xs text-muted-foreground">{style.route ?? "Route reserved"}</span>
         </div>
 
         <div>
@@ -68,7 +69,7 @@ export function StyleCard({ style }: { style: ProfileStyleConfig }) {
     </article>
   );
 
-  if (!isAvailable) {
+  if (style.status !== "available") {
     return content;
   }
 

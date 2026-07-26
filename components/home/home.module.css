@@ -1,0 +1,551 @@
+.page {
+  --page-gutter: clamp(1.25rem, 3.2vw, 3.5rem);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: 100svh;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 43%, rgb(255 255 252 / 0.72), transparent 36%),
+    #ebeae4;
+  color: #141512;
+}
+
+.backgroundTexture {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.33;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(12.5vw - 1px),
+      rgb(20 21 18 / 0.035) calc(12.5vw - 1px),
+      rgb(20 21 18 / 0.035) 12.5vw
+    );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 18%,
+    #000 82%,
+    transparent
+  );
+  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+}
+
+.verticalRule {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform-origin: top center;
+  background: rgb(20 21 18 / 0.075);
+}
+
+.header,
+.footer {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-inline: var(--page-gutter);
+}
+
+.header {
+  padding-top: max(1.5rem, env(safe-area-inset-top));
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  font-size: clamp(1.1rem, 1.6vw, 1.45rem);
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 0.83;
+  text-transform: uppercase;
+}
+
+.headerMeta,
+.discInstructions,
+.rightMeta,
+.footerStatus {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.68rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.11em;
+}
+
+.liveDot {
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: #c9f24a;
+  box-shadow: 0 0 0 3px rgb(201 242 74 / 0.18);
+}
+
+.headerDivider {
+  width: 1.7rem;
+  height: 1px;
+  background: rgb(20 21 18 / 0.28);
+}
+
+.hero {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  place-items: center;
+  padding: 0.75rem var(--page-gutter);
+}
+
+.leftMeta {
+  position: absolute;
+  top: 50%;
+  left: var(--page-gutter);
+  margin: 0;
+  transform: translateY(-50%);
+  font-size: clamp(0.68rem, 0.8vw, 0.78rem);
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+}
+
+.rightMeta {
+  position: absolute;
+  top: 50%;
+  right: var(--page-gutter);
+  display: grid;
+  justify-items: end;
+  transform: translateY(-50%);
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+}
+
+.rightMeta strong {
+  margin-block: 0.15rem 0.3rem;
+  font-family: var(--font-sans), sans-serif;
+  font-size: clamp(2.6rem, 5vw, 5.25rem);
+  font-weight: 430;
+  letter-spacing: -0.075em;
+  line-height: 0.85;
+}
+
+.discAssembly {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+}
+
+.discStage {
+  position: relative;
+  width: min(64svh, 55vw, 42rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  cursor: grab;
+  outline-color: #141512;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.discStage::before {
+  position: absolute;
+  z-index: -1;
+  right: 9%;
+  bottom: 2%;
+  left: 9%;
+  height: 14%;
+  border-radius: 50%;
+  background: rgb(32 34 31 / 0.36);
+  content: "";
+  filter: blur(24px);
+  opacity: 0.42;
+  transform: translateY(58%);
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+
+.discStage::after {
+  position: absolute;
+  z-index: 3;
+  inset: 4.2%;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.discStageDragging {
+  cursor: grabbing;
+}
+
+.discStageDragging::before {
+  opacity: 0.28;
+  transform: translateY(72%) scaleX(0.86);
+}
+
+.discStageReduced {
+  cursor: default;
+  touch-action: auto;
+}
+
+.discCanvas,
+.staticDisc {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.staticDisc {
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.75);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 28%, rgb(255 255 255 / 0.95), transparent 16%),
+    radial-gradient(circle at 66% 74%, rgb(85 88 86 / 0.48), transparent 27%),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgb(255 255 255 / 0.09) 0,
+      rgb(255 255 255 / 0.09) 1px,
+      rgb(0 0 0 / 0.025) 2px,
+      transparent 3px
+    ),
+    conic-gradient(
+      from 225deg,
+      #747775,
+      #e4e6e2 12%,
+      #9b9e9b 28%,
+      #f5f5f1 45%,
+      #858886 61%,
+      #d8dad6 78%,
+      #747775
+    );
+  box-shadow:
+    inset 0 0 0 0.42rem rgb(255 255 255 / 0.16),
+    inset 0 0 2.8rem rgb(35 37 35 / 0.34),
+    0 2.2rem 4rem rgb(31 32 29 / 0.18);
+}
+
+.staticDiscRing {
+  position: absolute;
+  inset: 4%;
+  border: 1px solid rgb(31 33 31 / 0.35);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.28),
+    0 0 0 1px rgb(255 255 255 / 0.18);
+}
+
+.staticDiscRing::before,
+.staticDiscRing::after {
+  position: absolute;
+  border: 1px solid rgb(31 33 31 / 0.13);
+  border-radius: inherit;
+  content: "";
+}
+
+.staticDiscRing::before {
+  inset: 17%;
+}
+
+.staticDiscRing::after {
+  inset: 34%;
+}
+
+.staticDiscCore {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3.1%;
+  aspect-ratio: 1;
+  border: 2px solid #c9f24a;
+  border-radius: 50%;
+  background: #d8dad7;
+  box-shadow: 0 0 0 0.55rem rgb(225 227 223 / 0.36);
+  transform: translate(-50%, -50%);
+}
+
+.discNavigation {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.discNavigationHidden {
+  opacity: 0;
+  transform: scale(0.965);
+}
+
+.discCenterMark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  min-width: 8.5rem;
+  justify-items: center;
+  transform: translate(-50%, -50%);
+  color: rgb(22 24 21 / 0.78);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(0.42rem, 0.62vw, 0.58rem);
+  letter-spacing: 0.12em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.discCenterMark strong {
+  margin-top: 0.05rem;
+  font-family: var(--font-sans), sans-serif;
+  font-size: clamp(0.72rem, 0.95vw, 0.94rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.discCenterMark i {
+  width: 2.3rem;
+  height: 1px;
+  margin-block: 0.52rem 0.46rem;
+  background: rgb(22 24 21 / 0.36);
+}
+
+.discEntries {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.discEntry {
+  position: absolute;
+  width: clamp(6.4rem, 10vw, 8.4rem);
+  color: rgb(18 20 17 / 0.82);
+  text-align: center;
+}
+
+.discEntry1 {
+  top: 11.5%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.discEntry2 {
+  right: 12%;
+  bottom: 19%;
+}
+
+.discEntry3 {
+  bottom: 19%;
+  left: 12%;
+}
+
+.entryAction {
+  display: grid;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  place-items: center;
+  background: transparent;
+  color: inherit;
+  cursor: inherit;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+a.entryAction {
+  pointer-events: auto;
+}
+
+.entryIndex,
+.entryState {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(0.38rem, 0.5vw, 0.48rem);
+  letter-spacing: 0.13em;
+}
+
+.entryName {
+  font-size: clamp(0.68rem, 0.92vw, 0.9rem);
+  font-weight: 660;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.entryState {
+  margin-top: 0.22rem;
+  color: rgb(18 20 17 / 0.52);
+}
+
+.entryAction:focus-visible {
+  border-radius: 0.15rem;
+  outline: 2px solid #141512;
+  outline-offset: 0.32rem;
+}
+
+.discInstructions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  color: rgb(20 21 18 / 0.58);
+  font-size: 0.54rem;
+  letter-spacing: 0.12em;
+}
+
+.footer {
+  align-items: flex-end;
+  padding-bottom: max(1.45rem, env(safe-area-inset-bottom));
+}
+
+.footer p {
+  margin: 0;
+  font-size: clamp(0.65rem, 0.78vw, 0.76rem);
+  line-height: 1.45;
+}
+
+.footerStatus {
+  display: grid;
+  justify-items: end;
+  font-size: 0.54rem !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.footerStatus strong {
+  margin-top: 0.2rem;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.67rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+@media (max-width: 900px) {
+  .page {
+    --page-gutter: clamp(1rem, 4vw, 2rem);
+  }
+
+  .leftMeta {
+    top: auto;
+    bottom: 1rem;
+  }
+
+  .rightMeta {
+    top: 1rem;
+    transform: none;
+  }
+
+  .discStage {
+    width: min(64svh, 75vw, 36rem);
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    min-height: 100svh;
+  }
+
+  .header {
+    align-items: flex-start;
+  }
+
+  .headerMeta {
+    max-width: 10rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.35rem 0.55rem;
+    text-align: right;
+  }
+
+  .headerDivider {
+    display: none;
+  }
+
+  .hero {
+    padding-block: 0.5rem;
+  }
+
+  .discStage {
+    width: min(calc(100vw - 1.75rem), 58svh, 28rem);
+  }
+
+  .leftMeta,
+  .rightMeta {
+    display: none;
+  }
+
+  .discEntry {
+    width: 5.4rem;
+  }
+
+  .discEntry1 {
+    top: 10.5%;
+  }
+
+  .discEntry2 {
+    right: 9%;
+    bottom: 18%;
+  }
+
+  .discEntry3 {
+    bottom: 18%;
+    left: 9%;
+  }
+
+  .discCenterMark {
+    min-width: 6.75rem;
+  }
+
+  .discInstructions {
+    font-size: 0.48rem;
+  }
+
+  .footerStatus {
+    max-width: 8.4rem;
+    text-align: right;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 641px) {
+  .discStage {
+    width: min(58svh, 48vw, 31rem);
+  }
+
+  .header {
+    padding-top: 1rem;
+  }
+
+  .footer {
+    padding-bottom: 1rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .discStage {
+    width: min(72svh, 42vw);
+  }
+
+  .discInstructions {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discNavigation,
+  .discStage::before {
+    transition: none;
+  }
+}
