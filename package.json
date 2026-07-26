@@ -5,6 +5,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/project.ps1 start",
+    "dev:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/project.ps1 stop",
+    "dev:restart": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/project.ps1 restart",
+    "dev:status": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/project.ps1 status",
+    "dev:logs": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/project.ps1 logs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."

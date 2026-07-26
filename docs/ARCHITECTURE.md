@@ -62,6 +62,9 @@ lib/
 ├── discPhysics.ts                   轨迹球映射、角速度、弹簧复位
 └── utils.ts                         className 合并
 
+scripts/
+└── project.ps1                      本地开发服务启动、停止与状态管理
+
 docs/
 ├── ARCHITECTURE.md                  本文档
 └── PRD.md                           产品需求与验收标准
@@ -130,9 +133,12 @@ flowchart TD
 npm run lint
 npx tsc --noEmit --incremental false
 npm run build
+npm run dev:start
+npm run dev:status
+npm run dev:stop
 ```
 
-结果均通过。生产构建输出 4 个静态页面（含 Next 的 `_not-found`）。
+结果均通过。生产构建输出 4 个静态页面（含 Next 的 `_not-found`）；开发服务管理脚本已验证启动、HTTP 200、日志读取和安全停止流程。
 
 尚未完成：
 
@@ -187,4 +193,3 @@ npm run build
 - 功能性文字不只存在于 Canvas。
 - 重效果必须有 reduced-motion、静态降级和性能上限。
 - 新 Profile 通过配置注册，不在首页硬编码路由。
-

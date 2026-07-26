@@ -17,6 +17,7 @@
 - [x] PRD 与可验收需求。
 - [x] 新 Home Page 第一版。
 - [x] lint、TypeScript、production build 通过。
+- [x] 本地开发服务统一启动、停止、重启、状态与日志脚本。
 - [ ] 浏览器视觉与交互验收。
 - [ ] 自动化测试与正式发布链路。
 
@@ -149,4 +150,3 @@
 - [ ] 依赖安全风险已评估并记录。
 - [ ] Metadata、favicon、OG、sitemap、robots 完成。
 - [ ] 正式域名与部署平台确认。
-
