@@ -1,7 +1,7 @@
 import { Euler, Quaternion, Vector3 } from "three";
 
 const MAX_ANGULAR_SPEED = 6;
-const REST_EULER = new Euler(-0.11, 0.18, -0.035, "XYZ");
+const REST_EULER = new Euler(-0.14, 0.2, -0.035, "XYZ");
 
 export type DiscController = {
   orientation: Quaternion;

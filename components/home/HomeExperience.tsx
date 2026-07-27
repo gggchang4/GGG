@@ -14,7 +14,7 @@ import {
 } from "react";
 import gsap from "gsap";
 import { DiscNavigation } from "@/components/home/DiscNavigation";
-import { StaticMetalDisc } from "@/components/home/StaticMetalDisc";
+import { StaticGlassLens } from "@/components/home/StaticGlassLens";
 import { stylesConfig } from "@/data/stylesConfig";
 import {
   beginDiscDrag,
@@ -27,11 +27,11 @@ import {
 } from "@/lib/discPhysics";
 import styles from "@/components/home/home.module.css";
 
-const MetalDiscScene = dynamic(
-  () => import("@/components/home/MetalDiscScene").then((module) => module.MetalDiscScene),
+const GlassLensScene = dynamic(
+  () => import("@/components/home/GlassLensScene").then((module) => module.GlassLensScene),
   {
     ssr: false,
-    loading: () => <StaticMetalDisc />,
+    loading: () => <StaticGlassLens />,
   },
 );
 
@@ -260,7 +260,7 @@ export function HomeExperience() {
             } ${reducedMotion ? styles.discStageReduced : ""}`}
             role="group"
             tabIndex={0}
-            aria-label="Interactive metal profile selector"
+            aria-label="Interactive glass profile lens"
             aria-describedby="disc-instructions"
             onKeyDown={handleKeyDown}
             onPointerDown={handlePointerDown}
@@ -275,11 +275,11 @@ export function HomeExperience() {
               }
             }}
           >
-            <DiscSceneBoundary fallback={<StaticMetalDisc />}>
+            <DiscSceneBoundary fallback={<StaticGlassLens />}>
               {reducedMotion ? (
-                <StaticMetalDisc />
+                <StaticGlassLens />
               ) : (
-                <MetalDiscScene
+                <GlassLensScene
                   controllerRef={controllerRef}
                   onSettled={handleDiscSettled}
                 />
