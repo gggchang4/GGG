@@ -4,7 +4,7 @@ export function StaticGlassLens() {
   return (
     <div className={styles.staticLens} aria-hidden="true">
       <span className={styles.staticLensRim} />
-      <span className={styles.staticLensInclusion} />
+      <span className={styles.staticLensGlow} />
     </div>
   );
 }

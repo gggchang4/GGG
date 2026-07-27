@@ -6,15 +6,13 @@ import {
   CanvasTexture,
   Color,
   Group,
+  LatheGeometry,
   LinearFilter,
-  PMREMGenerator,
-  PointLight,
-  Scene,
+  ShaderMaterial,
   SRGBColorSpace,
   Texture,
   Vector2,
 } from "three";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { DiscController } from "@/lib/discPhysics";
 import { stepDiscPhysics } from "@/lib/discPhysics";
 import styles from "@/components/home/home.module.css";
@@ -35,44 +33,180 @@ const GL_CONFIG = {
 };
 
 const LENS_RADIUS = 2.34;
-const LENS_CENTER_HALF_THICKNESS = 0.23;
-const LENS_EDGE_HALF_THICKNESS = 0.048;
-const LENS_PROFILE_SEGMENTS = 48;
+const BACK_DEPTH = -0.2178685;
+const RIM_RADIUS = 0.12;
+const RIM_CENTER_RADIUS = 2.22;
+const RIM_CENTER_DEPTH = -0.0978685;
+const RIM_JOIN_ANGLE = (80 * Math.PI) / 180;
+const FRONT_JOIN_RADIUS = 2.2408378;
+const FRONT_JOIN_DEPTH = 0.0203084;
+const FRONT_CURVATURE = 0.039343986;
+const RIM_SEGMENTS = 32;
+const FRONT_SEGMENTS = 64;
 
-function setSceneEnvironment(scene: Scene, environment: Texture | null) {
-  scene.environment = environment;
-}
+const LENS_VERTEX_SHADER = `
+  varying vec3 vViewNormal;
+  varying vec3 vViewPosition;
+  varying vec3 vObjectPosition;
+  varying float vRadius;
+  varying float vConvex;
 
-function createLensProfile() {
-  const points: Vector2[] = [];
+  void main() {
+    vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
 
-  for (let index = 0; index <= LENS_PROFILE_SEGMENTS; index += 1) {
-    const ratio = index / LENS_PROFILE_SEGMENTS;
-    const radius = LENS_RADIUS * ratio;
-    const curve = Math.pow(Math.max(0, 1 - ratio * ratio), 1.25);
-    const halfThickness =
-      LENS_EDGE_HALF_THICKNESS +
-      (LENS_CENTER_HALF_THICKNESS - LENS_EDGE_HALF_THICKNESS) * curve;
+    vViewNormal = normalize(normalMatrix * normal);
+    vViewPosition = -viewPosition.xyz;
+    vObjectPosition = position;
+    vRadius = length(position.xy) / ${LENS_RADIUS.toFixed(2)};
+    vConvex = smoothstep(-0.05, 0.28, normal.z);
 
-    points.push(new Vector2(radius, -halfThickness));
+    gl_Position = projectionMatrix * viewPosition;
+  }
+`;
+
+const LENS_FRAGMENT_SHADER = `
+  uniform sampler2D uBackdrop;
+  uniform sampler2D uBackdropBlur;
+  uniform vec2 uResolution;
+  uniform vec2 uPointer;
+  uniform float uEnergy;
+
+  varying vec3 vViewNormal;
+  varying vec3 vViewPosition;
+  varying vec3 vObjectPosition;
+  varying float vRadius;
+  varying float vConvex;
+
+  float glassLuminance(vec3 color) {
+    return dot(color, vec3(0.2126, 0.7152, 0.0722));
   }
 
-  for (let index = LENS_PROFILE_SEGMENTS; index >= 0; index -= 1) {
-    const ratio = index / LENS_PROFILE_SEGMENTS;
-    const radius = LENS_RADIUS * ratio;
-    const curve = Math.pow(Math.max(0, 1 - ratio * ratio), 1.25);
-    const halfThickness =
-      LENS_EDGE_HALF_THICKNESS +
-      (LENS_CENTER_HALF_THICKNESS - LENS_EDGE_HALF_THICKNESS) * curve;
-
-    points.push(new Vector2(radius, halfThickness));
+  vec2 safeNormalize(vec2 value) {
+    return value / max(length(value), 0.0001);
   }
 
-  return points;
+  void main() {
+    vec2 screenUv = gl_FragCoord.xy / max(uResolution, vec2(1.0));
+    vec3 normal = normalize(vViewNormal);
+    vec3 viewDirection = normalize(vViewPosition);
+    float facing = clamp(abs(dot(normal, viewDirection)), 0.0, 1.0);
+    float fresnel = pow(1.0 - facing, 2.2);
+    float outerBand = smoothstep(0.7, 1.0, vRadius);
+    float convexResponse = mix(0.34, 1.0, vConvex);
+
+    float warpStrength =
+      (0.0025 + outerBand * 0.026 + fresnel * 0.011) *
+      convexResponse *
+      (1.0 + uEnergy * 0.22);
+    vec2 warp = -normal.xy * warpStrength;
+    vec2 refractedUv = clamp(screenUv + warp, vec2(0.002), vec2(0.998));
+
+    vec2 bendDirection = safeNormalize(normal.xy);
+    vec2 chromaOffset =
+      bendDirection *
+      (0.0005 + outerBand * 0.0018 + fresnel * 0.0012) *
+      convexResponse;
+
+    vec3 centerSample = texture2D(uBackdrop, refractedUv).rgb;
+    vec3 originalSample = texture2D(uBackdrop, screenUv).rgb;
+    vec3 chromaticSample = vec3(
+      texture2D(uBackdrop, clamp(refractedUv + chromaOffset, vec2(0.002), vec2(0.998))).r,
+      centerSample.g,
+      texture2D(uBackdrop, clamp(refractedUv - chromaOffset, vec2(0.002), vec2(0.998))).b
+    );
+    vec3 scatteredSample = texture2D(
+      uBackdropBlur,
+      clamp(screenUv + warp * 0.58, vec2(0.002), vec2(0.998))
+    ).rgb;
+    float scatter = 0.11 + outerBand * 0.2 + fresnel * 0.08;
+    vec3 refracted = mix(chromaticSample, scatteredSample, scatter);
+    float lensingDelta = min(length(chromaticSample - originalSample), 0.16);
+
+    float backgroundLuminance = glassLuminance(refracted);
+    vec2 rimDirection = safeNormalize(normal.xy);
+    float lightMix = 0.5 + 0.5 * dot(rimDirection, normalize(vec2(-0.72, 0.69)));
+    vec3 rimColor = mix(vec3(1.0, 0.89, 0.77), vec3(0.7, 0.92, 0.98), lightMix);
+
+    vec3 lightA = normalize(vec3(-0.48, 0.68, 0.56));
+    vec3 lightB = normalize(vec3(0.62, -0.42, 0.66));
+    float highlightA = pow(max(dot(reflect(-lightA, normal), viewDirection), 0.0), 34.0);
+    float highlightB = pow(max(dot(reflect(-lightB, normal), viewDirection), 0.0), 52.0);
+    float edgeLight = pow(fresnel, 1.45);
+    float causticBand = exp(-pow((vRadius - 0.91) * 13.5, 2.0));
+
+    vec2 localPosition = vObjectPosition.xy / ${LENS_RADIUS.toFixed(2)};
+    vec2 localGlintDelta = localPosition - vec2(-0.24, 0.18);
+    float localGlint = exp(-dot(localGlintDelta, localGlintDelta) * 34.0);
+
+    float pointerDistance = distance(screenUv, uPointer);
+    float pointerGlow = exp(-pointerDistance * pointerDistance * 24.0) * uEnergy;
+
+    float shadowDirection = smoothstep(
+      -0.35,
+      0.9,
+      dot(rimDirection, normalize(vec2(0.58, -0.82)))
+    );
+    float adaptiveShadow =
+      shadowDirection *
+      outerBand *
+      mix(0.025, 0.065, 1.0 - backgroundLuminance);
+
+    vec3 color = refracted * (1.0 - adaptiveShadow);
+    color += rimColor * (outerBand * 0.065 + edgeLight * 0.115 + lensingDelta * 0.5);
+    color += rimColor * causticBand * (0.035 + lightMix * 0.035 + uEnergy * 0.025);
+    color += vec3(1.0) * (highlightA * 0.13 + highlightB * 0.075);
+    color += vec3(1.0, 0.98, 0.9) * pointerGlow * (0.05 + outerBand * 0.055);
+    color += vec3(0.86, 0.98, 1.0) * localGlint * (0.018 + uEnergy * 0.022);
+
+    float alpha =
+      0.24 +
+      outerBand * 0.42 +
+      edgeLight * 0.19 +
+      causticBand * 0.07 +
+      highlightA * 0.05 +
+      pointerGlow * 0.06;
+
+    gl_FragColor = vec4(color, clamp(alpha, 0.26, 0.88));
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }
+`;
+
+function createPlanoConvexGeometry() {
+  const profile: Vector2[] = [
+    new Vector2(0, BACK_DEPTH),
+    new Vector2(RIM_CENTER_RADIUS, BACK_DEPTH),
+  ];
+  const rimAngleRange = RIM_JOIN_ANGLE + Math.PI / 2;
+
+  for (let index = 1; index <= RIM_SEGMENTS; index += 1) {
+    const angle = -Math.PI / 2 + rimAngleRange * (index / RIM_SEGMENTS);
+
+    profile.push(
+      new Vector2(
+        RIM_CENTER_RADIUS + RIM_RADIUS * Math.cos(angle),
+        RIM_CENTER_DEPTH + RIM_RADIUS * Math.sin(angle),
+      ),
+    );
+  }
+
+  for (let index = 1; index <= FRONT_SEGMENTS; index += 1) {
+    const radius = FRONT_JOIN_RADIUS * (1 - index / FRONT_SEGMENTS);
+    const depth =
+      FRONT_JOIN_DEPTH +
+      FRONT_CURVATURE * (FRONT_JOIN_RADIUS ** 2 - radius ** 2);
+
+    profile.push(new Vector2(radius, depth));
+  }
+
+  const geometry = new LatheGeometry(profile, 160);
+  geometry.rotateX(Math.PI / 2);
+  geometry.center();
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
-function createOpticalBackdropTexture() {
-  const size = 1024;
+function createBackdropTexture(size: number, softened = false) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
 
@@ -87,48 +221,50 @@ function createOpticalBackdropTexture() {
   context.fillRect(0, 0, size, size);
 
   const centerGlow = context.createRadialGradient(
+    size * 0.5,
     size * 0.47,
-    size * 0.42,
     0,
     size * 0.5,
     size * 0.48,
-    size * 0.62,
+    size * 0.61,
   );
-  centerGlow.addColorStop(0, "rgba(255, 255, 252, 0.76)");
-  centerGlow.addColorStop(0.42, "rgba(248, 249, 245, 0.54)");
+  centerGlow.addColorStop(0, "rgba(255, 255, 252, 0.88)");
+  centerGlow.addColorStop(0.44, "rgba(249, 249, 245, 0.58)");
   centerGlow.addColorStop(1, "rgba(235, 234, 228, 0)");
   context.fillStyle = centerGlow;
   context.fillRect(0, 0, size, size);
 
-  const mintGlow = context.createRadialGradient(
-    size * 0.69,
-    size * 0.66,
+  const coolSpill = context.createRadialGradient(
+    size * 0.72,
+    size * 0.68,
     0,
-    size * 0.69,
-    size * 0.66,
-    size * 0.32,
+    size * 0.72,
+    size * 0.68,
+    size * 0.31,
   );
-  mintGlow.addColorStop(0, "rgba(163, 222, 215, 0.25)");
-  mintGlow.addColorStop(0.5, "rgba(189, 226, 225, 0.1)");
-  mintGlow.addColorStop(1, "rgba(189, 226, 225, 0)");
-  context.fillStyle = mintGlow;
+  coolSpill.addColorStop(0, "rgba(149, 214, 211, 0.2)");
+  coolSpill.addColorStop(0.56, "rgba(178, 217, 224, 0.08)");
+  coolSpill.addColorStop(1, "rgba(178, 217, 224, 0)");
+  context.fillStyle = coolSpill;
   context.fillRect(0, 0, size, size);
 
-  const blueGlow = context.createRadialGradient(
+  const warmSpill = context.createRadialGradient(
+    size * 0.27,
     size * 0.28,
-    size * 0.31,
     0,
+    size * 0.27,
     size * 0.28,
-    size * 0.31,
     size * 0.25,
   );
-  blueGlow.addColorStop(0, "rgba(172, 197, 231, 0.19)");
-  blueGlow.addColorStop(1, "rgba(172, 197, 231, 0)");
-  context.fillStyle = blueGlow;
+  warmSpill.addColorStop(0, "rgba(246, 215, 184, 0.14)");
+  warmSpill.addColorStop(1, "rgba(246, 215, 184, 0)");
+  context.fillStyle = warmSpill;
   context.fillRect(0, 0, size, size);
 
-  context.lineWidth = 1;
-  context.strokeStyle = "rgba(20, 21, 18, 0.045)";
+  context.lineWidth = softened ? 2 : 1;
+  context.strokeStyle = softened
+    ? "rgba(20, 21, 18, 0.025)"
+    : "rgba(20, 21, 18, 0.045)";
 
   for (let index = 1; index < 8; index += 1) {
     const position = Math.round((size / 8) * index) + 0.5;
@@ -138,7 +274,10 @@ function createOpticalBackdropTexture() {
     context.stroke();
   }
 
-  context.strokeStyle = "rgba(20, 21, 18, 0.18)";
+  context.lineWidth = softened ? 3 : 1;
+  context.strokeStyle = softened
+    ? "rgba(20, 21, 18, 0.045)"
+    : "rgba(20, 21, 18, 0.11)";
   context.beginPath();
   context.moveTo(size / 2 + 0.5, 0);
   context.lineTo(size / 2 + 0.5, size);
@@ -152,67 +291,32 @@ function createOpticalBackdropTexture() {
   return texture;
 }
 
-function Environment() {
-  const gl = useThree((state) => state.gl);
-  const scene = useThree((state) => state.scene);
-
-  useEffect(() => {
-    const generator = new PMREMGenerator(gl);
-    const room = new RoomEnvironment();
-    const environment = generator.fromScene(room, 0.04).texture;
-
-    setSceneEnvironment(scene, environment);
-
-    return () => {
-      if (scene.environment === environment) {
-        setSceneEnvironment(scene, null);
-      }
-
-      environment.dispose();
-      generator.dispose();
-    };
-  }, [gl, scene]);
-
-  return null;
-}
-
-function OpticalBackdrop() {
-  const texture = useMemo(() => createOpticalBackdropTexture(), []);
-
-  useEffect(() => {
-    return () => texture?.dispose();
-  }, [texture]);
-
-  if (!texture) {
-    return null;
-  }
-
-  return (
-    <mesh position={[0, 0, -3.15]} renderOrder={-2}>
-      <planeGeometry args={[8.5, 8.5]} />
-      <meshBasicMaterial
-        map={texture}
-        transparent
-        opacity={0.36}
-        depthWrite={false}
-        toneMapped={false}
-      />
-    </mesh>
-  );
-}
-
 function Lens({
   controllerRef,
   onSettled,
+  backdrop,
+  softenedBackdrop,
 }: {
   controllerRef: RefObject<DiscController>;
   onSettled: () => void;
+  backdrop: Texture;
+  softenedBackdrop: Texture;
 }) {
   const groupRef = useRef<Group>(null);
-  const lightRef = useRef<PointLight>(null);
+  const materialRef = useRef<ShaderMaterial>(null);
   const wasMovingRef = useRef(false);
-  const { invalidate } = useThree();
-  const lensProfile = useMemo(() => createLensProfile(), []);
+  const geometry = useMemo(() => createPlanoConvexGeometry(), []);
+  const { gl, invalidate, size } = useThree();
+  const uniforms = useMemo(
+    () => ({
+      uBackdrop: { value: backdrop },
+      uBackdropBlur: { value: softenedBackdrop },
+      uResolution: { value: new Vector2(1, 1) },
+      uPointer: { value: new Vector2(0.5, 0.5) },
+      uEnergy: { value: 0 },
+    }),
+    [backdrop, softenedBackdrop],
+  );
 
   useEffect(() => {
     const controller = controllerRef.current;
@@ -226,9 +330,19 @@ function Lens({
     };
   }, [controllerRef, invalidate]);
 
+  useEffect(() => {
+    gl.getDrawingBufferSize(uniforms.uResolution.value);
+    invalidate();
+  }, [gl, invalidate, size.height, size.width, uniforms]);
+
+  useEffect(() => {
+    return () => geometry.dispose();
+  }, [geometry]);
+
   useFrame((_state, delta) => {
     const controller = controllerRef.current;
     const continueAnimating = stepDiscPhysics(controller, delta);
+    const material = materialRef.current;
 
     if (controller.pointerDown || continueAnimating) {
       wasMovingRef.current = true;
@@ -238,104 +352,83 @@ function Lens({
       groupRef.current.quaternion.copy(controller.orientation);
     }
 
-    if (lightRef.current) {
-      lightRef.current.position.x = 3.2 + controller.orientation.y * 1.2;
-      lightRef.current.position.y = 3.6 - controller.orientation.x * 0.9;
+    let materialAnimating = false;
+
+    if (material) {
+      const velocityEnergy = Math.min(1, controller.angularVelocity.length() / 6);
+      const targetEnergy = Math.max(controller.pointerDown ? 0.72 : 0, velocityEnergy);
+      const currentEnergy = material.uniforms.uEnergy.value as number;
+      const response = 1 - Math.exp(-(targetEnergy > currentEnergy ? 16 : 6.5) * delta);
+      const nextEnergy = currentEnergy + (targetEnergy - currentEnergy) * response;
+      const pointer = material.uniforms.uPointer.value as Vector2;
+      const pointerTargetX = controller.lastTrackballPoint.x * 0.5 + 0.5;
+      const pointerTargetY = controller.lastTrackballPoint.y * 0.5 + 0.5;
+      const pointerResponse = 1 - Math.exp(-14 * delta);
+
+      material.uniforms.uEnergy.value = nextEnergy;
+      pointer.x += (pointerTargetX - pointer.x) * pointerResponse;
+      pointer.y += (pointerTargetY - pointer.y) * pointerResponse;
+      materialAnimating =
+        Math.abs(targetEnergy - nextEnergy) > 0.004 ||
+        Math.abs(pointerTargetX - pointer.x) > 0.002 ||
+        Math.abs(pointerTargetY - pointer.y) > 0.002;
     }
 
-    if (continueAnimating) {
-      invalidate();
-    } else if (!controller.pointerDown && wasMovingRef.current) {
+    if (!controller.pointerDown && !continueAnimating && wasMovingRef.current) {
       wasMovingRef.current = false;
       onSettled();
+    }
+
+    if (continueAnimating || materialAnimating) {
+      invalidate();
     }
   });
 
   return (
-    <>
-      <pointLight
-        ref={lightRef}
-        position={[3.2, 3.6, 4.8]}
-        intensity={26}
-        color="#fffaf0"
-      />
-      <pointLight position={[-3.6, -2, 1.6]} intensity={12} color="#b8d8ff" />
-      <pointLight position={[0, 2, -2.8]} intensity={18} color="#d7fff7" />
+    <group ref={groupRef}>
+      <mesh geometry={geometry}>
+        <shaderMaterial
+          ref={materialRef}
+          uniforms={uniforms}
+          vertexShader={LENS_VERTEX_SHADER}
+          fragmentShader={LENS_FRAGMENT_SHADER}
+          transparent
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
+}
 
-      <group ref={groupRef}>
-        <mesh rotation={[Math.PI / 2, 0, 0]} renderOrder={1}>
-          <latheGeometry args={[lensProfile, 128]} />
-          <meshPhysicalMaterial
-            color="#dcf5f2"
-            metalness={0}
-            roughness={0.042}
-            transmission={0.94}
-            transparent
-            opacity={0.54}
-            depthWrite={false}
-            ior={1.46}
-            thickness={0.58}
-            attenuationColor="#d8f5f2"
-            attenuationDistance={4.5}
-            clearcoat={0.82}
-            clearcoatRoughness={0.025}
-            specularIntensity={1}
-            specularColor="#ffffff"
-            envMapIntensity={1.68}
-          />
-        </mesh>
+function SceneContent({
+  controllerRef,
+  onSettled,
+}: {
+  controllerRef: RefObject<DiscController>;
+  onSettled: () => void;
+}) {
+  const backdrop = useMemo(() => createBackdropTexture(512), []);
+  const softenedBackdrop = useMemo(() => createBackdropTexture(128, true), []);
 
-        <mesh renderOrder={2}>
-          <torusGeometry args={[2.326, 0.018, 14, 128]} />
-          <meshPhysicalMaterial
-            color="#bedfdd"
-            metalness={0}
-            roughness={0.08}
-            transparent
-            opacity={0.52}
-            depthWrite={false}
-            clearcoat={1}
-            clearcoatRoughness={0.02}
-            envMapIntensity={1.8}
-          />
-        </mesh>
+  useEffect(() => {
+    return () => {
+      backdrop?.dispose();
+      softenedBackdrop?.dispose();
+    };
+  }, [backdrop, softenedBackdrop]);
 
-        <mesh position={[0, 0, 0.032]} rotation={[0, 0, 2.28]} renderOrder={3}>
-          <torusGeometry args={[2.304, 0.022, 10, 72, Math.PI * 0.58]} />
-          <meshBasicMaterial
-            color="#ffffff"
-            transparent
-            opacity={0.48}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
+  if (!backdrop || !softenedBackdrop) {
+    return null;
+  }
 
-        <mesh position={[0, 0, -0.026]} rotation={[0, 0, -0.68]} renderOrder={3}>
-          <torusGeometry args={[2.308, 0.015, 10, 64, Math.PI * 0.42]} />
-          <meshBasicMaterial
-            color="#b7e9ec"
-            transparent
-            opacity={0.34}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-
-        <mesh position={[0.72, -0.48, 0.04]} renderOrder={4}>
-          <sphereGeometry args={[0.038, 24, 16]} />
-          <meshPhysicalMaterial
-            color="#c9f24a"
-            emissive="#c9f24a"
-            emissiveIntensity={0.12}
-            roughness={0.08}
-            transmission={0.42}
-            thickness={0.12}
-            ior={1.38}
-          />
-        </mesh>
-      </group>
-    </>
+  return (
+    <Lens
+      controllerRef={controllerRef}
+      onSettled={onSettled}
+      backdrop={backdrop}
+      softenedBackdrop={softenedBackdrop}
+    />
   );
 }
 
@@ -355,14 +448,9 @@ export function GlassLensScene({ controllerRef, onSettled }: GlassLensSceneProps
       gl={GL_CONFIG}
       onCreated={({ gl }) => {
         gl.setClearColor(new Color("#ebeae4"), 0);
-        gl.toneMappingExposure = 0.99;
       }}
     >
-      <Environment />
-      <OpticalBackdrop />
-      <ambientLight intensity={0.18} />
-      <directionalLight position={[-2, 4, 5]} intensity={1.6} color="#ffffff" />
-      <Lens controllerRef={controllerRef} onSettled={onSettled} />
+      <SceneContent controllerRef={controllerRef} onSettled={onSettled} />
     </Canvas>
   );
 }
