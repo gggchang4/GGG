@@ -55,6 +55,7 @@ export function HomeExperience() {
   const controllerRef = useRef(createDiscController());
   const gestureRef = useRef({ startX: 0, startY: 0, crossedThreshold: false });
   const [isDragging, setIsDragging] = useState(false);
+  const [isPointerFocused, setIsPointerFocused] = useState(false);
   const [discInMotion, setDiscInMotion] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const handleDiscSettled = useCallback(() => setDiscInMotion(false), []);
@@ -158,21 +159,25 @@ export function HomeExperience() {
       crossedThreshold: false,
     };
 
+    setIsPointerFocused(true);
     event.currentTarget.setPointerCapture(event.pointerId);
     beginDiscDrag(controllerRef.current, event.pointerId, trackballPoint, event.timeStamp);
     controllerRef.current.requestFrame?.();
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const trackballPoint = projectPointerToTrackball(event.clientX, event.clientY, bounds);
+
     if (
       !controllerRef.current.pointerDown ||
       controllerRef.current.pointerId !== event.pointerId
     ) {
+      controllerRef.current.lastTrackballPoint.copy(trackballPoint);
+      controllerRef.current.requestFrame?.();
       return;
     }
 
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const trackballPoint = projectPointerToTrackball(event.clientX, event.clientY, bounds);
     const movedDistance = Math.hypot(
       event.clientX - gestureRef.current.startX,
       event.clientY - gestureRef.current.startY,
@@ -189,6 +194,8 @@ export function HomeExperience() {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    setIsPointerFocused(false);
+
     if (reducedMotion) {
       return;
     }
@@ -257,7 +264,9 @@ export function HomeExperience() {
           <div
             className={`${styles.discStage} ${
               !reducedMotion && isDragging ? styles.discStageDragging : ""
-            } ${reducedMotion ? styles.discStageReduced : ""}`}
+            } ${reducedMotion ? styles.discStageReduced : ""} ${
+              isPointerFocused ? styles.discStagePointerFocused : ""
+            }`}
             role="group"
             tabIndex={0}
             aria-label="Interactive glass profile lens"
@@ -274,16 +283,14 @@ export function HomeExperience() {
                 controllerRef.current.requestFrame?.();
               }
             }}
+            onBlur={() => setIsPointerFocused(false)}
           >
             <DiscSceneBoundary fallback={<StaticGlassLens />}>
-              {reducedMotion ? (
-                <StaticGlassLens />
-              ) : (
-                <GlassLensScene
-                  controllerRef={controllerRef}
-                  onSettled={handleDiscSettled}
-                />
-              )}
+              <GlassLensScene
+                controllerRef={controllerRef}
+                onSettled={handleDiscSettled}
+                reducedMotion={reducedMotion}
+              />
             </DiscSceneBoundary>
 
             <DiscNavigation
@@ -291,6 +298,8 @@ export function HomeExperience() {
               isDragging={!reducedMotion && discInMotion}
             />
           </div>
+
+          <p className="sr-only">Personal signature: GGG</p>
 
           <p id="disc-instructions" className={styles.discInstructions}>
             <span>{reducedMotion ? "Static mode" : "Drag to rotate"}</span>
