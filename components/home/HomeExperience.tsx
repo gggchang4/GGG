@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import {
   Component,
   useCallback,
@@ -13,9 +12,8 @@ import {
   type ReactNode,
 } from "react";
 import gsap from "gsap";
-import { DiscNavigation } from "@/components/home/DiscNavigation";
-import { StaticMetalDisc } from "@/components/home/StaticMetalDisc";
-import { stylesConfig } from "@/data/stylesConfig";
+import { StaticGlassLens } from "@/components/home/StaticGlassLens";
+import { WaterSurface } from "@/components/home/WaterSurface";
 import {
   beginDiscDrag,
   createDiscController,
@@ -27,11 +25,11 @@ import {
 } from "@/lib/discPhysics";
 import styles from "@/components/home/home.module.css";
 
-const MetalDiscScene = dynamic(
-  () => import("@/components/home/MetalDiscScene").then((module) => module.MetalDiscScene),
+const GlassLensScene = dynamic(
+  () => import("@/components/home/GlassLensScene").then((module) => module.GlassLensScene),
   {
     ssr: false,
-    loading: () => <StaticMetalDisc />,
+    loading: () => <StaticGlassLens />,
   },
 );
 
@@ -52,12 +50,14 @@ class DiscSceneBoundary extends Component<
 
 export function HomeExperience() {
   const rootRef = useRef<HTMLElement>(null);
+  const lensRef = useRef<HTMLDivElement>(null);
+  const lensInteractionLockedRef = useRef(false);
   const controllerRef = useRef(createDiscController());
   const gestureRef = useRef({ startX: 0, startY: 0, crossedThreshold: false });
   const [isDragging, setIsDragging] = useState(false);
-  const [discInMotion, setDiscInMotion] = useState(false);
+  const [isPointerFocused, setIsPointerFocused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const handleDiscSettled = useCallback(() => setDiscInMotion(false), []);
+  const handleDiscSettled = useCallback(() => undefined, []);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -73,6 +73,7 @@ export function HomeExperience() {
     controllerRef.current.reducedMotion = reducedMotion;
 
     if (reducedMotion) {
+      lensInteractionLockedRef.current = false;
       resetDisc(controllerRef.current);
     }
   }, [reducedMotion]);
@@ -87,18 +88,16 @@ export function HomeExperience() {
       matchMedia.add("(prefers-reduced-motion: no-preference)", () => {
         gsap
           .timeline({ defaults: { ease: "power3.out" } })
-          .from("[data-reveal='header']", { autoAlpha: 0, y: -14, duration: 0.72 })
+          .from(
+            "[data-reveal='brand']",
+            { autoAlpha: 0, y: -10, duration: 0.72 },
+            0,
+          )
           .from(
             "[data-reveal='disc']",
             { autoAlpha: 0, y: 28, scale: 0.94, duration: 1.08 },
-            0.08,
-          )
-          .from(
-            "[data-reveal='meta']",
-            { autoAlpha: 0, y: 12, duration: 0.62, stagger: 0.08 },
-            0.42,
-          )
-          .from("[data-reveal='rule']", { scaleX: 0, duration: 0.8 }, 0.16);
+            0,
+          );
       });
 
     }, rootRef);
@@ -116,6 +115,7 @@ export function HomeExperience() {
       }
 
       endDiscDrag(controllerRef.current);
+      lensInteractionLockedRef.current = false;
       setIsDragging(false);
       controllerRef.current.requestFrame?.();
     };
@@ -131,11 +131,8 @@ export function HomeExperience() {
 
     const pointerId = event?.pointerId;
     endDiscDrag(controllerRef.current, pointerId);
+    lensInteractionLockedRef.current = false;
     setIsDragging(false);
-
-    if (!gestureRef.current.crossedThreshold) {
-      setDiscInMotion(false);
-    }
 
     controllerRef.current.requestFrame?.();
 
@@ -158,21 +155,26 @@ export function HomeExperience() {
       crossedThreshold: false,
     };
 
+    setIsPointerFocused(true);
+    lensInteractionLockedRef.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
     beginDiscDrag(controllerRef.current, event.pointerId, trackballPoint, event.timeStamp);
     controllerRef.current.requestFrame?.();
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const trackballPoint = projectPointerToTrackball(event.clientX, event.clientY, bounds);
+
     if (
       !controllerRef.current.pointerDown ||
       controllerRef.current.pointerId !== event.pointerId
     ) {
+      controllerRef.current.lastTrackballPoint.copy(trackballPoint);
+      controllerRef.current.requestFrame?.();
       return;
     }
 
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const trackballPoint = projectPointerToTrackball(event.clientX, event.clientY, bounds);
     const movedDistance = Math.hypot(
       event.clientX - gestureRef.current.startX,
       event.clientY - gestureRef.current.startY,
@@ -181,7 +183,6 @@ export function HomeExperience() {
     if (!gestureRef.current.crossedThreshold && movedDistance > 6) {
       gestureRef.current.crossedThreshold = true;
       setIsDragging(true);
-      setDiscInMotion(true);
     }
 
     updateDiscDrag(controllerRef.current, trackballPoint, event.timeStamp);
@@ -189,6 +190,8 @@ export function HomeExperience() {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    setIsPointerFocused(false);
+
     if (reducedMotion) {
       return;
     }
@@ -205,63 +208,50 @@ export function HomeExperience() {
 
     if (action) {
       event.preventDefault();
-      setDiscInMotion(true);
       nudgeDisc(controllerRef.current, action.axis, action.direction);
       return;
     }
 
     if (event.key === "Escape" || event.key === "Home") {
       event.preventDefault();
-
-      if (
-        controllerRef.current.orientation.angleTo(controllerRef.current.restOrientation) > 0.001
-      ) {
-        setDiscInMotion(true);
-      }
-
       resetDisc(controllerRef.current);
     }
   };
 
   return (
     <main ref={rootRef} className={styles.page}>
-      <div className={styles.backgroundTexture} aria-hidden="true" />
-      <div className={styles.verticalRule} data-reveal="rule" aria-hidden="true" />
+      <WaterSurface
+        lensRef={lensRef}
+        interactionLockedRef={lensInteractionLockedRef}
+        reducedMotion={reducedMotion}
+      />
 
-      <header className={styles.header} data-reveal="header">
-        <Link className={styles.wordmark} href="/" aria-label="Profile Index home">
-          <span>Profile</span>
-          <span>Index</span>
-        </Link>
-
-        <div className={styles.headerMeta}>
-          <span className={styles.liveDot} aria-hidden="true" />
-          <span>Frontend / Motion / 3D</span>
-          <span className={styles.headerDivider} aria-hidden="true" />
-          <span>Edition 001</span>
-        </div>
-      </header>
+      <p
+        className={styles.homeWordmark}
+        data-reveal="brand"
+        aria-label="GGG Profile"
+      >
+        <span aria-hidden="true">GGG</span>
+        <span aria-hidden="true">Profile</span>
+      </p>
 
       <section className={styles.hero} aria-labelledby="home-title">
         <h1 id="home-title" className="sr-only">
-          An interactive index of personal profile perspectives
+          GGG Profile — GGG Cheese glass lens
         </h1>
-
-        <p className={styles.leftMeta} data-reveal="meta">
-          A personal digital gallery
-          <br />
-          built through interaction.
-        </p>
 
         <div className={styles.discAssembly} data-reveal="disc">
           <div
+            ref={lensRef}
             className={`${styles.discStage} ${
               !reducedMotion && isDragging ? styles.discStageDragging : ""
-            } ${reducedMotion ? styles.discStageReduced : ""}`}
+            } ${reducedMotion ? styles.discStageReduced : ""} ${
+              isPointerFocused ? styles.discStagePointerFocused : ""
+            }`}
             role="group"
             tabIndex={0}
-            aria-label="Interactive metal profile selector"
-            aria-describedby="disc-instructions"
+            aria-label="Interactive GGG Cheese glass lens"
+            aria-describedby="lens-instructions"
             onKeyDown={handleKeyDown}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -270,54 +260,29 @@ export function HomeExperience() {
             onLostPointerCapture={() => {
               if (controllerRef.current.pointerDown) {
                 endDiscDrag(controllerRef.current);
+                lensInteractionLockedRef.current = false;
                 setIsDragging(false);
                 controllerRef.current.requestFrame?.();
               }
             }}
+            onBlur={() => setIsPointerFocused(false)}
           >
-            <DiscSceneBoundary fallback={<StaticMetalDisc />}>
-              {reducedMotion ? (
-                <StaticMetalDisc />
-              ) : (
-                <MetalDiscScene
-                  controllerRef={controllerRef}
-                  onSettled={handleDiscSettled}
-                />
-              )}
+            <DiscSceneBoundary fallback={<StaticGlassLens />}>
+              <GlassLensScene
+                controllerRef={controllerRef}
+                onSettled={handleDiscSettled}
+                reducedMotion={reducedMotion}
+              />
             </DiscSceneBoundary>
-
-            <DiscNavigation
-              profiles={stylesConfig}
-              isDragging={!reducedMotion && discInMotion}
-            />
           </div>
 
-          <p id="disc-instructions" className={styles.discInstructions}>
-            <span>{reducedMotion ? "Static mode" : "Drag to rotate"}</span>
-            <span aria-hidden="true">·</span>
-            <span>{reducedMotion ? "Motion preference respected" : "Release to reset"}</span>
+          <p id="lens-instructions" className="sr-only">
+            {reducedMotion
+              ? "Static glass lens. Motion is disabled by your preference."
+              : "Drag or use the arrow keys to rotate. Press Home or Escape to reset."}
           </p>
         </div>
-
-        <div className={styles.rightMeta} data-reveal="meta">
-          <span>Perspectives</span>
-          <strong>{String(stylesConfig.length).padStart(2, "0")}</strong>
-          <span>Currently reserved</span>
-        </div>
       </section>
-
-      <footer className={styles.footer}>
-        <p data-reveal="meta">
-          Personal identity,
-          <br />
-          rendered three ways.
-        </p>
-
-        <p className={styles.footerStatus} data-reveal="meta">
-          <span>System</span>
-          <strong>Ready for experiments</strong>
-        </p>
-      </footer>
     </main>
   );
 }

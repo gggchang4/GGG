@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import { IBM_Plex_Mono, Kameron, Manrope } from "next/font/google";
 import "@/styles/global.css";
 
 const sans = Manrope({
@@ -12,6 +12,13 @@ const mono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
   weight: ["400", "500"],
+  display: "swap",
+});
+
+const signature = Kameron({
+  subsets: ["latin"],
+  variable: "--font-signature",
+  weight: "600",
   display: "swap",
 });
 
@@ -35,7 +42,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${sans.variable} ${mono.variable}`}>{children}</body>
+      <body className={`${sans.variable} ${mono.variable} ${signature.variable}`}>
+        {children}
+      </body>
     </html>
   );
 }
