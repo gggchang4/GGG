@@ -80,6 +80,8 @@ const MAX_WAVE_LIFETIME = 7200;
 const QUIET_STEP_TARGET = 54;
 const LENS_EXCLUSION_SCALE = 0.47;
 const LENS_EXCLUSION_PADDING = 4;
+const LENS_PHYSICS_INSET_CELLS = 2;
+const LENS_EDGE_FEATHER_CELLS = 1.5;
 
 const LIGHT_X = -0.4508;
 const LIGHT_Y = -0.6211;
@@ -178,22 +180,36 @@ function updateSolidMask(field: WaveField, lens: GridLens | null) {
     return;
   }
 
-  const minimumX = Math.max(0, Math.floor(lens.centerX - lens.radiusX - 1));
+  const physicsRadiusX = Math.max(
+    1,
+    lens.radiusX - LENS_PHYSICS_INSET_CELLS,
+  );
+  const physicsRadiusY = Math.max(
+    1,
+    lens.radiusY - LENS_PHYSICS_INSET_CELLS,
+  );
+  const minimumX = Math.max(
+    0,
+    Math.floor(lens.centerX - physicsRadiusX - 1),
+  );
   const maximumX = Math.min(
     field.width - 1,
-    Math.ceil(lens.centerX + lens.radiusX + 1),
+    Math.ceil(lens.centerX + physicsRadiusX + 1),
   );
-  const minimumY = Math.max(0, Math.floor(lens.centerY - lens.radiusY - 1));
+  const minimumY = Math.max(
+    0,
+    Math.floor(lens.centerY - physicsRadiusY - 1),
+  );
   const maximumY = Math.min(
     field.height - 1,
-    Math.ceil(lens.centerY + lens.radiusY + 1),
+    Math.ceil(lens.centerY + physicsRadiusY + 1),
   );
 
   for (let y = minimumY; y <= maximumY; y += 1) {
-    const normalizedY = (y + 0.5 - lens.centerY) / lens.radiusY;
+    const normalizedY = (y + 0.5 - lens.centerY) / physicsRadiusY;
 
     for (let x = minimumX; x <= maximumX; x += 1) {
-      const normalizedX = (x + 0.5 - lens.centerX) / lens.radiusX;
+      const normalizedX = (x + 0.5 - lens.centerX) / physicsRadiusX;
 
       if (normalizedX * normalizedX + normalizedY * normalizedY > 1) {
         continue;
@@ -484,20 +500,41 @@ function injectPointerSource(
 }
 
 function renderWaveField(field: WaveField) {
-  const { width, height, current, previous, solid } = field;
+  const { width, height, current, previous, solid, lens } = field;
   const pixels = field.imageData.data;
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const index = y * width + x;
       const pixelIndex = index * 4;
+      let lensVisibility = 1;
+
+      if (
+        lens &&
+        Math.abs(x + 0.5 - lens.centerX) <
+          lens.radiusX + LENS_EDGE_FEATHER_CELLS &&
+        Math.abs(y + 0.5 - lens.centerY) <
+          lens.radiusY + LENS_EDGE_FEATHER_CELLS
+      ) {
+        const normalizedX = (x + 0.5 - lens.centerX) / lens.radiusX;
+        const normalizedY = (y + 0.5 - lens.centerY) / lens.radiusY;
+        const edgeDistance =
+          (Math.hypot(normalizedX, normalizedY) - 1) *
+          Math.min(lens.radiusX, lens.radiusY);
+        lensVisibility = smoothstep(
+          0,
+          LENS_EDGE_FEATHER_CELLS,
+          edgeDistance,
+        );
+      }
 
       if (
         x === 0 ||
         y === 0 ||
         x === width - 1 ||
         y === height - 1 ||
-        solid[index]
+        solid[index] ||
+        lensVisibility <= 0
       ) {
         pixels[pixelIndex] = 0;
         pixels[pixelIndex + 1] = 0;
@@ -569,7 +606,8 @@ function renderWaveField(field: WaveField) {
 
       const highlight =
         diffuse + curvature * 0.16 + specular * 0.18 >= 0;
-      const weightedAlpha = alpha * (highlight ? 1 : 0.55);
+      const weightedAlpha =
+        alpha * (highlight ? 1 : 0.55) * lensVisibility;
       pixels[pixelIndex] = highlight ? 255 : 72;
       pixels[pixelIndex + 1] = highlight ? 255 : 102;
       pixels[pixelIndex + 2] = highlight ? 252 : 106;
@@ -703,9 +741,7 @@ export function WaterSurface({
       );
     };
 
-    const cutOutLens = (waveField: WaveField, canvasBounds: DOMRect) => {
-      const lens = getGridLens(waveField, canvasBounds);
-
+    const cutOutLens = (lens: GridLens | null) => {
       if (!lens) {
         return;
       }
@@ -787,10 +823,8 @@ export function WaterSurface({
       }
 
       const canvasBounds = canvas.getBoundingClientRect();
-      updateSolidMask(
-        waveField,
-        getGridLens(waveField, canvasBounds),
-      );
+      const gridLens = getGridLens(waveField, canvasBounds);
+      updateSolidMask(waveField, gridLens);
 
       if (interactionLockedRef.current) {
         deactivatePointer(pointer);
@@ -843,7 +877,7 @@ export function WaterSurface({
       if (renderElapsed >= RENDER_INTERVAL) {
         renderWaveField(waveField);
         context.putImageData(waveField.imageData, 0, 0);
-        cutOutLens(waveField, canvasBounds);
+        cutOutLens(gridLens);
         lastRenderAt = now - (renderElapsed % RENDER_INTERVAL);
       }
 
