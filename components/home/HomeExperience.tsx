@@ -13,6 +13,7 @@ import {
 } from "react";
 import gsap from "gsap";
 import { StaticGlassLens } from "@/components/home/StaticGlassLens";
+import { WaterSurface } from "@/components/home/WaterSurface";
 import {
   beginDiscDrag,
   createDiscController,
@@ -49,6 +50,8 @@ class DiscSceneBoundary extends Component<
 
 export function HomeExperience() {
   const rootRef = useRef<HTMLElement>(null);
+  const lensRef = useRef<HTMLDivElement>(null);
+  const lensInteractionLockedRef = useRef(false);
   const controllerRef = useRef(createDiscController());
   const gestureRef = useRef({ startX: 0, startY: 0, crossedThreshold: false });
   const [isDragging, setIsDragging] = useState(false);
@@ -70,6 +73,7 @@ export function HomeExperience() {
     controllerRef.current.reducedMotion = reducedMotion;
 
     if (reducedMotion) {
+      lensInteractionLockedRef.current = false;
       resetDisc(controllerRef.current);
     }
   }, [reducedMotion]);
@@ -84,6 +88,11 @@ export function HomeExperience() {
       matchMedia.add("(prefers-reduced-motion: no-preference)", () => {
         gsap
           .timeline({ defaults: { ease: "power3.out" } })
+          .from(
+            "[data-reveal='brand']",
+            { autoAlpha: 0, y: -10, duration: 0.72 },
+            0,
+          )
           .from(
             "[data-reveal='disc']",
             { autoAlpha: 0, y: 28, scale: 0.94, duration: 1.08 },
@@ -106,6 +115,7 @@ export function HomeExperience() {
       }
 
       endDiscDrag(controllerRef.current);
+      lensInteractionLockedRef.current = false;
       setIsDragging(false);
       controllerRef.current.requestFrame?.();
     };
@@ -121,6 +131,7 @@ export function HomeExperience() {
 
     const pointerId = event?.pointerId;
     endDiscDrag(controllerRef.current, pointerId);
+    lensInteractionLockedRef.current = false;
     setIsDragging(false);
 
     controllerRef.current.requestFrame?.();
@@ -145,6 +156,7 @@ export function HomeExperience() {
     };
 
     setIsPointerFocused(true);
+    lensInteractionLockedRef.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
     beginDiscDrag(controllerRef.current, event.pointerId, trackballPoint, event.timeStamp);
     controllerRef.current.requestFrame?.();
@@ -208,13 +220,29 @@ export function HomeExperience() {
 
   return (
     <main ref={rootRef} className={styles.page}>
+      <WaterSurface
+        lensRef={lensRef}
+        interactionLockedRef={lensInteractionLockedRef}
+        reducedMotion={reducedMotion}
+      />
+
+      <p
+        className={styles.homeWordmark}
+        data-reveal="brand"
+        aria-label="GGG Profile"
+      >
+        <span aria-hidden="true">GGG</span>
+        <span aria-hidden="true">Profile</span>
+      </p>
+
       <section className={styles.hero} aria-labelledby="home-title">
         <h1 id="home-title" className="sr-only">
-          GGG Cheese glass lens
+          GGG Profile — GGG Cheese glass lens
         </h1>
 
         <div className={styles.discAssembly} data-reveal="disc">
           <div
+            ref={lensRef}
             className={`${styles.discStage} ${
               !reducedMotion && isDragging ? styles.discStageDragging : ""
             } ${reducedMotion ? styles.discStageReduced : ""} ${
@@ -232,6 +260,7 @@ export function HomeExperience() {
             onLostPointerCapture={() => {
               if (controllerRef.current.pointerDown) {
                 endDiscDrag(controllerRef.current);
+                lensInteractionLockedRef.current = false;
                 setIsDragging(false);
                 controllerRef.current.requestFrame?.();
               }
