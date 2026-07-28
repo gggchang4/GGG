@@ -58,6 +58,9 @@ const BACK_BLEND_SEGMENTS = 12;
 const RIM_SEGMENTS = 28;
 const FRONT_BLEND_SEGMENTS = 16;
 const FRONT_SEGMENTS = 72;
+const FLIP_SPRING = 28;
+const FLIP_DAMPING = 8.8;
+const MAX_FLIP_SPEED = 4.4;
 
 const LENS_VERTEX_SHADER = `
   varying vec3 vViewNormal;
@@ -73,7 +76,7 @@ const LENS_VERTEX_SHADER = `
     vViewPosition = -viewPosition.xyz;
     vObjectPosition = position;
     vRadius = length(position.xy) / ${LENS_RADIUS.toFixed(2)};
-    vConvex = smoothstep(-0.05, 0.28, normal.z);
+    vConvex = smoothstep(-0.05, 0.28, abs(normal.z));
 
     gl_Position = projectionMatrix * viewPosition;
   }
@@ -82,10 +85,13 @@ const LENS_VERTEX_SHADER = `
 const LENS_FRAGMENT_SHADER = `
   uniform sampler2D uBackdrop;
   uniform sampler2D uBackdropBlur;
+  uniform sampler2D uBackdropPlain;
+  uniform sampler2D uBackdropBlurPlain;
   uniform vec2 uResolution;
   uniform vec2 uPointer;
   uniform float uEnergy;
   uniform float uReveal;
+  uniform float uSignatureOpacity;
 
   varying vec3 vViewNormal;
   varying vec3 vViewPosition;
@@ -99,6 +105,22 @@ const LENS_FRAGMENT_SHADER = `
 
   vec2 safeNormalize(vec2 value) {
     return value / max(length(value), 0.0001);
+  }
+
+  vec3 sampleBackdrop(vec2 uv) {
+    return mix(
+      texture2D(uBackdropPlain, uv).rgb,
+      texture2D(uBackdrop, uv).rgb,
+      uSignatureOpacity
+    );
+  }
+
+  vec3 sampleSoftBackdrop(vec2 uv) {
+    return mix(
+      texture2D(uBackdropBlurPlain, uv).rgb,
+      texture2D(uBackdropBlur, uv).rgb,
+      uSignatureOpacity
+    );
   }
 
   void main() {
@@ -143,19 +165,19 @@ const LENS_FRAGMENT_SHADER = `
     vec2 dispersionDirection = safeNormalize(warp);
     vec2 chromaOffset = warp * 0.05;
 
-    vec3 centerSample = texture2D(uBackdrop, refractedUv).rgb;
+    vec3 centerSample = sampleBackdrop(refractedUv);
     vec3 chromaticSample = vec3(
-      texture2D(uBackdrop, clamp(refractedUv + chromaOffset, vec2(0.003), vec2(0.997))).r,
+      sampleBackdrop(clamp(refractedUv + chromaOffset, vec2(0.003), vec2(0.997))).r,
       centerSample.g,
-      texture2D(uBackdrop, clamp(refractedUv - chromaOffset, vec2(0.003), vec2(0.997))).b
+      sampleBackdrop(clamp(refractedUv - chromaOffset, vec2(0.003), vec2(0.997))).b
     );
     vec2 tangent = vec2(-dispersionDirection.y, dispersionDirection.x);
     vec2 scatterOffset = tangent * (length(warp) * 0.055 + edgeBand * 0.0015);
-    vec3 softA = texture2D(uBackdropBlur, clamp(refractedUv + scatterOffset, vec2(0.003), vec2(0.997))).rgb;
-    vec3 softB = texture2D(uBackdropBlur, clamp(refractedUv - scatterOffset, vec2(0.003), vec2(0.997))).rgb;
+    vec3 softA = sampleSoftBackdrop(clamp(refractedUv + scatterOffset, vec2(0.003), vec2(0.997)));
+    vec3 softB = sampleSoftBackdrop(clamp(refractedUv - scatterOffset, vec2(0.003), vec2(0.997)));
     float scatter = edgeBand * 0.18 + fresnel * 0.07;
     vec3 refracted = mix(chromaticSample, (softA + softB) * 0.5, scatter);
-    vec3 originalSample = texture2D(uBackdrop, screenUv).rgb;
+    vec3 originalSample = sampleBackdrop(screenUv);
     float lensingDelta = min(length(chromaticSample - originalSample), 0.24);
 
     float backgroundLuminance = glassLuminance(refracted);
@@ -449,6 +471,7 @@ function paintBackdrop(
   context: CanvasRenderingContext2D,
   size: number,
   softened: boolean,
+  withSignature = true,
 ) {
   context.fillStyle = "#ebeae4";
   context.fillRect(0, 0, size, size);
@@ -507,10 +530,16 @@ function paintBackdrop(
   context.fillStyle = violetSpill;
   context.fillRect(0, 0, size, size);
 
-  drawTrackedSignature(context, size, softened);
+  if (withSignature) {
+    drawTrackedSignature(context, size, softened);
+  }
 }
 
-function createBackdropTexture(size: number, softened = false) {
+function createBackdropTexture(
+  size: number,
+  softened = false,
+  withSignature = true,
+) {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
@@ -521,7 +550,7 @@ function createBackdropTexture(size: number, softened = false) {
     return null;
   }
 
-  paintBackdrop(context, size, softened);
+  paintBackdrop(context, size, softened, withSignature);
 
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
@@ -537,29 +566,47 @@ function Lens({
   onSettled,
   backdrop,
   softenedBackdrop,
+  plainBackdrop,
+  plainSoftenedBackdrop,
   reducedMotion,
+  isSelectMode,
 }: {
   controllerRef: RefObject<DiscController>;
   onSettled: () => void;
   backdrop: Texture;
   softenedBackdrop: Texture;
+  plainBackdrop: Texture;
+  plainSoftenedBackdrop: Texture;
   reducedMotion: boolean;
+  isSelectMode: boolean;
 }) {
   const groupRef = useRef<Group>(null);
+  const flipGroupRef = useRef<Group>(null);
   const materialRef = useRef<ShaderMaterial>(null);
   const wasMovingRef = useRef(false);
+  const flipAngleRef = useRef(isSelectMode ? Math.PI : 0);
+  const flipVelocityRef = useRef(0);
   const geometry = useMemo(() => createPlanoConvexGeometry(), []);
   const { gl, invalidate, size } = useThree();
   const uniforms = useMemo(
     () => ({
       uBackdrop: { value: backdrop },
       uBackdropBlur: { value: softenedBackdrop },
+      uBackdropPlain: { value: plainBackdrop },
+      uBackdropBlurPlain: { value: plainSoftenedBackdrop },
       uResolution: { value: new Vector2(1, 1) },
       uPointer: { value: new Vector2(0.5, 0.5) },
       uEnergy: { value: 0 },
       uReveal: { value: reducedMotion ? 1 : 0 },
+      uSignatureOpacity: { value: 1 },
     }),
-    [backdrop, reducedMotion, softenedBackdrop],
+    [
+      backdrop,
+      plainBackdrop,
+      plainSoftenedBackdrop,
+      reducedMotion,
+      softenedBackdrop,
+    ],
   );
 
   useEffect(() => {
@@ -580,6 +627,10 @@ function Lens({
   }, [gl, invalidate, size.height, size.width, uniforms]);
 
   useEffect(() => {
+    invalidate();
+  }, [invalidate, isSelectMode]);
+
+  useEffect(() => {
     return () => geometry.dispose();
   }, [geometry]);
 
@@ -596,13 +647,56 @@ function Lens({
       groupRef.current.quaternion.copy(controller.orientation);
     }
 
+    const targetFlipAngle = isSelectMode ? Math.PI : 0;
+    let flipAnimating = false;
+
+    if (flipGroupRef.current) {
+      if (reducedMotion) {
+        flipAngleRef.current = targetFlipAngle;
+        flipVelocityRef.current = 0;
+      } else {
+        const flipDelta = Math.min(delta, 1 / 30);
+        const displacement = targetFlipAngle - flipAngleRef.current;
+        const acceleration =
+          displacement * FLIP_SPRING -
+          flipVelocityRef.current * FLIP_DAMPING;
+
+        flipVelocityRef.current += acceleration * flipDelta;
+        flipVelocityRef.current = Math.max(
+          -MAX_FLIP_SPEED,
+          Math.min(MAX_FLIP_SPEED, flipVelocityRef.current),
+        );
+        flipAngleRef.current += flipVelocityRef.current * flipDelta;
+
+        if (
+          Math.abs(displacement) < 0.0012 &&
+          Math.abs(flipVelocityRef.current) < 0.012
+        ) {
+          flipAngleRef.current = targetFlipAngle;
+          flipVelocityRef.current = 0;
+        } else {
+          flipAnimating = true;
+        }
+      }
+
+      flipGroupRef.current.rotation.x = flipAngleRef.current;
+    }
+
     let materialAnimating = false;
 
     if (material) {
       const velocityEnergy = Math.min(1, controller.angularVelocity.length() / 6);
+      const flipEnergy = Math.min(
+        1,
+        Math.abs(flipVelocityRef.current) / 5.5,
+      );
       const targetEnergy = reducedMotion
         ? 0
-        : Math.max(controller.pointerDown ? 0.82 : 0, velocityEnergy);
+        : Math.max(
+            controller.pointerDown ? 0.82 : 0,
+            velocityEnergy,
+            flipEnergy * 0.72,
+          );
       const currentEnergy = material.uniforms.uEnergy.value as number;
       const response = 1 - Math.exp(-(targetEnergy > currentEnergy ? 16 : 6.5) * delta);
       let nextEnergy = currentEnergy + (targetEnergy - currentEnergy) * response;
@@ -623,11 +717,28 @@ function Lens({
       material.uniforms.uReveal.value = nextReveal;
       pointer.x += (pointerTargetX - pointer.x) * pointerResponse;
       pointer.y += (pointerTargetY - pointer.y) * pointerResponse;
+      const targetSignatureOpacity = isSelectMode ? 0 : 1;
+      const currentSignatureOpacity = material.uniforms.uSignatureOpacity
+        .value as number;
+      const nextSignatureOpacity = reducedMotion
+        ? targetSignatureOpacity
+        : currentSignatureOpacity +
+          (targetSignatureOpacity - currentSignatureOpacity) *
+            (1 - Math.exp(-5.4 * delta));
+
+      material.uniforms.uSignatureOpacity.value =
+        Math.abs(targetSignatureOpacity - nextSignatureOpacity) < 0.002
+          ? targetSignatureOpacity
+          : nextSignatureOpacity;
       materialAnimating =
         Math.abs(targetEnergy - nextEnergy) > 0.004 ||
         Math.abs(1 - nextReveal) > 0.002 ||
         Math.abs(pointerTargetX - pointer.x) > 0.002 ||
-        Math.abs(pointerTargetY - pointer.y) > 0.002;
+        Math.abs(pointerTargetY - pointer.y) > 0.002 ||
+        Math.abs(
+          targetSignatureOpacity -
+            (material.uniforms.uSignatureOpacity.value as number),
+        ) > 0.002;
     }
 
     if (!controller.pointerDown && !continueAnimating && wasMovingRef.current) {
@@ -635,24 +746,26 @@ function Lens({
       onSettled();
     }
 
-    if (continueAnimating || materialAnimating) {
+    if (continueAnimating || flipAnimating || materialAnimating) {
       invalidate();
     }
   });
 
   return (
     <group ref={groupRef}>
-      <mesh geometry={geometry}>
-        <shaderMaterial
-          ref={materialRef}
-          uniforms={uniforms}
-          vertexShader={LENS_VERTEX_SHADER}
-          fragmentShader={LENS_FRAGMENT_SHADER}
-          transparent
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
+      <group ref={flipGroupRef}>
+        <mesh geometry={geometry}>
+          <shaderMaterial
+            ref={materialRef}
+            uniforms={uniforms}
+            vertexShader={LENS_VERTEX_SHADER}
+            fragmentShader={LENS_FRAGMENT_SHADER}
+            transparent
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -661,13 +774,23 @@ function SceneContent({
   controllerRef,
   onSettled,
   reducedMotion,
+  isSelectMode,
 }: {
   controllerRef: RefObject<DiscController>;
   onSettled: () => void;
   reducedMotion: boolean;
+  isSelectMode: boolean;
 }) {
   const backdrop = useMemo(() => createBackdropTexture(1024), []);
   const softenedBackdrop = useMemo(() => createBackdropTexture(384, true), []);
+  const plainBackdrop = useMemo(
+    () => createBackdropTexture(1024, false, false),
+    [],
+  );
+  const plainSoftenedBackdrop = useMemo(
+    () => createBackdropTexture(384, true, false),
+    [],
+  );
   const { invalidate } = useThree();
 
   useEffect(() => {
@@ -679,11 +802,17 @@ function SceneContent({
       }
 
       const textureLayers = [
-        { texture: backdrop, softened: false },
-        { texture: softenedBackdrop, softened: true },
+        { texture: backdrop, softened: false, withSignature: true },
+        { texture: softenedBackdrop, softened: true, withSignature: true },
+        { texture: plainBackdrop, softened: false, withSignature: false },
+        {
+          texture: plainSoftenedBackdrop,
+          softened: true,
+          withSignature: false,
+        },
       ];
 
-      textureLayers.forEach(({ texture, softened }) => {
+      textureLayers.forEach(({ texture, softened, withSignature }) => {
         if (!texture) {
           return;
         }
@@ -695,7 +824,12 @@ function SceneContent({
           return;
         }
 
-        paintBackdrop(context, canvas.width, Boolean(softened));
+        paintBackdrop(
+          context,
+          canvas.width,
+          Boolean(softened),
+          withSignature,
+        );
         texture.needsUpdate = true;
       });
 
@@ -705,16 +839,34 @@ function SceneContent({
     return () => {
       cancelled = true;
     };
-  }, [backdrop, invalidate, softenedBackdrop]);
+  }, [
+    backdrop,
+    invalidate,
+    plainBackdrop,
+    plainSoftenedBackdrop,
+    softenedBackdrop,
+  ]);
 
   useEffect(() => {
     return () => {
       backdrop?.dispose();
       softenedBackdrop?.dispose();
+      plainBackdrop?.dispose();
+      plainSoftenedBackdrop?.dispose();
     };
-  }, [backdrop, softenedBackdrop]);
+  }, [
+    backdrop,
+    plainBackdrop,
+    plainSoftenedBackdrop,
+    softenedBackdrop,
+  ]);
 
-  if (!backdrop || !softenedBackdrop) {
+  if (
+    !backdrop ||
+    !softenedBackdrop ||
+    !plainBackdrop ||
+    !plainSoftenedBackdrop
+  ) {
     return null;
   }
 
@@ -724,7 +876,10 @@ function SceneContent({
       onSettled={onSettled}
       backdrop={backdrop}
       softenedBackdrop={softenedBackdrop}
+      plainBackdrop={plainBackdrop}
+      plainSoftenedBackdrop={plainSoftenedBackdrop}
       reducedMotion={reducedMotion}
+      isSelectMode={isSelectMode}
     />
   );
 }
@@ -733,12 +888,14 @@ type GlassLensSceneProps = {
   controllerRef: RefObject<DiscController>;
   onSettled: () => void;
   reducedMotion: boolean;
+  isSelectMode: boolean;
 };
 
 export function GlassLensScene({
   controllerRef,
   onSettled,
   reducedMotion,
+  isSelectMode,
 }: GlassLensSceneProps) {
   return (
     <Canvas
@@ -756,6 +913,7 @@ export function GlassLensScene({
         controllerRef={controllerRef}
         onSettled={onSettled}
         reducedMotion={reducedMotion}
+        isSelectMode={isSelectMode}
       />
     </Canvas>
   );
