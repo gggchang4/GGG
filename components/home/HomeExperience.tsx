@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import {
   Component,
   useCallback,
@@ -13,9 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import gsap from "gsap";
-import { DiscNavigation } from "@/components/home/DiscNavigation";
 import { StaticGlassLens } from "@/components/home/StaticGlassLens";
-import { stylesConfig } from "@/data/stylesConfig";
 import {
   beginDiscDrag,
   createDiscController,
@@ -56,9 +53,8 @@ export function HomeExperience() {
   const gestureRef = useRef({ startX: 0, startY: 0, crossedThreshold: false });
   const [isDragging, setIsDragging] = useState(false);
   const [isPointerFocused, setIsPointerFocused] = useState(false);
-  const [discInMotion, setDiscInMotion] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const handleDiscSettled = useCallback(() => setDiscInMotion(false), []);
+  const handleDiscSettled = useCallback(() => undefined, []);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -88,18 +84,11 @@ export function HomeExperience() {
       matchMedia.add("(prefers-reduced-motion: no-preference)", () => {
         gsap
           .timeline({ defaults: { ease: "power3.out" } })
-          .from("[data-reveal='header']", { autoAlpha: 0, y: -14, duration: 0.72 })
           .from(
             "[data-reveal='disc']",
             { autoAlpha: 0, y: 28, scale: 0.94, duration: 1.08 },
-            0.08,
-          )
-          .from(
-            "[data-reveal='meta']",
-            { autoAlpha: 0, y: 12, duration: 0.62, stagger: 0.08 },
-            0.42,
-          )
-          .from("[data-reveal='rule']", { scaleX: 0, duration: 0.8 }, 0.16);
+            0,
+          );
       });
 
     }, rootRef);
@@ -133,10 +122,6 @@ export function HomeExperience() {
     const pointerId = event?.pointerId;
     endDiscDrag(controllerRef.current, pointerId);
     setIsDragging(false);
-
-    if (!gestureRef.current.crossedThreshold) {
-      setDiscInMotion(false);
-    }
 
     controllerRef.current.requestFrame?.();
 
@@ -186,7 +171,6 @@ export function HomeExperience() {
     if (!gestureRef.current.crossedThreshold && movedDistance > 6) {
       gestureRef.current.crossedThreshold = true;
       setIsDragging(true);
-      setDiscInMotion(true);
     }
 
     updateDiscDrag(controllerRef.current, trackballPoint, event.timeStamp);
@@ -212,53 +196,22 @@ export function HomeExperience() {
 
     if (action) {
       event.preventDefault();
-      setDiscInMotion(true);
       nudgeDisc(controllerRef.current, action.axis, action.direction);
       return;
     }
 
     if (event.key === "Escape" || event.key === "Home") {
       event.preventDefault();
-
-      if (
-        controllerRef.current.orientation.angleTo(controllerRef.current.restOrientation) > 0.001
-      ) {
-        setDiscInMotion(true);
-      }
-
       resetDisc(controllerRef.current);
     }
   };
 
   return (
     <main ref={rootRef} className={styles.page}>
-      <div className={styles.backgroundTexture} aria-hidden="true" />
-      <div className={styles.verticalRule} data-reveal="rule" aria-hidden="true" />
-
-      <header className={styles.header} data-reveal="header">
-        <Link className={styles.wordmark} href="/" aria-label="Profile Index home">
-          <span>Profile</span>
-          <span>Index</span>
-        </Link>
-
-        <div className={styles.headerMeta}>
-          <span className={styles.liveDot} aria-hidden="true" />
-          <span>Frontend / Motion / 3D</span>
-          <span className={styles.headerDivider} aria-hidden="true" />
-          <span>Edition 001</span>
-        </div>
-      </header>
-
       <section className={styles.hero} aria-labelledby="home-title">
         <h1 id="home-title" className="sr-only">
-          An interactive index of personal profile perspectives
+          GGG Cheese glass lens
         </h1>
-
-        <p className={styles.leftMeta} data-reveal="meta">
-          A personal digital gallery
-          <br />
-          built through interaction.
-        </p>
 
         <div className={styles.discAssembly} data-reveal="disc">
           <div
@@ -269,8 +222,8 @@ export function HomeExperience() {
             }`}
             role="group"
             tabIndex={0}
-            aria-label="Interactive glass profile lens"
-            aria-describedby="disc-instructions"
+            aria-label="Interactive GGG Cheese glass lens"
+            aria-describedby="lens-instructions"
             onKeyDown={handleKeyDown}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -292,41 +245,15 @@ export function HomeExperience() {
                 reducedMotion={reducedMotion}
               />
             </DiscSceneBoundary>
-
-            <DiscNavigation
-              profiles={stylesConfig}
-              isDragging={!reducedMotion && discInMotion}
-            />
           </div>
 
-          <p className="sr-only">Personal signature: GGG</p>
-
-          <p id="disc-instructions" className={styles.discInstructions}>
-            <span>{reducedMotion ? "Static mode" : "Drag to rotate"}</span>
-            <span aria-hidden="true">·</span>
-            <span>{reducedMotion ? "Motion preference respected" : "Release to reset"}</span>
+          <p id="lens-instructions" className="sr-only">
+            {reducedMotion
+              ? "Static glass lens. Motion is disabled by your preference."
+              : "Drag or use the arrow keys to rotate. Press Home or Escape to reset."}
           </p>
         </div>
-
-        <div className={styles.rightMeta} data-reveal="meta">
-          <span>Perspectives</span>
-          <strong>{String(stylesConfig.length).padStart(2, "0")}</strong>
-          <span>Currently reserved</span>
-        </div>
       </section>
-
-      <footer className={styles.footer}>
-        <p data-reveal="meta">
-          Personal identity,
-          <br />
-          rendered three ways.
-        </p>
-
-        <p className={styles.footerStatus} data-reveal="meta">
-          <span>System</span>
-          <strong>Ready for experiments</strong>
-        </p>
-      </footer>
     </main>
   );
 }

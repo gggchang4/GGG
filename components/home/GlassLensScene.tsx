@@ -115,14 +115,16 @@ const LENS_FRAGMENT_SHADER = `
 
     vec2 fromCenter = screenUv - vec2(0.5);
     vec2 radialDirection = safeNormalize(fromCenter);
-    float centerBulge = max(0.0, 1.0 - radius * radius);
-    float radialBend =
-      (0.010 + centerBulge * 0.022 + outerBand * 0.043 + fresnel * 0.012) *
+    float radialScale =
+      (0.028 + outerBand * outerBand * 0.07 + fresnel * 0.014) *
       convexResponse *
       reveal;
+    vec2 radialWarp = -fromCenter * radialScale;
+    float motionStrength = smoothstep(0.02, 0.82, uEnergy);
     float normalBend =
-      (0.004 + outerBand * 0.018 + fresnel * 0.012) *
+      (outerBand * 0.018 + fresnel * 0.012) *
       convexResponse *
+      motionStrength *
       reveal;
 
     vec2 pointerDelta = screenUv - uPointer;
@@ -133,17 +135,13 @@ const LENS_FRAGMENT_SHADER = `
       (0.0045 + edgeBand * 0.0045) *
       reveal;
     vec2 warp =
-      -radialDirection * radialBend -
+      radialWarp -
       normal.xy * normalBend +
       liquidBend;
     vec2 refractedUv = clamp(screenUv + warp, vec2(0.003), vec2(0.997));
 
-    vec2 dispersionDirection = safeNormalize(radialDirection * 0.72 + normal.xy * 0.46);
-    vec2 chromaOffset =
-      dispersionDirection *
-      (0.0007 + outerBand * 0.0041 + fresnel * 0.002) *
-      convexResponse *
-      reveal;
+    vec2 dispersionDirection = safeNormalize(warp);
+    vec2 chromaOffset = warp * 0.05;
 
     vec3 centerSample = texture2D(uBackdrop, refractedUv).rgb;
     vec3 chromaticSample = vec3(
@@ -152,10 +150,10 @@ const LENS_FRAGMENT_SHADER = `
       texture2D(uBackdrop, clamp(refractedUv - chromaOffset, vec2(0.003), vec2(0.997))).b
     );
     vec2 tangent = vec2(-dispersionDirection.y, dispersionDirection.x);
-    vec2 scatterOffset = tangent * (0.0015 + edgeBand * 0.0035);
+    vec2 scatterOffset = tangent * (length(warp) * 0.055 + edgeBand * 0.0015);
     vec3 softA = texture2D(uBackdropBlur, clamp(refractedUv + scatterOffset, vec2(0.003), vec2(0.997))).rgb;
     vec3 softB = texture2D(uBackdropBlur, clamp(refractedUv - scatterOffset, vec2(0.003), vec2(0.997))).rgb;
-    float scatter = 0.035 + edgeBand * 0.18 + fresnel * 0.07;
+    float scatter = edgeBand * 0.18 + fresnel * 0.07;
     vec3 refracted = mix(chromaticSample, (softA + softB) * 0.5, scatter);
     vec3 originalSample = texture2D(uBackdrop, screenUv).rgb;
     float lensingDelta = min(length(chromaticSample - originalSample), 0.24);
@@ -384,9 +382,10 @@ function drawTrackedSignature(
   size: number,
   softened: boolean,
 ) {
-  const letters = ["G", "G", "G"];
-  const fontSize = size * 0.205;
-  const tracking = size * 0.035;
+  const lines = ["GGG", "Cheese"];
+  const maximumWidth = size * 0.62;
+  let fontSize = size * 0.17;
+  let tracking = size * 0.007;
   const family = getSignatureFontFamily();
 
   context.save();
@@ -395,15 +394,53 @@ function drawTrackedSignature(
   context.fillStyle = softened ? "rgba(16, 17, 15, 0.9)" : "rgba(13, 14, 12, 0.99)";
   context.filter = softened ? `blur(${Math.max(1, size * 0.006)}px)` : "none";
 
-  const widths = letters.map((letter) => context.measureText(letter).width);
-  const totalWidth =
-    widths.reduce((total, width) => total + width, 0) +
-    tracking * (letters.length - 1);
-  let cursor = (size - totalWidth) / 2;
+  const measureLine = (line: string) => {
+    const characters = Array.from(line);
+    const widths = characters.map((character) => context.measureText(character).width);
+    const width =
+      widths.reduce((total, characterWidth) => total + characterWidth, 0) +
+      tracking * (characters.length - 1);
 
-  letters.forEach((letter, index) => {
-    context.fillText(letter, cursor, size * 0.645);
-    cursor += widths[index] + tracking;
+    return { characters, widths, width };
+  };
+
+  let measuredLines = lines.map(measureLine);
+  const widestLine = Math.max(...measuredLines.map(({ width }) => width));
+
+  if (widestLine > maximumWidth) {
+    const scale = maximumWidth / widestLine;
+    fontSize *= scale;
+    tracking *= scale;
+    context.font = `600 ${fontSize}px ${family}`;
+    measuredLines = lines.map(measureLine);
+  }
+
+  const lineMetrics = lines.map((line) => {
+    const metrics = context.measureText(line);
+    return {
+      ascent: metrics.actualBoundingBoxAscent || fontSize * 0.75,
+      descent: metrics.actualBoundingBoxDescent || fontSize * 0.2,
+    };
+  });
+  const lineGap = size * 0.035;
+  const blockHeight =
+    lineMetrics.reduce(
+      (total, { ascent, descent }) => total + ascent + descent,
+      0,
+    ) + lineGap;
+  let lineTop = (size - blockHeight) / 2;
+
+  measuredLines.forEach(({ characters, widths, width }, lineIndex) => {
+    const { ascent, descent } = lineMetrics[lineIndex];
+    const baseline = lineTop + ascent;
+    let cursor = (size - width) / 2;
+
+    characters.forEach((character, characterIndex) => {
+      context.fillText(character, cursor, baseline);
+      cursor += widths[characterIndex] + tracking;
+    });
+
+    lineTop += ascent + descent + lineGap;
   });
   context.restore();
 }
@@ -469,28 +506,6 @@ function paintBackdrop(
   violetSpill.addColorStop(1, "rgba(177, 163, 244, 0)");
   context.fillStyle = violetSpill;
   context.fillRect(0, 0, size, size);
-
-  context.lineWidth = softened ? 2 : 1;
-  context.strokeStyle = softened
-    ? "rgba(20, 21, 18, 0.025)"
-    : "rgba(20, 21, 18, 0.045)";
-
-  for (let index = 1; index < 8; index += 1) {
-    const position = Math.round((size / 8) * index) + 0.5;
-    context.beginPath();
-    context.moveTo(position, 0);
-    context.lineTo(position, size);
-    context.stroke();
-  }
-
-  context.lineWidth = softened ? 3 : 1;
-  context.strokeStyle = softened
-    ? "rgba(20, 21, 18, 0.045)"
-    : "rgba(20, 21, 18, 0.11)";
-  context.beginPath();
-  context.moveTo(size / 2 + 0.5, 0);
-  context.lineTo(size / 2 + 0.5, size);
-  context.stroke();
 
   drawTrackedSignature(context, size, softened);
 }
@@ -587,10 +602,14 @@ function Lens({
       const velocityEnergy = Math.min(1, controller.angularVelocity.length() / 6);
       const targetEnergy = reducedMotion
         ? 0
-        : Math.max(controller.pointerDown ? 0.82 : 0.035, velocityEnergy);
+        : Math.max(controller.pointerDown ? 0.82 : 0, velocityEnergy);
       const currentEnergy = material.uniforms.uEnergy.value as number;
       const response = 1 - Math.exp(-(targetEnergy > currentEnergy ? 16 : 6.5) * delta);
-      const nextEnergy = currentEnergy + (targetEnergy - currentEnergy) * response;
+      let nextEnergy = currentEnergy + (targetEnergy - currentEnergy) * response;
+
+      if (targetEnergy === 0 && nextEnergy < 0.004) {
+        nextEnergy = 0;
+      }
       const currentReveal = material.uniforms.uReveal.value as number;
       const nextReveal = reducedMotion
         ? 1

@@ -4,48 +4,13 @@
   isolation: isolate;
   display: grid;
   min-height: 100svh;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
   overflow: hidden;
   background:
     radial-gradient(circle at 48% 41%, rgb(255 255 252 / 0.82), transparent 34%),
     radial-gradient(circle at 57% 55%, rgb(174 221 217 / 0.13), transparent 29%),
     #ebeae4;
   color: #141512;
-}
-
-.backgroundTexture {
-  position: absolute;
-  z-index: -2;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.33;
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0,
-      transparent calc(12.5vw - 1px),
-      rgb(20 21 18 / 0.035) calc(12.5vw - 1px),
-      rgb(20 21 18 / 0.035) 12.5vw
-    );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 18%,
-    #000 82%,
-    transparent
-  );
-  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
-}
-
-.verticalRule {
-  position: absolute;
-  z-index: -1;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
-  transform-origin: top center;
-  background: rgb(20 21 18 / 0.075);
 }
 
 .header,
@@ -106,7 +71,7 @@
 .hero {
   position: relative;
   display: grid;
-  min-height: 0;
+  min-height: 100svh;
   place-items: center;
   padding: 0.75rem var(--page-gutter);
 }
@@ -284,17 +249,20 @@
 .staticLensSignature {
   position: absolute;
   z-index: 1;
-  top: 63.5%;
+  top: 50%;
   left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 0.08em;
   color: rgb(20 21 18 / 0.86);
   font-family: var(--font-signature), Georgia, serif;
-  font-size: clamp(2.3rem, 5.7vw, 5rem);
+  font-size: clamp(1.55rem, 4.25vw, 3.7rem);
   font-weight: 600;
-  letter-spacing: 0.14em;
-  line-height: 1;
+  letter-spacing: 0.04em;
+  line-height: 0.92;
   pointer-events: none;
-  text-indent: 0.14em;
-  transform: translate(-50%, -50%) scaleX(1.06);
+  text-indent: 0.04em;
+  transform: translate(-50%, -50%);
   white-space: nowrap;
   filter: blur(0.2px);
 }
