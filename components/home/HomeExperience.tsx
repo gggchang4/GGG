@@ -12,8 +12,10 @@ import {
   type ReactNode,
 } from "react";
 import gsap from "gsap";
+import { DiscNavigation } from "@/components/home/DiscNavigation";
 import { StaticGlassLens } from "@/components/home/StaticGlassLens";
 import { WaterSurface } from "@/components/home/WaterSurface";
+import { stylesConfig } from "@/data/stylesConfig";
 import {
   beginDiscDrag,
   createDiscController,
@@ -57,7 +59,21 @@ export function HomeExperience() {
   const [isDragging, setIsDragging] = useState(false);
   const [isPointerFocused, setIsPointerFocused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [isSelectMode, setIsSelectMode] = useState(false);
   const handleDiscSettled = useCallback(() => undefined, []);
+  const changeSelectMode = useCallback((nextMode: boolean) => {
+    const controller = controllerRef.current;
+
+    if (controller.pointerDown) {
+      endDiscDrag(controller);
+    }
+
+    controller.angularVelocity.set(0, 0, 0);
+    lensInteractionLockedRef.current = false;
+    setIsDragging(false);
+    resetDisc(controller);
+    setIsSelectMode(nextMode);
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -142,7 +158,12 @@ export function HomeExperience() {
   };
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (reducedMotion || event.button !== 0 || controllerRef.current.pointerDown) {
+    if (
+      isSelectMode ||
+      reducedMotion ||
+      event.button !== 0 ||
+      controllerRef.current.pointerDown
+    ) {
       return;
     }
 
@@ -163,6 +184,10 @@ export function HomeExperience() {
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (isSelectMode) {
+      return;
+    }
+
     const bounds = event.currentTarget.getBoundingClientRect();
     const trackballPoint = projectPointerToTrackball(event.clientX, event.clientY, bounds);
 
@@ -190,7 +215,31 @@ export function HomeExperience() {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) {
+      if (isSelectMode && event.key === "Escape") {
+        event.preventDefault();
+        changeSelectMode(false);
+      }
+
+      return;
+    }
+
     setIsPointerFocused(false);
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      changeSelectMode(!isSelectMode);
+      return;
+    }
+
+    if (isSelectMode) {
+      if (event.key === "Escape" || event.key === "Home") {
+        event.preventDefault();
+        changeSelectMode(false);
+      }
+
+      return;
+    }
 
     if (reducedMotion) {
       return;
@@ -218,6 +267,17 @@ export function HomeExperience() {
     }
   };
 
+  const handleLensClick = () => {
+    if (
+      isSelectMode ||
+      (!reducedMotion && gestureRef.current.crossedThreshold)
+    ) {
+      return;
+    }
+
+    changeSelectMode(true);
+  };
+
   return (
     <main ref={rootRef} className={styles.page}>
       <WaterSurface
@@ -235,7 +295,15 @@ export function HomeExperience() {
         <span aria-hidden="true">Profile</span>
       </p>
 
-      <section className={styles.hero} aria-labelledby="home-title">
+      <section
+        className={styles.hero}
+        aria-labelledby="home-title"
+        onClick={(event) => {
+          if (isSelectMode && event.target === event.currentTarget) {
+            changeSelectMode(false);
+          }
+        }}
+      >
         <h1 id="home-title" className="sr-only">
           GGG Profile — GGG Cheese glass lens
         </h1>
@@ -247,12 +315,18 @@ export function HomeExperience() {
               !reducedMotion && isDragging ? styles.discStageDragging : ""
             } ${reducedMotion ? styles.discStageReduced : ""} ${
               isPointerFocused ? styles.discStagePointerFocused : ""
-            }`}
+            } ${isSelectMode ? styles.discStageSelect : ""}`}
             role="group"
             tabIndex={0}
-            aria-label="Interactive GGG Cheese glass lens"
+            aria-label={
+              isSelectMode
+                ? "Profile style selector"
+                : "Interactive GGG Cheese glass lens"
+            }
             aria-describedby="lens-instructions"
+            aria-controls="lens-style-selector"
             onKeyDown={handleKeyDown}
+            onClick={handleLensClick}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={finishGesture}
@@ -267,19 +341,29 @@ export function HomeExperience() {
             }}
             onBlur={() => setIsPointerFocused(false)}
           >
-            <DiscSceneBoundary fallback={<StaticGlassLens />}>
+            <DiscSceneBoundary
+              fallback={<StaticGlassLens isSelectMode={isSelectMode} />}
+            >
               <GlassLensScene
                 controllerRef={controllerRef}
                 onSettled={handleDiscSettled}
                 reducedMotion={reducedMotion}
+                isSelectMode={isSelectMode}
               />
             </DiscSceneBoundary>
+
+            <DiscNavigation
+              profiles={stylesConfig}
+              isActive={isSelectMode}
+            />
           </div>
 
           <p id="lens-instructions" className="sr-only">
-            {reducedMotion
-              ? "Static glass lens. Motion is disabled by your preference."
-              : "Drag or use the arrow keys to rotate. Press Home or Escape to reset."}
+            {isSelectMode
+              ? "Choose one of three profile sections. Links are not assigned yet. Press Escape to return."
+              : reducedMotion
+                ? "Static glass lens. Press Enter or Space to open the profile style selector."
+                : "Click to open the profile style selector. Drag or use the arrow keys to rotate. Press Home or Escape to reset."}
           </p>
         </div>
       </section>
