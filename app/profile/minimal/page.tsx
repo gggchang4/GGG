@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
-import { ProfileRouteStub } from "@/components/profiles/ProfileRouteStub";
+import { MinimalProfile } from "@/components/profiles/MinimalProfile";
 
 export const metadata: Metadata = {
-  title: "Minimal Profile",
-  description: "The minimal glass profile route.",
+  title: "GGG Cheese — Computer Science & Full-stack",
+  description:
+    "GGG Cheese is a computer science student at Wuhan University and a full-stack developer exploring computing as an artistic medium.",
 };
 
 export default function MinimalProfilePage() {
-  return (
-    <ProfileRouteStub
-      index="01"
-      title="Minimal"
-      route="/profile/minimal"
-    />
-  );
+  return <MinimalProfile />;
 }
