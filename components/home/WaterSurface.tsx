@@ -4,9 +4,10 @@ import { useEffect, useRef, type RefObject } from "react";
 import styles from "@/components/home/home.module.css";
 
 type WaterSurfaceProps = {
-  lensRef: RefObject<HTMLDivElement | null>;
-  interactionLockedRef: RefObject<boolean>;
+  lensRef?: RefObject<HTMLDivElement | null>;
+  interactionLockedRef?: RefObject<boolean>;
   reducedMotion: boolean;
+  className?: string;
 };
 
 type LensCircle = {
@@ -634,6 +635,7 @@ export function WaterSurface({
   lensRef,
   interactionLockedRef,
   reducedMotion,
+  className,
 }: WaterSurfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -689,7 +691,7 @@ export function WaterSurface({
     };
 
     const getLensCircle = (): LensCircle | null => {
-      const lens = lensRef.current;
+      const lens = lensRef?.current;
 
       if (!lens) {
         return null;
@@ -826,7 +828,7 @@ export function WaterSurface({
       const gridLens = getGridLens(waveField, canvasBounds);
       updateSolidMask(waveField, gridLens);
 
-      if (interactionLockedRef.current) {
+      if (interactionLockedRef?.current) {
         deactivatePointer(pointer);
       } else if (pointer.active && now - pointer.lastEventAt > POINTER_FORCE_TIMEOUT) {
         deactivatePointer(pointer);
@@ -912,7 +914,7 @@ export function WaterSurface({
         !event.isPrimary ||
         event.pointerType === "touch" ||
         event.buttons !== 0 ||
-        interactionLockedRef.current ||
+        interactionLockedRef?.current ||
         !isOutsideLens(event.clientX, event.clientY)
       ) {
         deactivatePointer(pointer);
@@ -1041,7 +1043,7 @@ export function WaterSurface({
   return (
     <canvas
       ref={canvasRef}
-      className={styles.waterSurface}
+      className={`${styles.waterSurface} ${className ?? ""}`}
       aria-hidden="true"
     />
   );

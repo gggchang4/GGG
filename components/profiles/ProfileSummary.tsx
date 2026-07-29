@@ -37,35 +37,39 @@ export function ProfileSummary({ tone = "classic" }: ProfileSummaryProps) {
         </div>
       </section>
 
-      <section className="grid gap-4">
-        <h3 className="text-xl font-semibold text-foreground">Projects</h3>
-        <div className="grid gap-5">
-          {profileData.projects.map((project) => (
-            <article key={project.name} className={projectClass}>
-              <h4 className="text-lg font-semibold text-foreground">{project.name}</h4>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{project.description}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {project.tags.map((tag) => (
-                  <span key={tag} className="text-xs font-medium uppercase text-primary">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      {profileData.projects.length > 0 ? (
+        <section className="grid gap-4">
+          <h3 className="text-xl font-semibold text-foreground">Projects</h3>
+          <div className="grid gap-5">
+            {profileData.projects.map((project) => (
+              <article key={project.name} className={projectClass}>
+                <h4 className="text-lg font-semibold text-foreground">{project.name}</h4>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{project.description}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {project.tags.map((tag) => (
+                    <span key={tag} className="text-xs font-medium uppercase text-primary">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      <section className="rounded-lg border border-border bg-card p-5">
-        <h3 className="text-xl font-semibold text-foreground">Contact</h3>
-        <a
-          href={`mailto:${profileData.contact.email}`}
-          className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary"
-        >
-          <Mail aria-hidden className="size-4" />
-          {profileData.contact.email}
-        </a>
-      </section>
+      {profileData.contact.email ? (
+        <section className="rounded-lg border border-border bg-card p-5">
+          <h3 className="text-xl font-semibold text-foreground">Contact</h3>
+          <a
+            href={`mailto:${profileData.contact.email}`}
+            className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary"
+          >
+            <Mail aria-hidden className="size-4" />
+            {profileData.contact.email}
+          </a>
+        </section>
+      ) : null}
     </div>
   );
 }
