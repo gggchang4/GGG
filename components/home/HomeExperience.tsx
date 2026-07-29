@@ -35,6 +35,8 @@ const GlassLensScene = dynamic(
   },
 );
 
+const NAVIGATION_READY_DELAY_MS = 1000;
+
 class DiscSceneBoundary extends Component<
   { children: ReactNode; fallback: ReactNode },
   { failed: boolean }
@@ -60,6 +62,7 @@ export function HomeExperience() {
   const [isPointerFocused, setIsPointerFocused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
   const handleDiscSettled = useCallback(() => undefined, []);
   const changeSelectMode = useCallback((nextMode: boolean) => {
     const controller = controllerRef.current;
@@ -72,6 +75,7 @@ export function HomeExperience() {
     lensInteractionLockedRef.current = false;
     setIsDragging(false);
     resetDisc(controller);
+    setIsNavigationReady(false);
     setIsSelectMode(nextMode);
   }, []);
 
@@ -93,6 +97,18 @@ export function HomeExperience() {
       resetDisc(controllerRef.current);
     }
   }, [reducedMotion]);
+
+  useEffect(() => {
+    if (!isSelectMode) {
+      return;
+    }
+
+    const readyTimer = window.setTimeout(() => {
+      setIsNavigationReady(true);
+    }, reducedMotion ? 0 : NAVIGATION_READY_DELAY_MS);
+
+    return () => window.clearTimeout(readyTimer);
+  }, [isSelectMode, reducedMotion]);
 
   useEffect(() => {
     if (!rootRef.current) {
@@ -219,6 +235,7 @@ export function HomeExperience() {
       if (isSelectMode && event.key === "Escape") {
         event.preventDefault();
         changeSelectMode(false);
+        lensRef.current?.focus({ preventScroll: true });
       }
 
       return;
@@ -355,12 +372,15 @@ export function HomeExperience() {
             <DiscNavigation
               profiles={stylesConfig}
               isActive={isSelectMode}
+              isInteractive={isNavigationReady}
             />
           </div>
 
           <p id="lens-instructions" className="sr-only">
             {isSelectMode
-              ? "Choose one of three profile sections. Links are not assigned yet. Press Escape to return."
+              ? isNavigationReady
+                ? `Choose one of ${stylesConfig.length} profile styles. Press Escape to return.`
+                : "Profile style selector is opening."
               : reducedMotion
                 ? "Static glass lens. Press Enter or Space to open the profile style selector."
                 : "Click to open the profile style selector. Drag or use the arrow keys to rotate. Press Home or Escape to reset."}

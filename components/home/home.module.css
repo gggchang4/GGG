@@ -198,6 +198,7 @@
 
 .discStageSelect {
   cursor: default;
+  touch-action: manipulation;
 }
 
 .discStageSelect::before {
@@ -343,6 +344,8 @@
 }
 
 .lensSection {
+  --section-shift-x: 0rem;
+  --section-shift-y: 0rem;
   position: absolute;
   z-index: 1;
   inset: 0;
@@ -372,41 +375,37 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.lensSectionsActive .lensSection {
+.lensSectionsInteractive .lensSection {
   pointer-events: auto;
 }
 
-.lensSection1 {
-  clip-path: polygon(
-    50% 50%,
-    6.7% 25%,
-    25% 6.7%,
-    50% 0,
-    75% 6.7%,
-    93.3% 25%
-  );
+.lensSectionLabel {
+  position: absolute;
+  top: var(--section-label-y);
+  left: var(--section-label-x);
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  color: rgb(20 21 18 / 0.72);
+  pointer-events: none;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  transition:
+    color 220ms ease,
+    opacity 220ms ease;
+  white-space: nowrap;
 }
 
-.lensSection2 {
-  clip-path: polygon(
-    50% 50%,
-    93.3% 25%,
-    100% 50%,
-    93.3% 75%,
-    75% 93.3%,
-    50% 100%
-  );
+.lensSectionLabel span {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(0.42rem, 0.65vw, 0.56rem);
+  letter-spacing: 0.12em;
 }
 
-.lensSection3 {
-  clip-path: polygon(
-    50% 50%,
-    50% 100%,
-    25% 93.3%,
-    6.7% 75%,
-    0 50%,
-    6.7% 25%
-  );
+.lensSectionLabel strong {
+  font-size: clamp(0.58rem, 0.9vw, 0.82rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .lensSection:hover,
@@ -421,21 +420,18 @@
   filter: drop-shadow(0 0.85rem 1.15rem rgb(43 67 69 / 0.16));
   opacity: 1;
   outline: none;
+  transform:
+    translate3d(
+      var(--section-shift-x),
+      var(--section-shift-y),
+      0
+    )
+    scale(1.018);
 }
 
-.lensSection1:hover,
-.lensSection1:focus-visible {
-  transform: translate3d(0, -0.55rem, 0) scale(1.018);
-}
-
-.lensSection2:hover,
-.lensSection2:focus-visible {
-  transform: translate3d(0.38rem, -0.18rem, 0) scale(1.018);
-}
-
-.lensSection3:hover,
-.lensSection3:focus-visible {
-  transform: translate3d(-0.38rem, -0.18rem, 0) scale(1.018);
+.lensSection:hover .lensSectionLabel,
+.lensSection:focus-visible .lensSectionLabel {
+  color: rgb(20 21 18 / 0.96);
 }
 
 .lensDivider {
@@ -461,18 +457,6 @@
 
 .lensSectionsActive .lensDivider {
   opacity: 0.58;
-}
-
-.lensDivider1 {
-  transform: rotate(-150deg);
-}
-
-.lensDivider2 {
-  transform: rotate(-30deg);
-}
-
-.lensDivider3 {
-  transform: rotate(90deg);
 }
 
 .discInstructions {
@@ -611,6 +595,7 @@
   .lensSections,
   .lensDivider,
   .lensSection,
+  .lensSectionLabel,
   .staticLensSignature {
     transition: none;
   }
