@@ -47,13 +47,13 @@ export const stylesConfig: ProfileStyleConfig[] = [
     id: "ascii",
     index: "03",
     name: "ASCII",
-    shortLabel: "Text / Terminal",
+    shortLabel: "Chromatic / Generative",
     description:
-      "A text-native profile composed through ASCII drawing, terminal rhythm, and typographic systems.",
+      "A living profile rendered through chromatic ASCII, generative motion, and playable typographic fields.",
     route: "/profile/ascii",
     status: "available",
     previewImage: null,
-    tags: ["ASCII Art", "Monospace", "Generative"],
+    tags: ["ASCII Art", "Generative Canvas", "Interaction"],
   },
 ];
 
