@@ -845,7 +845,7 @@
   aspect-ratio: 1;
   overflow: hidden;
   background: #07131b;
-  cursor: crosshair;
+  cursor: default;
   touch-action: pan-y pinch-zoom;
   user-select: none;
 }
@@ -857,7 +857,7 @@
 
 .albumStage::after {
   position: absolute;
-  z-index: 3;
+  z-index: 1;
   inset: 0;
   content: "";
   border: 1px solid rgba(243, 239, 230, 0.24);
@@ -870,11 +870,6 @@
 .albumImage {
   z-index: 0;
   object-fit: cover;
-  transition: filter 500ms ease;
-}
-
-.albumFigure[data-active="true"] .albumImage {
-  filter: saturate(0.94) brightness(0.95);
 }
 
 .albumAsciiCanvas {
@@ -902,7 +897,7 @@
   align-items: center;
   gap: 9px;
   padding: 9px 11px;
-  background: rgba(3, 7, 11, 0.68);
+  background: rgba(3, 7, 11, 0.48);
   color: rgba(243, 239, 230, 0.76);
   font-size: 8px;
   letter-spacing: 0.12em;
@@ -911,11 +906,11 @@
 }
 
 .albumScanStatus span {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--ascii-accent);
-  box-shadow: 0 0 12px var(--ascii-accent);
+  box-shadow: 0 0 6px rgba(199, 255, 74, 0.7);
 }
 
 .albumScanToggle {
