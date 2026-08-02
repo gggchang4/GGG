@@ -30,17 +30,36 @@ type GestureState = {
   pointerId: number | null;
   startX: number;
   startPosition: number;
+  tapIndex: number | null;
   moved: boolean;
 };
 
-const INITIAL_ALBUM_INDEX = 2;
+type PlaybackSpeed = 33 | 45;
+
+type TonearmGestureState = {
+  pointerId: number | null;
+  moved: boolean;
+  startX: number;
+  startY: number;
+};
+
+const INITIAL_ALBUM_INDEX = 5;
+const TONEARM_HOME_ANGLE = -77;
+const TONEARM_PLAY_ANGLE = -27;
+const TONEARM_MIN_ANGLE = -79;
+const TONEARM_MAX_ANGLE = -20;
+const TONEARM_RECORD_THRESHOLD = -62;
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
 function getShelfGap() {
-  return clamp(window.innerWidth * 0.033, 30, 50);
+  return clamp(
+    (window.innerWidth - 72) / Math.max(vinylAlbums.length - 1, 1),
+    48,
+    174,
+  );
 }
 
 function getShowcasePose(size: number) {
@@ -72,6 +91,7 @@ function VinylSurface({
           alt=""
           fill
           sizes={labelSizes}
+          loading="eager"
           draggable={false}
         />
       </span>
@@ -84,27 +104,122 @@ function Turntable({
   phase,
   album,
   onStop,
+  motorOn,
+  speed,
+  pitch,
+  tonearmAngle,
+  tonearmRaised,
+  tonearmDragging,
+  onToggleMotor,
+  onToggleSpeed,
+  onPitchChange,
+  onToggleCue,
+  onTonearmPointerDown,
+  onTonearmPointerMove,
+  onTonearmPointerUp,
+  onTonearmKeyDown,
   platterRef,
   deckRecordRef,
+  tonearmBaseRef,
   tonearmRef,
   stylusRef,
 }: {
   phase: PlayerPhase;
   album: VinylAlbum | null;
   onStop: () => void;
+  motorOn: boolean;
+  speed: PlaybackSpeed;
+  pitch: number;
+  tonearmAngle: number;
+  tonearmRaised: boolean;
+  tonearmDragging: boolean;
+  onToggleMotor: () => void;
+  onToggleSpeed: () => void;
+  onPitchChange: (value: number) => void;
+  onToggleCue: () => void;
+  onTonearmPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
+  onTonearmPointerMove: (event: PointerEvent<HTMLButtonElement>) => void;
+  onTonearmPointerUp: (event: PointerEvent<HTMLButtonElement>) => void;
+  onTonearmKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
   platterRef: RefObject<HTMLDivElement | null>;
   deckRecordRef: RefObject<HTMLButtonElement | null>;
-  tonearmRef: RefObject<HTMLDivElement | null>;
+  tonearmBaseRef: RefObject<HTMLDivElement | null>;
+  tonearmRef: RefObject<HTMLButtonElement | null>;
   stylusRef: RefObject<HTMLSpanElement | null>;
 }) {
+  const spinDuration =
+    (60 / (speed === 33 ? 33 + 1 / 3 : 45)) / (1 + pitch / 100);
+  const spinStyle = {
+    animationDuration: `${spinDuration}s`,
+    animationPlayState: motorOn ? "running" : "paused",
+  } as CSSProperties;
+  const controlsLocked = phase === "loading" || phase === "returning";
+
+  const updatePitchFromPointer = (event: PointerEvent<HTMLInputElement>) => {
+    if (controlsLocked) {
+      return;
+    }
+
+    event.preventDefault();
+    const input = event.currentTarget;
+
+    if (event.type === "pointerdown") {
+      input.focus({ preventScroll: true });
+      input.setPointerCapture(event.pointerId);
+    } else if (!input.hasPointerCapture(event.pointerId)) {
+      return;
+    }
+
+    const bounds = input.getBoundingClientRect();
+    const progress = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
+    onPitchChange(Math.round(8 - progress * 16));
+  };
+
+  const finishPitchGesture = (event: PointerEvent<HTMLInputElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const handlePitchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    const direction =
+      event.key === "ArrowUp" || event.key === "ArrowRight"
+        ? 1
+        : event.key === "ArrowDown" || event.key === "ArrowLeft"
+          ? -1
+          : 0;
+    const nextPitch =
+      event.key === "Home" ? -8 : event.key === "End" ? 8 : pitch + direction;
+
+    if (direction === 0 && event.key !== "Home" && event.key !== "End") {
+      return;
+    }
+
+    event.preventDefault();
+    onPitchChange(clamp(nextPitch, -8, 8));
+  };
+
   return (
-    <section className={styles.turntableScene} aria-label="Record player">
+    <section
+      className={styles.turntableScene}
+      aria-label="Interactive record player"
+      data-motor={motorOn ? "on" : "off"}
+    >
       <div className={styles.turntableShadow} aria-hidden="true" />
 
       <div className={styles.deck}>
         <div className={styles.deckGrain} aria-hidden="true" />
+        <span className={styles.deckMark} aria-hidden="true">
+          DIRECT DRIVE
+        </span>
+
         <div ref={platterRef} className={styles.platter}>
           <span className={styles.platterRim} aria-hidden="true" />
+          <span
+            className={`${styles.platterStrobe} ${styles.isSpinning}`}
+            style={spinStyle}
+            aria-hidden="true"
+          />
           <span className={styles.platterMat} aria-hidden="true" />
 
           <button
@@ -121,11 +236,8 @@ function Turntable({
           >
             {album ? (
               <span
-                className={`${styles.deckRecordSpin} ${
-                  phase === "playing" || phase === "loading" || phase === "returning"
-                    ? styles.isSpinning
-                    : ""
-                }`}
+                className={`${styles.deckRecordSpin} ${styles.isSpinning}`}
+                style={spinStyle}
               >
                 <VinylSurface album={album} labelSizes="54px" />
               </span>
@@ -135,26 +247,113 @@ function Turntable({
           <span className={styles.spindle} aria-hidden="true" />
         </div>
 
-        <div className={styles.pitchRail} aria-hidden="true">
-          <span />
-        </div>
-
-        <div className={styles.powerControl} aria-hidden="true">
-          <span />
-        </div>
-
-        <div className={styles.tonearmBase} aria-hidden="true">
-          <span className={styles.tonearmBaseRing} />
-          <div ref={tonearmRef} className={styles.tonearm}>
-            <span className={styles.counterweight} />
-            <span className={styles.armTube} />
-            <span ref={stylusRef} className={styles.stylus}>
+        <div className={styles.startControls}>
+          <button
+            type="button"
+            className={styles.startStopKnob}
+            onClick={onToggleMotor}
+            disabled={controlsLocked}
+            aria-label={motorOn ? "Stop platter" : "Start platter"}
+            aria-pressed={motorOn}
+          >
+            <span className={styles.knobCap} aria-hidden="true">
               <span />
             </span>
-          </div>
+            <span className={styles.controlLegend} aria-hidden="true">
+              START / STOP
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.speedKnob}
+            onClick={onToggleSpeed}
+            disabled={controlsLocked}
+            aria-label={`Switch platter speed. Current speed ${speed} RPM`}
+          >
+            <span className={styles.speedDial} data-speed={speed} aria-hidden="true">
+              <span />
+            </span>
+            <span className={styles.speedValues} aria-hidden="true">
+              <span>33</span>
+              <span>45</span>
+            </span>
+          </button>
         </div>
 
-        <div className={styles.deckFrontLip} aria-hidden="true" />
+        <label className={styles.pitchControl}>
+          <span className={styles.controlLegend}>PITCH</span>
+          <span className={styles.pitchValue}>{pitch > 0 ? "+" : ""}{pitch}%</span>
+          <input
+            type="range"
+            min="-8"
+            max="8"
+            step="1"
+            value={pitch}
+            onInput={(event) => onPitchChange(Number(event.currentTarget.value))}
+            onPointerDown={updatePitchFromPointer}
+            onPointerMove={updatePitchFromPointer}
+            onPointerUp={finishPitchGesture}
+            onPointerCancel={finishPitchGesture}
+            onKeyDown={handlePitchKeyDown}
+            disabled={controlsLocked}
+            aria-label="Pitch adjustment"
+          />
+          <span className={styles.pitchScale} aria-hidden="true" />
+        </label>
+
+        <div ref={tonearmBaseRef} className={styles.tonearmBase}>
+          <span className={styles.tonearmBaseRing} aria-hidden="true" />
+          <button
+            ref={tonearmRef}
+            type="button"
+            className={styles.tonearm}
+            data-dragging={tonearmDragging}
+            data-raised={tonearmRaised}
+            disabled={!album || phase !== "playing"}
+            role="slider"
+            aria-label="Tonearm position"
+            aria-valuemin={TONEARM_HOME_ANGLE}
+            aria-valuemax={TONEARM_MAX_ANGLE}
+            aria-valuenow={Math.round(tonearmAngle)}
+            aria-valuetext={
+              tonearmAngle < TONEARM_RECORD_THRESHOLD
+                ? "On arm rest"
+                : "Over the record"
+            }
+            onPointerDown={onTonearmPointerDown}
+            onPointerMove={onTonearmPointerMove}
+            onPointerUp={onTonearmPointerUp}
+            onPointerCancel={onTonearmPointerUp}
+            onKeyDown={onTonearmKeyDown}
+          >
+            <span className={styles.counterweight} aria-hidden="true" />
+            <svg
+              className={styles.armTube}
+              viewBox="0 0 360 74"
+              aria-hidden="true"
+            >
+              <path d="M18 37 C 96 37, 137 58, 206 48 S 284 20, 333 37" />
+              <path d="M20 34 C 97 34, 138 55, 205 45 S 282 17, 332 34" />
+            </svg>
+            <span ref={stylusRef} className={styles.stylus} aria-hidden="true">
+              <span />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.cueLever}
+            onClick={onToggleCue}
+            disabled={!album || phase !== "playing"}
+            aria-label={tonearmRaised ? "Lower tonearm" : "Raise tonearm"}
+            aria-pressed={tonearmRaised}
+          >
+            <span aria-hidden="true" />
+          </button>
+        </div>
+
+        <span className={styles.stylusLamp} aria-hidden="true" />
       </div>
     </section>
   );
@@ -164,11 +363,12 @@ export function MusicPlayerExperience() {
   const rootRef = useRef<HTMLElement>(null);
   const rackRef = useRef<HTMLElement>(null);
   const slotRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const sleeveRef = useRef<HTMLDivElement>(null);
+  const sleeveRef = useRef<HTMLButtonElement>(null);
   const floatingRecordRef = useRef<HTMLButtonElement>(null);
   const platterRef = useRef<HTMLDivElement>(null);
   const deckRecordRef = useRef<HTMLButtonElement>(null);
-  const tonearmRef = useRef<HTMLDivElement>(null);
+  const tonearmBaseRef = useRef<HTMLDivElement>(null);
+  const tonearmRef = useRef<HTMLButtonElement>(null);
   const stylusRef = useRef<HTMLSpanElement>(null);
   const sequenceRef = useRef<gsap.core.Timeline | null>(null);
   const shelfTweenRef = useRef<gsap.core.Tween | null>(null);
@@ -178,10 +378,16 @@ export function MusicPlayerExperience() {
     pointerId: null,
     startX: 0,
     startPosition: INITIAL_ALBUM_INDEX,
+    tapIndex: null,
     moved: false,
   });
-  const clickSuppressedRef = useRef(false);
-  const delayedSelectionRef = useRef<number | null>(null);
+  const tonearmGestureRef = useRef<TonearmGestureState>({
+    pointerId: null,
+    moved: false,
+    startX: 0,
+    startY: 0,
+  });
+  const tonearmAngleRef = useRef(TONEARM_HOME_ANGLE);
   const wheelTimeRef = useRef(0);
 
   const [phase, setPhaseState] = useState<PlayerPhase>("browsing");
@@ -189,6 +395,12 @@ export function MusicPlayerExperience() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loadedIndex, setLoadedIndex] = useState<number | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [motorOn, setMotorOn] = useState(false);
+  const [speed, setSpeed] = useState<PlaybackSpeed>(33);
+  const [pitch, setPitch] = useState(0);
+  const [tonearmAngle, setTonearmAngle] = useState(TONEARM_HOME_ANGLE);
+  const [tonearmRaised, setTonearmRaised] = useState(true);
+  const [tonearmDragging, setTonearmDragging] = useState(false);
 
   const selectedAlbum =
     selectedIndex === null ? null : vinylAlbums[selectedIndex];
@@ -210,23 +422,22 @@ export function MusicPlayerExperience() {
 
       const relative = index - position;
       const distance = Math.abs(relative);
-      const scale = clamp(1.14 - distance * 0.105, 0.72, 1.14);
-      const translateY = Math.min(distance * 8.5, 29);
+      const scale = clamp(1.17 - distance * 0.075, 0.76, 1.17);
       const sleeve = slot.querySelector<HTMLElement>("[data-shelf-sleeve]");
 
       gsap.set(slot, {
         x: relative * gap,
-        y: translateY,
+        y: 0,
         scale,
-        opacity: clamp(1 - distance * 0.11, 0.38, 1),
+        opacity: clamp(1 - distance * 0.07, 0.5, 1),
         zIndex: Math.round(100 - distance * 10),
-        filter: `brightness(${clamp(1.04 - distance * 0.055, 0.76, 1.04)})`,
+        filter: `brightness(${clamp(1.05 - distance * 0.045, 0.79, 1.05)})`,
       });
 
       if (sleeve) {
         gsap.set(sleeve, {
-          rotationY: -clamp(84.5 + distance * 0.75, 84.5, 88),
-          rotationZ: clamp(relative * -0.42, -2.4, 2.4),
+          rotationY: -clamp(80 + distance * 1.4, 80, 88),
+          rotationZ: 0,
         });
       }
     });
@@ -235,11 +446,12 @@ export function MusicPlayerExperience() {
   const animateShelfTo = useCallback(
     (index: number, onComplete?: () => void) => {
       const target = clamp(index, 0, vinylAlbums.length - 1);
+      const distance = Math.abs(positionRef.current.value - target);
 
       shelfTweenRef.current?.kill();
       shelfTweenRef.current = gsap.to(positionRef.current, {
         value: target,
-        duration: reducedMotion ? 0.16 : 0.52,
+        duration: reducedMotion ? 0.14 : clamp(0.2 + distance * 0.08, 0.24, 0.56),
         ease: reducedMotion ? "power1.out" : "power3.out",
         overwrite: true,
         onUpdate: layoutShelf,
@@ -258,31 +470,27 @@ export function MusicPlayerExperience() {
       const target = clamp(index, 0, vinylAlbums.length - 1);
       setActiveIndex(target);
 
-      animateShelfTo(target, () => {
+      const beginExtraction = () => {
         if (!extract || phaseRef.current !== "browsing") {
           return;
         }
 
-        if (delayedSelectionRef.current !== null) {
-          window.clearTimeout(delayedSelectionRef.current);
-        }
+        setSelectedIndex(target);
+        updatePhase("extracting");
+      };
 
-        delayedSelectionRef.current = window.setTimeout(
-          () => {
-            delayedSelectionRef.current = null;
+      if (Math.abs(positionRef.current.value - target) < 0.025) {
+        positionRef.current.value = target;
+        layoutShelf();
+        beginExtraction();
+        return;
+      }
 
-            if (phaseRef.current !== "browsing") {
-              return;
-            }
-
-            setSelectedIndex(target);
-            updatePhase("extracting");
-          },
-          reducedMotion ? 0 : 70,
-        );
+      animateShelfTo(target, () => {
+        beginExtraction();
       });
     },
-    [animateShelfTo, reducedMotion, updatePhase],
+    [animateShelfTo, layoutShelf, updatePhase],
   );
 
   useEffect(() => {
@@ -475,10 +683,6 @@ export function MusicPlayerExperience() {
     return () => {
       sequenceRef.current?.kill();
       shelfTweenRef.current?.kill();
-
-      if (delayedSelectionRef.current !== null) {
-        window.clearTimeout(delayedSelectionRef.current);
-      }
     };
   }, []);
 
@@ -492,10 +696,16 @@ export function MusicPlayerExperience() {
     }
 
     shelfTweenRef.current?.kill();
+    const pressedSlot = (event.target as Element).closest<HTMLElement>(
+      "[data-record-index]",
+    );
+    const pressedIndex = Number(pressedSlot?.dataset.recordIndex);
+
     gestureRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startPosition: positionRef.current.value,
+      tapIndex: Number.isFinite(pressedIndex) ? pressedIndex : null,
       moved: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -513,7 +723,7 @@ export function MusicPlayerExperience() {
 
     const delta = event.clientX - gesture.startX;
 
-    if (!gesture.moved && Math.abs(delta) > 6) {
+    if (!gesture.moved && Math.abs(delta) > 10) {
       gesture.moved = true;
     }
 
@@ -532,23 +742,32 @@ export function MusicPlayerExperience() {
       return;
     }
 
-    const target = clamp(
+    const snapTarget = clamp(
       Math.round(positionRef.current.value),
       0,
       vinylAlbums.length - 1,
     );
-    clickSuppressedRef.current = gesture.moved;
+    const coordinateTarget = clamp(
+      Math.round(
+        gesture.startPosition +
+          (event.clientX - window.innerWidth / 2) / getShelfGap(),
+      ),
+      0,
+      vinylAlbums.length - 1,
+    );
+    const tapTarget = gesture.tapIndex ?? coordinateTarget;
     gestureRef.current.pointerId = null;
-    setActiveIndex(target);
-    animateShelfTo(target);
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    window.setTimeout(() => {
-      clickSuppressedRef.current = false;
-    }, 0);
+    if (gesture.moved || event.type === "pointercancel") {
+      setActiveIndex(snapTarget);
+      animateShelfTo(snapTarget);
+    } else {
+      focusAlbum(tapTarget, true);
+    }
   };
 
   const handleShelfWheel = (event: WheelEvent<HTMLElement>) => {
@@ -583,18 +802,265 @@ export function MusicPlayerExperience() {
 
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      focusAlbum(activeIndex - 1);
+      const nextIndex = clamp(activeIndex - 1, 0, vinylAlbums.length - 1);
+      focusAlbum(nextIndex);
+      slotRefs.current[nextIndex]?.focus({ preventScroll: true });
     } else if (event.key === "ArrowRight") {
       event.preventDefault();
-      focusAlbum(activeIndex + 1);
-    } else if (
-      event.target === event.currentTarget &&
-      (event.key === "Enter" || event.key === " ")
-    ) {
+      const nextIndex = clamp(activeIndex + 1, 0, vinylAlbums.length - 1);
+      focusAlbum(nextIndex);
+      slotRefs.current[nextIndex]?.focus({ preventScroll: true });
+    } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      focusAlbum(activeIndex, true);
+      const focusedSlot = (event.target as HTMLElement).closest<HTMLElement>(
+        "[data-record-index]",
+      );
+      const focusedIndex = Number(focusedSlot?.dataset.recordIndex);
+      focusAlbum(Number.isFinite(focusedIndex) ? focusedIndex : activeIndex, true);
     }
   };
+
+  const setTonearmVisual = useCallback(
+    (nextAngle: number, animate = false, commit = true) => {
+      const angle = clamp(nextAngle, TONEARM_MIN_ANGLE, TONEARM_MAX_ANGLE);
+
+      tonearmAngleRef.current = angle;
+      if (commit) {
+        setTonearmAngle(angle);
+      }
+
+      if (!tonearmRef.current) {
+        return;
+      }
+
+      if (animate) {
+        gsap.to(tonearmRef.current, {
+          rotationZ: angle,
+          duration: reducedMotion ? 0.12 : 0.42,
+          ease: "power2.inOut",
+          overwrite: true,
+        });
+      } else {
+        gsap.set(tonearmRef.current, { rotationZ: angle });
+      }
+    },
+    [reducedMotion],
+  );
+
+  const setCueRaised = useCallback(
+    (raised: boolean, animate = true) => {
+      setTonearmRaised(raised);
+
+      if (!stylusRef.current) {
+        return;
+      }
+
+      if (animate) {
+        gsap.to(stylusRef.current, {
+          y: raised ? -6 : 0,
+          duration: reducedMotion ? 0.08 : 0.22,
+          ease: raised ? "power2.out" : "power2.inOut",
+          overwrite: true,
+        });
+      } else {
+        gsap.set(stylusRef.current, { y: raised ? -6 : 0 });
+      }
+    },
+    [reducedMotion],
+  );
+
+  const toggleMotor = useCallback(() => {
+    if (phaseRef.current === "loading" || phaseRef.current === "returning") {
+      return;
+    }
+
+    setMotorOn((running) => !running);
+  }, []);
+
+  const toggleSpeed = useCallback(() => {
+    if (phaseRef.current === "loading" || phaseRef.current === "returning") {
+      return;
+    }
+
+    setSpeed((currentSpeed) => (currentSpeed === 33 ? 45 : 33));
+  }, []);
+
+  const changePitch = useCallback((value: number) => {
+    if (phaseRef.current === "loading" || phaseRef.current === "returning") {
+      return;
+    }
+
+    setPitch(clamp(value, -8, 8));
+  }, []);
+
+  const toggleCue = useCallback(() => {
+    if (phaseRef.current !== "playing" || loadedIndex === null) {
+      return;
+    }
+
+    const nextRaised = !tonearmRaised;
+    setCueRaised(nextRaised);
+
+    if (!nextRaised && tonearmAngleRef.current >= TONEARM_RECORD_THRESHOLD) {
+      setMotorOn(true);
+    }
+  }, [loadedIndex, setCueRaised, tonearmRaised]);
+
+  const getTonearmAngleFromPointer = useCallback(
+    (clientX: number, clientY: number) => {
+      const base = tonearmBaseRef.current?.getBoundingClientRect();
+
+      if (!base) {
+        return tonearmAngleRef.current;
+      }
+
+      const pivotX = base.left + base.width / 2;
+      const pivotY = base.top + base.height / 2;
+      const rawAngle =
+        (Math.atan2(clientY - pivotY, clientX - pivotX) * 180) / Math.PI;
+      const normalizedAngle = rawAngle < 0 ? rawAngle + 360 : rawAngle;
+
+      return clamp(
+        normalizedAngle - 180,
+        TONEARM_MIN_ANGLE,
+        TONEARM_MAX_ANGLE,
+      );
+    },
+    [],
+  );
+
+  const handleTonearmPointerDown = useCallback(
+    (event: PointerEvent<HTMLButtonElement>) => {
+      if (
+        phaseRef.current !== "playing" ||
+        loadedIndex === null ||
+        event.button !== 0 ||
+        tonearmGestureRef.current.pointerId !== null
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      tonearmGestureRef.current = {
+        pointerId: event.pointerId,
+        moved: false,
+        startX: event.clientX,
+        startY: event.clientY,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setTonearmDragging(true);
+    },
+    [loadedIndex],
+  );
+
+  const handleTonearmPointerMove = useCallback(
+    (event: PointerEvent<HTMLButtonElement>) => {
+      const gesture = tonearmGestureRef.current;
+
+      if (
+        phaseRef.current !== "playing" ||
+        gesture.pointerId !== event.pointerId
+      ) {
+        return;
+      }
+
+      const travel = Math.hypot(
+        event.clientX - gesture.startX,
+        event.clientY - gesture.startY,
+      );
+
+      if (!gesture.moved && travel > 4) {
+        gesture.moved = true;
+        setCueRaised(true);
+      }
+
+      if (gesture.moved) {
+        setTonearmVisual(
+          getTonearmAngleFromPointer(event.clientX, event.clientY),
+          false,
+          false,
+        );
+      }
+    },
+    [getTonearmAngleFromPointer, setCueRaised, setTonearmVisual],
+  );
+
+  const finishTonearmGesture = useCallback(
+    (event: PointerEvent<HTMLButtonElement>) => {
+      const gesture = tonearmGestureRef.current;
+
+      if (gesture.pointerId !== event.pointerId) {
+        return;
+      }
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      tonearmGestureRef.current.pointerId = null;
+      setTonearmDragging(false);
+
+      if (event.type === "pointercancel") {
+        setTonearmVisual(tonearmAngleRef.current, true);
+        return;
+      }
+
+      if (!gesture.moved) {
+        toggleCue();
+        return;
+      }
+
+      if (tonearmAngleRef.current < TONEARM_RECORD_THRESHOLD) {
+        setTonearmVisual(TONEARM_HOME_ANGLE, true);
+        setCueRaised(true);
+        setMotorOn(false);
+        return;
+      }
+
+      setTonearmVisual(tonearmAngleRef.current, true);
+      setCueRaised(false);
+      setMotorOn(true);
+    },
+    [setCueRaised, setTonearmVisual, toggleCue],
+  );
+
+  const handleTonearmKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>) => {
+      let nextAngle: number | null = null;
+
+      if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+        nextAngle = tonearmAngleRef.current + 2;
+      } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+        nextAngle = tonearmAngleRef.current - 2;
+      } else if (event.key === "Home") {
+        nextAngle = TONEARM_HOME_ANGLE;
+      } else if (event.key === "End") {
+        nextAngle = TONEARM_MAX_ANGLE;
+      } else if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleCue();
+        return;
+      }
+
+      if (nextAngle === null) {
+        return;
+      }
+
+      event.preventDefault();
+      setCueRaised(true);
+      const keyboardAngle = clamp(
+        nextAngle,
+        TONEARM_HOME_ANGLE,
+        TONEARM_MAX_ANGLE,
+      );
+      setTonearmVisual(keyboardAngle, true);
+
+      if (keyboardAngle <= TONEARM_HOME_ANGLE) {
+        setMotorOn(false);
+      }
+    },
+    [setCueRaised, setTonearmVisual, toggleCue],
+  );
 
   const placeRecord = useCallback(() => {
     if (
@@ -612,6 +1078,9 @@ export function MusicPlayerExperience() {
 
     updatePhase("loading");
     setLoadedIndex(selectedIndex);
+    setTonearmRaised(true);
+    tonearmAngleRef.current = TONEARM_HOME_ANGLE;
+    setTonearmAngle(TONEARM_HOME_ANGLE);
 
     const sleeve = sleeveRef.current;
     const record = floatingRecordRef.current;
@@ -636,7 +1105,12 @@ export function MusicPlayerExperience() {
     gsap.set(deckRecord, { autoAlpha: 0 });
 
     const sequence = gsap.timeline({
-      onComplete: () => updatePhase("playing"),
+      onComplete: () => {
+        tonearmAngleRef.current = TONEARM_PLAY_ANGLE;
+        setTonearmAngle(TONEARM_PLAY_ANGLE);
+        setTonearmRaised(false);
+        updatePhase("playing");
+      },
     });
     sequenceRef.current = sequence;
     sequence
@@ -678,7 +1152,7 @@ export function MusicPlayerExperience() {
           x: `+=${deltaX - 46}`,
           y: `+=${deltaY - (reducedMotion ? 0 : 34)}`,
           scale: landingScale,
-          rotationX: reducedMotion ? 0 : 54,
+          rotationX: 0,
           rotationZ: reducedMotion ? 0 : 23,
           duration: flyDuration * 0.78,
           ease: reducedMotion ? "power1.out" : "power3.inOut",
@@ -697,6 +1171,7 @@ export function MusicPlayerExperience() {
       )
       .set(record, { autoAlpha: 0 })
       .set(deckRecord, { autoAlpha: 1 })
+      .call(() => setMotorOn(true))
       .fromTo(
         deckRecord,
         { scale: 1.018 },
@@ -718,7 +1193,7 @@ export function MusicPlayerExperience() {
       .to(
         tonearmRef.current,
         {
-          rotationZ: 13.5,
+          rotationZ: TONEARM_PLAY_ANGLE,
           duration: reducedMotion ? 0.18 : 0.66,
           ease: "power2.inOut",
         },
@@ -826,6 +1301,7 @@ export function MusicPlayerExperience() {
     }
 
     updatePhase("returning");
+    setTonearmRaised(true);
 
     const sleeve = sleeveRef.current;
     const record = floatingRecordRef.current;
@@ -852,6 +1328,10 @@ export function MusicPlayerExperience() {
     sequenceRef.current?.kill();
     const sequence = gsap.timeline({
       onComplete: () => {
+        tonearmAngleRef.current = TONEARM_HOME_ANGLE;
+        setTonearmAngle(TONEARM_HOME_ANGLE);
+        setTonearmRaised(true);
+        setMotorOn(false);
         setSelectedIndex(null);
         setLoadedIndex(null);
         updatePhase("browsing");
@@ -873,7 +1353,7 @@ export function MusicPlayerExperience() {
       .to(
         tonearmRef.current,
         {
-          rotationZ: -20,
+          rotationZ: TONEARM_HOME_ANGLE,
           duration: reducedMotion ? 0.2 : 0.7,
           ease: "power2.inOut",
         },
@@ -895,13 +1375,14 @@ export function MusicPlayerExperience() {
         },
         ">+0.12",
       )
+      .call(() => setMotorOn(false))
       .set(
         record,
         {
           x: platterX,
           y: platterY,
           scale: platterScale,
-          rotationX: reducedMotion ? 0 : 54,
+          rotationX: 0,
           rotationY: 0,
           rotationZ: -3,
           autoAlpha: 1,
@@ -1050,13 +1531,28 @@ export function MusicPlayerExperience() {
       <div className={styles.ambientLight} aria-hidden="true" />
       <div className={styles.roomGrain} aria-hidden="true" />
 
-      <div data-turntable>
+      <div className={styles.turntableStage} data-turntable>
         <Turntable
           phase={phase}
           album={loadedAlbum}
           onStop={returnRecord}
+          motorOn={motorOn}
+          speed={speed}
+          pitch={pitch}
+          tonearmAngle={tonearmAngle}
+          tonearmRaised={tonearmRaised}
+          tonearmDragging={tonearmDragging}
+          onToggleMotor={toggleMotor}
+          onToggleSpeed={toggleSpeed}
+          onPitchChange={changePitch}
+          onToggleCue={toggleCue}
+          onTonearmPointerDown={handleTonearmPointerDown}
+          onTonearmPointerMove={handleTonearmPointerMove}
+          onTonearmPointerUp={finishTonearmGesture}
+          onTonearmKeyDown={handleTonearmKeyDown}
           platterRef={platterRef}
           deckRecordRef={deckRecordRef}
+          tonearmBaseRef={tonearmBaseRef}
           tonearmRef={tonearmRef}
           stylusRef={stylusRef}
         />
@@ -1095,11 +1591,12 @@ export function MusicPlayerExperience() {
                 style={albumStyle}
                 disabled={phase !== "browsing"}
                 data-shelf-slot
+                data-record-index={index}
                 data-active={index === activeIndex}
                 aria-label={`Select ${album.title}, ${album.year}`}
                 aria-current={index === activeIndex ? "true" : undefined}
-                onClick={() => {
-                  if (!clickSuppressedRef.current) {
+                onClick={(event) => {
+                  if (event.detail === 0) {
                     focusAlbum(index, true);
                   }
                 }}
@@ -1109,7 +1606,7 @@ export function MusicPlayerExperience() {
                     src={album.cover}
                     alt=""
                     fill
-                    sizes="40px"
+                    sizes="(max-width: 720px) 48px, 72px"
                     priority={index === INITIAL_ALBUM_INDEX}
                     draggable={false}
                   />
@@ -1146,7 +1643,14 @@ export function MusicPlayerExperience() {
             </span>
           </button>
 
-          <div ref={sleeveRef} className={styles.presentedSleeve}>
+          <button
+            ref={sleeveRef}
+            type="button"
+            className={styles.presentedSleeve}
+            onClick={placeRecord}
+            disabled={phase !== "showcase"}
+            aria-label={`Play ${selectedAlbum.title}`}
+          >
             <span className={styles.sleeveBack} aria-hidden="true" />
             <Image
               src={selectedAlbum.cover}
@@ -1158,7 +1662,7 @@ export function MusicPlayerExperience() {
             />
             <span className={styles.sleevePaper} aria-hidden="true" />
             <span className={styles.presentedSpine} aria-hidden="true" />
-          </div>
+          </button>
         </div>
       ) : null}
 
