@@ -3,6 +3,7 @@
   --ledge-height: clamp(54px, 7dvh, 72px);
   --rack-height: clamp(310px, 38dvh, 390px);
   --shelf-size: clamp(196px, 16vw, 246px);
+  --spine-width: clamp(13px, 1.15vw, 17px);
   --sleeve-size: clamp(232px, 24vw, 330px);
   position: relative;
   isolation: isolate;
@@ -819,8 +820,8 @@
   outline: none;
   touch-action: none;
   cursor: grab;
-  perspective: 1350px;
-  transform-style: preserve-3d;
+  perspective: none;
+  transform-style: flat;
 }
 
 .recordRack:active {
@@ -851,22 +852,23 @@
   opacity: 0;
   background: transparent;
   transform-origin: 50% 100%;
-  transform-style: preserve-3d;
+  transform-style: flat;
   cursor: pointer;
   translate: -50% 0;
 }
 
 .shelfSlot::after {
   position: absolute;
-  right: 12%;
   bottom: -13px;
-  left: 12%;
+  left: 50%;
+  width: calc(var(--spine-width) + 12px);
   height: 7px;
   border-radius: 50%;
   content: "";
   opacity: 0.5;
   background: #000;
   filter: blur(6px);
+  transform: translateX(-50%);
 }
 
 .shelfSlot:focus-visible::before {
@@ -885,7 +887,7 @@
 
 .shelfSlot[data-active="true"] .shelfSleeve {
   box-shadow:
-    -10px 14px 24px rgb(0 0 0 / 48%),
+    0 14px 20px rgb(0 0 0 / 48%),
     0 0 20px color-mix(in srgb, var(--spine-color) 22%, transparent),
     inset 0 0 0 1px rgb(255 255 255 / 15%);
 }
@@ -894,25 +896,22 @@
   position: absolute;
   bottom: 0;
   left: 50%;
-  width: var(--shelf-size);
-  aspect-ratio: 1;
+  width: var(--spine-width);
+  height: var(--shelf-size);
   margin-left: 0;
-  overflow: visible;
-  border-radius: 3px;
+  overflow: hidden;
+  border-radius: 2px;
   background: var(--spine-color);
   box-shadow:
-    -8px 12px 19px rgb(0 0 0 / 41%),
+    0 10px 16px rgb(0 0 0 / 41%),
     inset 0 0 0 1px rgb(255 255 255 / 12%);
-  transform: rotateY(-84.5deg);
-  transform-origin: 0 50%;
-  transform-style: preserve-3d;
+  transform-origin: 50% 100%;
+  transform-style: flat;
+  translate: -50% 0;
 }
 
 .shelfSleeve > img {
-  border-radius: 3px;
-  object-fit: cover;
-  backface-visibility: hidden;
-  filter: saturate(0.94) contrast(1.03);
+  display: none;
 }
 
 .sleeveSpine {
@@ -921,7 +920,7 @@
   top: 0;
   bottom: 0;
   left: 0;
-  width: clamp(13px, 1.15vw, 17px);
+  width: 100%;
   overflow: hidden;
   border-left: 1px solid rgb(255 255 255 / 17%);
   border-right: 1px solid rgb(0 0 0 / 32%);
@@ -929,9 +928,7 @@
     linear-gradient(90deg, rgb(0 0 0 / 28%), transparent 38%, rgb(255 255 255 / 14%)),
     var(--spine-color);
   box-shadow: inset 0 0 3px rgb(255 255 255 / 16%);
-  transform: rotateY(90deg) translateZ(0.5px);
-  transform-origin: 0 50%;
-  backface-visibility: visible;
+  transform: none;
 }
 
 .sleeveSpine span {
@@ -953,17 +950,7 @@
 }
 
 .sleeveEdge {
-  position: absolute;
-  z-index: -1;
-  top: 1px;
-  right: -8px;
-  bottom: 1px;
-  width: 9px;
-  background:
-    repeating-linear-gradient(0deg, rgb(255 255 255 / 25%) 0 1px, transparent 1px 4px),
-    var(--edge-color);
-  transform: rotateY(-90deg);
-  transform-origin: 0 50%;
+  display: none;
 }
 
 .shelfLedge {
@@ -1175,6 +1162,7 @@
     --ledge-height: clamp(50px, 7.5dvh, 64px);
     --rack-height: clamp(270px, 36dvh, 320px);
     --shelf-size: clamp(174px, 48vw, 206px);
+    --spine-width: 13px;
     --sleeve-size: min(68vw, 280px);
   }
 
@@ -1259,10 +1247,6 @@
     bottom: calc(var(--ledge-height) + 7px);
     width: 44px;
     margin-left: 0;
-  }
-
-  .sleeveSpine {
-    width: 13px;
   }
 
   .sleeveSpine span {

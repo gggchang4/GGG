@@ -54,6 +54,25 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
+function wrapAlbumIndex(index: number) {
+  const count = vinylAlbums.length;
+  return ((index % count) + count) % count;
+}
+
+function getWrappedRelative(index: number, position: number) {
+  const count = vinylAlbums.length;
+  const half = count / 2;
+  return ((index - position + half) % count + count) % count - half;
+}
+
+function getNearestVirtualPosition(index: number, currentPosition: number) {
+  const wrappedIndex = wrapAlbumIndex(index);
+  const cycle = Math.round(
+    (currentPosition - wrappedIndex) / vinylAlbums.length,
+  );
+  return wrappedIndex + cycle * vinylAlbums.length;
+}
+
 function getShelfGap() {
   return clamp(
     (window.innerWidth - 72) / Math.max(vinylAlbums.length - 1, 1),
@@ -373,6 +392,8 @@ export function MusicPlayerExperience() {
   const sequenceRef = useRef<gsap.core.Timeline | null>(null);
   const shelfTweenRef = useRef<gsap.core.Tween | null>(null);
   const positionRef = useRef({ value: INITIAL_ALBUM_INDEX });
+  const removedIndexRef = useRef<number | null>(null);
+  const gapProgressRef = useRef({ value: 0 });
   const phaseRef = useRef<PlayerPhase>("browsing");
   const gestureRef = useRef<GestureState>({
     pointerId: null,
@@ -414,13 +435,28 @@ export function MusicPlayerExperience() {
   const layoutShelf = useCallback(() => {
     const position = positionRef.current.value;
     const gap = getShelfGap();
+    const removedIndex = removedIndexRef.current;
+    const gapProgress = gapProgressRef.current.value;
 
     slotRefs.current.forEach((slot, index) => {
       if (!slot) {
         return;
       }
 
-      const relative = index - position;
+      if (index === removedIndex) {
+        return;
+      }
+
+      const wrappedRelative = getWrappedRelative(index, position);
+      const removalSide =
+        removedIndex === null ? 0 : getWrappedRelative(index, removedIndex);
+      const relative =
+        wrappedRelative +
+        (removalSide < 0
+          ? gapProgress * 0.5
+          : removalSide > 0
+            ? -gapProgress * 0.5
+            : 0);
       const distance = Math.abs(relative);
       const scale = clamp(1.17 - distance * 0.075, 0.76, 1.17);
       const sleeve = slot.querySelector<HTMLElement>("[data-shelf-sleeve]");
@@ -429,14 +465,14 @@ export function MusicPlayerExperience() {
         x: relative * gap,
         y: 0,
         scale,
-        opacity: clamp(1 - distance * 0.07, 0.5, 1),
+        autoAlpha: clamp(1 - distance * 0.07, 0.5, 1),
         zIndex: Math.round(100 - distance * 10),
         filter: `brightness(${clamp(1.05 - distance * 0.045, 0.79, 1.05)})`,
       });
 
       if (sleeve) {
         gsap.set(sleeve, {
-          rotationY: -clamp(80 + distance * 1.4, 80, 88),
+          rotationY: 0,
           rotationZ: 0,
         });
       }
@@ -445,7 +481,10 @@ export function MusicPlayerExperience() {
 
   const animateShelfTo = useCallback(
     (index: number, onComplete?: () => void) => {
-      const target = clamp(index, 0, vinylAlbums.length - 1);
+      const target = getNearestVirtualPosition(
+        index,
+        positionRef.current.value,
+      );
       const distance = Math.abs(positionRef.current.value - target);
 
       shelfTweenRef.current?.kill();
@@ -467,7 +506,11 @@ export function MusicPlayerExperience() {
         return;
       }
 
-      const target = clamp(index, 0, vinylAlbums.length - 1);
+      const target = wrapAlbumIndex(index);
+      const virtualTarget = getNearestVirtualPosition(
+        target,
+        positionRef.current.value,
+      );
       setActiveIndex(target);
 
       const beginExtraction = () => {
@@ -479,8 +522,8 @@ export function MusicPlayerExperience() {
         updatePhase("extracting");
       };
 
-      if (Math.abs(positionRef.current.value - target) < 0.025) {
-        positionRef.current.value = target;
+      if (Math.abs(positionRef.current.value - virtualTarget) < 0.025) {
+        positionRef.current.value = virtualTarget;
         layoutShelf();
         beginExtraction();
         return;
@@ -549,6 +592,21 @@ export function MusicPlayerExperience() {
     return () => context.revert();
   }, [reducedMotion]);
 
+  const restoreShelfAlbum = useCallback(
+    (index: number) => {
+      removedIndexRef.current = null;
+      gapProgressRef.current.value = 0;
+
+      const slot = slotRefs.current[index];
+      if (slot) {
+        gsap.set(slot, { visibility: "visible" });
+      }
+
+      layoutShelf();
+    },
+    [layoutShelf],
+  );
+
   useLayoutEffect(() => {
     if (
       phase !== "extracting" ||
@@ -575,12 +633,15 @@ export function MusicPlayerExperience() {
       : 0.65;
     const duration = reducedMotion ? 0.22 : 1;
 
+    removedIndexRef.current = selectedIndex;
+    gapProgressRef.current.value = 0;
+
     sequenceRef.current?.kill();
     gsap.set(sleeve, {
       x: 0,
       y: startY,
       scale: startScale,
-      rotationY: reducedMotion ? -8 : -86,
+      rotationY: reducedMotion ? -8 : -90,
       rotationZ: -0.6,
       autoAlpha: reducedMotion ? 0 : 1,
     });
@@ -589,7 +650,7 @@ export function MusicPlayerExperience() {
       y: startY,
       scale: startScale * 0.96,
       rotationX: 0,
-      rotationY: reducedMotion ? -8 : -86,
+      rotationY: reducedMotion ? -8 : -90,
       rotationZ: 0,
       autoAlpha: 0,
     });
@@ -622,6 +683,17 @@ export function MusicPlayerExperience() {
           reducedMotion ? 0 : 0.07,
         );
     }
+
+    sequence.to(
+      gapProgressRef.current,
+      {
+        value: 1,
+        duration: reducedMotion ? 0.08 : duration * 0.5,
+        ease: "power3.inOut",
+        onUpdate: layoutShelf,
+      },
+      reducedMotion ? 0 : 0.1,
+    );
 
     sequence
       .to(
@@ -677,7 +749,7 @@ export function MusicPlayerExperience() {
         sequence.kill();
       }
     };
-  }, [phase, reducedMotion, selectedIndex, updatePhase]);
+  }, [layoutShelf, phase, reducedMotion, selectedIndex, updatePhase]);
 
   useEffect(() => {
     return () => {
@@ -727,11 +799,8 @@ export function MusicPlayerExperience() {
       gesture.moved = true;
     }
 
-    positionRef.current.value = clamp(
-      gesture.startPosition - delta / getShelfGap(),
-      -0.32,
-      vinylAlbums.length - 0.68,
-    );
+    positionRef.current.value =
+      gesture.startPosition - delta / getShelfGap();
     layoutShelf();
   };
 
@@ -742,18 +811,14 @@ export function MusicPlayerExperience() {
       return;
     }
 
-    const snapTarget = clamp(
+    const snapTarget = wrapAlbumIndex(
       Math.round(positionRef.current.value),
-      0,
-      vinylAlbums.length - 1,
     );
-    const coordinateTarget = clamp(
+    const coordinateTarget = wrapAlbumIndex(
       Math.round(
         gesture.startPosition +
           (event.clientX - window.innerWidth / 2) / getShelfGap(),
       ),
-      0,
-      vinylAlbums.length - 1,
     );
     const tapTarget = gesture.tapIndex ?? coordinateTarget;
     gestureRef.current.pointerId = null;
@@ -802,12 +867,12 @@ export function MusicPlayerExperience() {
 
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      const nextIndex = clamp(activeIndex - 1, 0, vinylAlbums.length - 1);
+      const nextIndex = wrapAlbumIndex(activeIndex - 1);
       focusAlbum(nextIndex);
       slotRefs.current[nextIndex]?.focus({ preventScroll: true });
     } else if (event.key === "ArrowRight") {
       event.preventDefault();
-      const nextIndex = clamp(activeIndex + 1, 0, vinylAlbums.length - 1);
+      const nextIndex = wrapAlbumIndex(activeIndex + 1);
       focusAlbum(nextIndex);
       slotRefs.current[nextIndex]?.focus({ preventScroll: true });
     } else if (event.key === "Enter" || event.key === " ") {
@@ -1226,6 +1291,16 @@ export function MusicPlayerExperience() {
     const sleeve = sleeveRef.current;
     const record = floatingRecordRef.current;
     const selectedSlot = slotRefs.current[selectedIndex];
+
+    if (selectedSlot) {
+      gsap.set(selectedSlot, {
+        x: 0,
+        y: 0,
+        scale: 1.17,
+        visibility: "hidden",
+      });
+    }
+
     const slotBounds = selectedSlot?.getBoundingClientRect();
     const sleeveBounds = sleeve.getBoundingClientRect();
     const targetY = slotBounds
@@ -1239,9 +1314,9 @@ export function MusicPlayerExperience() {
     sequenceRef.current?.kill();
     const sequence = gsap.timeline({
       onComplete: () => {
+        restoreShelfAlbum(selectedIndex);
         setSelectedIndex(null);
         updatePhase("browsing");
-        layoutShelf();
       },
     });
     sequenceRef.current = sequence;
@@ -1252,12 +1327,32 @@ export function MusicPlayerExperience() {
         ease: "power2.inOut",
       })
       .to(
+        gapProgressRef.current,
+        {
+          value: 0,
+          duration: reducedMotion ? 0.08 : duration * 0.54,
+          ease: "power3.inOut",
+          onUpdate: layoutShelf,
+        },
+        `>-${duration * 0.12}`,
+      )
+      .to(
+        rackRef.current,
+        {
+          opacity: 0.58,
+          filter: reducedMotion ? "none" : "blur(0.8px)",
+          duration: reducedMotion ? 0.08 : duration * 0.4,
+          ease: "power2.out",
+        },
+        "<",
+      )
+      .to(
         [sleeve, record],
         {
           x: 0,
           y: targetY,
           scale: targetScale,
-          rotationY: reducedMotion ? -8 : -86,
+          rotationY: reducedMotion ? -8 : -90,
           rotationZ: 0,
           duration,
           ease: "power3.inOut",
@@ -1283,7 +1378,13 @@ export function MusicPlayerExperience() {
         },
         `>-${duration * 0.34}`,
       );
-  }, [layoutShelf, reducedMotion, selectedIndex, updatePhase]);
+  }, [
+    layoutShelf,
+    reducedMotion,
+    restoreShelfAlbum,
+    selectedIndex,
+    updatePhase,
+  ]);
 
   const returnRecord = useCallback(() => {
     if (
@@ -1307,6 +1408,16 @@ export function MusicPlayerExperience() {
     const record = floatingRecordRef.current;
     const deckRecord = deckRecordRef.current;
     const selectedSlot = slotRefs.current[selectedIndex];
+
+    if (selectedSlot) {
+      gsap.set(selectedSlot, {
+        x: 0,
+        y: 0,
+        scale: 1.17,
+        visibility: "hidden",
+      });
+    }
+
     const slotBounds = selectedSlot?.getBoundingClientRect();
     const sleeveSize = sleeve.getBoundingClientRect().width;
     const platterBounds = platterRef.current.getBoundingClientRect();
@@ -1332,10 +1443,10 @@ export function MusicPlayerExperience() {
         setTonearmAngle(TONEARM_HOME_ANGLE);
         setTonearmRaised(true);
         setMotorOn(false);
+        restoreShelfAlbum(selectedIndex);
         setSelectedIndex(null);
         setLoadedIndex(null);
         updatePhase("browsing");
-        layoutShelf();
       },
     });
     sequenceRef.current = sequence;
@@ -1442,12 +1553,32 @@ export function MusicPlayerExperience() {
         ">",
       )
       .to(
+        gapProgressRef.current,
+        {
+          value: 0,
+          duration: reducedMotion ? 0.08 : duration * 0.46,
+          ease: "power3.inOut",
+          onUpdate: layoutShelf,
+        },
+        `>-${duration * 0.12}`,
+      )
+      .to(
+        rackRef.current,
+        {
+          opacity: 0.58,
+          filter: reducedMotion ? "none" : "blur(0.8px)",
+          duration: reducedMotion ? 0.08 : duration * 0.36,
+          ease: "power2.out",
+        },
+        "<",
+      )
+      .to(
         [sleeve, record],
         {
           x: 0,
           y: shelfY - (reducedMotion ? 0 : 22),
           scale: shelfScale,
-          rotationY: reducedMotion ? -8 : -86,
+          rotationY: reducedMotion ? -8 : -90,
           rotationZ: 0,
           duration: duration * 0.72,
           ease: "power3.inOut",
@@ -1482,7 +1613,13 @@ export function MusicPlayerExperience() {
         },
         `>-${duration * 0.42}`,
       );
-  }, [layoutShelf, reducedMotion, selectedIndex, updatePhase]);
+  }, [
+    layoutShelf,
+    reducedMotion,
+    restoreShelfAlbum,
+    selectedIndex,
+    updatePhase,
+  ]);
 
   useEffect(() => {
     const handleGlobalKey = (event: globalThis.KeyboardEvent) => {
