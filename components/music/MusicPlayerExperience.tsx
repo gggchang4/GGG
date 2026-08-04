@@ -74,11 +74,11 @@ function getNearestVirtualPosition(index: number, currentPosition: number) {
 }
 
 function getShelfGap() {
-  return clamp(
-    (window.innerWidth - 72) / Math.max(vinylAlbums.length - 1, 1),
-    48,
-    174,
-  );
+  const compact = window.innerWidth < 720;
+
+  return compact
+    ? clamp(window.innerWidth * 0.27, 92, 124)
+    : clamp(window.innerWidth * 0.17, 154, 220);
 }
 
 function getShowcasePose(size: number) {
@@ -458,22 +458,28 @@ export function MusicPlayerExperience() {
             ? -gapProgress * 0.5
             : 0);
       const distance = Math.abs(relative);
-      const scale = clamp(1.17 - distance * 0.075, 0.76, 1.17);
+      const scale = clamp(1.04 - distance * 0.105, 0.58, 1.04);
       const sleeve = slot.querySelector<HTMLElement>("[data-shelf-sleeve]");
 
       gsap.set(slot, {
         x: relative * gap,
-        y: 0,
+        y: distance * 7 + (index % 2 === 0 ? 2 : -2),
+        z: -distance * 72,
         scale,
-        autoAlpha: clamp(1 - distance * 0.07, 0.5, 1),
-        zIndex: Math.round(100 - distance * 10),
-        filter: `brightness(${clamp(1.05 - distance * 0.045, 0.79, 1.05)})`,
+        rotationY: clamp(relative * -5.5, -28, 28),
+        rotationZ: clamp(relative * 1.4, -5.5, 5.5),
+        autoAlpha: clamp(1 - distance * 0.16, 0.12, 1),
+        zIndex: Math.round(100 - distance * 8),
+        filter: `brightness(${clamp(1.06 - distance * 0.09, 0.6, 1.06)}) blur(${clamp(
+          (distance - 1.35) * 0.75,
+          0,
+          2.5,
+        )}px)`,
       });
 
       if (sleeve) {
         gsap.set(sleeve, {
-          rotationY: 0,
-          rotationZ: 0,
+          z: 0,
         });
       }
     });
@@ -621,15 +627,20 @@ export function MusicPlayerExperience() {
     const sleeve = sleeveRef.current;
     const record = floatingRecordRef.current;
     const selectedSlot = slotRefs.current[selectedIndex];
-    const slotBounds = selectedSlot?.getBoundingClientRect();
+    const slotBounds = selectedSlot
+      ?.querySelector<HTMLElement>("[data-shelf-sleeve]")
+      ?.getBoundingClientRect();
     const sleeveBounds = sleeve.getBoundingClientRect();
     const size = sleeveBounds.width;
     const pose = getShowcasePose(size);
+    const startX = slotBounds
+      ? slotBounds.left + slotBounds.width / 2 - window.innerWidth / 2
+      : 0;
     const startY = slotBounds
       ? slotBounds.top + slotBounds.height / 2 - window.innerHeight / 2
       : window.innerHeight * 0.33;
     const startScale = slotBounds
-      ? clamp(slotBounds.height / Math.max(size, 1), 0.48, 0.78)
+      ? clamp(slotBounds.width / Math.max(size, 1), 0.38, 0.82)
       : 0.65;
     const duration = reducedMotion ? 0.22 : 1;
 
@@ -638,19 +649,19 @@ export function MusicPlayerExperience() {
 
     sequenceRef.current?.kill();
     gsap.set(sleeve, {
-      x: 0,
+      x: startX,
       y: startY,
       scale: startScale,
-      rotationY: reducedMotion ? -8 : -90,
-      rotationZ: -0.6,
+      rotationY: 0,
+      rotationZ: 0,
       autoAlpha: reducedMotion ? 0 : 1,
     });
     gsap.set(record, {
-      x: 0,
+      x: startX,
       y: startY,
       scale: startScale * 0.96,
       rotationX: 0,
-      rotationY: reducedMotion ? -8 : -90,
+      rotationY: 0,
       rotationZ: 0,
       autoAlpha: 0,
     });
@@ -1294,20 +1305,22 @@ export function MusicPlayerExperience() {
 
     if (selectedSlot) {
       gsap.set(selectedSlot, {
-        x: 0,
-        y: 0,
-        scale: 1.17,
         visibility: "hidden",
       });
     }
 
-    const slotBounds = selectedSlot?.getBoundingClientRect();
+    const slotBounds = selectedSlot
+      ?.querySelector<HTMLElement>("[data-shelf-sleeve]")
+      ?.getBoundingClientRect();
     const sleeveBounds = sleeve.getBoundingClientRect();
+    const targetX = slotBounds
+      ? slotBounds.left + slotBounds.width / 2 - window.innerWidth / 2
+      : 0;
     const targetY = slotBounds
       ? slotBounds.top + slotBounds.height / 2 - window.innerHeight / 2
       : window.innerHeight * 0.33;
     const targetScale = slotBounds
-      ? clamp(slotBounds.height / Math.max(sleeveBounds.width, 1), 0.48, 0.78)
+      ? clamp(slotBounds.width / Math.max(sleeveBounds.width, 1), 0.38, 0.82)
       : 0.65;
     const duration = reducedMotion ? 0.18 : 0.72;
 
@@ -1349,10 +1362,10 @@ export function MusicPlayerExperience() {
       .to(
         [sleeve, record],
         {
-          x: 0,
+          x: targetX,
           y: targetY,
           scale: targetScale,
-          rotationY: reducedMotion ? -8 : -90,
+          rotationY: 0,
           rotationZ: 0,
           duration,
           ease: "power3.inOut",
@@ -1411,14 +1424,13 @@ export function MusicPlayerExperience() {
 
     if (selectedSlot) {
       gsap.set(selectedSlot, {
-        x: 0,
-        y: 0,
-        scale: 1.17,
         visibility: "hidden",
       });
     }
 
-    const slotBounds = selectedSlot?.getBoundingClientRect();
+    const slotBounds = selectedSlot
+      ?.querySelector<HTMLElement>("[data-shelf-sleeve]")
+      ?.getBoundingClientRect();
     const sleeveSize = sleeve.getBoundingClientRect().width;
     const platterBounds = platterRef.current.getBoundingClientRect();
     const pose = getShowcasePose(sleeveSize);
@@ -1428,11 +1440,14 @@ export function MusicPlayerExperience() {
       platterBounds.top + platterBounds.height / 2 - window.innerHeight / 2;
     const platterScale =
       (platterBounds.width * 0.82) / Math.max(sleeveSize, 1);
+    const shelfX = slotBounds
+      ? slotBounds.left + slotBounds.width / 2 - window.innerWidth / 2
+      : 0;
     const shelfY = slotBounds
       ? slotBounds.top + slotBounds.height / 2 - window.innerHeight / 2
       : window.innerHeight * 0.33;
     const shelfScale = slotBounds
-      ? clamp(slotBounds.height / Math.max(sleeveSize, 1), 0.48, 0.78)
+      ? clamp(slotBounds.width / Math.max(sleeveSize, 1), 0.38, 0.82)
       : 0.65;
     const duration = reducedMotion ? 0.2 : 1;
 
@@ -1575,10 +1590,10 @@ export function MusicPlayerExperience() {
       .to(
         [sleeve, record],
         {
-          x: 0,
+          x: shelfX,
           y: shelfY - (reducedMotion ? 0 : 22),
           scale: shelfScale,
-          rotationY: reducedMotion ? -8 : -90,
+          rotationY: 0,
           rotationZ: 0,
           duration: duration * 0.72,
           ease: "power3.inOut",
@@ -1709,6 +1724,22 @@ export function MusicPlayerExperience() {
         onWheel={handleShelfWheel}
         onKeyDown={handleRackKeyDown}
       >
+        <div className={styles.rackBackdrop} aria-hidden="true">
+          <Image
+            key={vinylAlbums[activeIndex].id}
+            className={styles.rackBackdropImage}
+            src={vinylAlbums[activeIndex].cover}
+            alt=""
+            fill
+            sizes="100vw"
+            priority
+            draggable={false}
+          />
+        </div>
+        <header className={styles.rackHeader} aria-hidden="true">
+          <span>Queue</span>
+          <span>Drag to browse</span>
+        </header>
         <div className={styles.focusGlow} aria-hidden="true" />
         <div className={styles.rackTrack}>
           {vinylAlbums.map((album, index) => {
@@ -1743,7 +1774,7 @@ export function MusicPlayerExperience() {
                     src={album.cover}
                     alt=""
                     fill
-                    sizes="(max-width: 720px) 48px, 72px"
+                    sizes="(max-width: 720px) 34vw, 205px"
                     priority={index === INITIAL_ALBUM_INDEX}
                     draggable={false}
                   />
@@ -1752,11 +1783,25 @@ export function MusicPlayerExperience() {
                   </span>
                   <span className={styles.sleeveEdge} />
                 </span>
+                <span className={styles.albumMeta} aria-hidden="true">
+                  <span className={styles.albumTitle}>{album.title}</span>
+                  <span className={styles.albumArtist}>{album.artist}</span>
+                </span>
               </button>
             );
           })}
         </div>
-        <div className={styles.shelfLedge} aria-hidden="true" />
+        <div className={styles.rackProgress} aria-hidden="true">
+          <span>{String(activeIndex + 1).padStart(2, "0")}</span>
+          <span className={styles.progressTrack}>
+            <span
+              style={{
+                transform: `scaleX(${(activeIndex + 1) / vinylAlbums.length})`,
+              }}
+            />
+          </span>
+          <span>{String(vinylAlbums.length).padStart(2, "0")}</span>
+        </div>
       </section>
 
       {selectedAlbum ? (
