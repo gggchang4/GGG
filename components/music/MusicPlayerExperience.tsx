@@ -15,6 +15,7 @@ import {
 } from "react";
 import gsap from "gsap";
 import { vinylAlbums, type VinylAlbum } from "@/data/records";
+import { VinylRecord } from "@/components/music/VinylRecord";
 import styles from "@/components/music/music-player.module.css";
 
 type PlayerPhase =
@@ -28,7 +29,10 @@ type PlayerPhase =
 
 type GestureState = {
   pointerId: number | null;
-  startX: number;
+  startY: number;
+  lastY: number;
+  lastTime: number;
+  velocityY: number;
   startPosition: number;
   tapIndex: number | null;
   moved: boolean;
@@ -45,10 +49,10 @@ type TonearmGestureState = {
 
 const INITIAL_ALBUM_INDEX = 5;
 const TONEARM_HOME_ANGLE = -77;
-const TONEARM_PLAY_ANGLE = -27;
+const TONEARM_PLAY_ANGLE = -66;
 const TONEARM_MIN_ANGLE = -79;
 const TONEARM_MAX_ANGLE = -20;
-const TONEARM_RECORD_THRESHOLD = -62;
+const TONEARM_RECORD_THRESHOLD = -72;
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -73,12 +77,17 @@ function getNearestVirtualPosition(index: number, currentPosition: number) {
   return wrappedIndex + cycle * vinylAlbums.length;
 }
 
-function getShelfGap() {
+function getShelfPitch() {
   const compact = window.innerWidth < 720;
+  const estimatedSize = compact
+    ? Math.min(window.innerWidth * 0.78, 350)
+    : window.innerHeight < 700
+      ? Math.min(window.innerHeight * 0.54, 340)
+      : clamp(window.innerWidth * 0.29, 290, 420);
 
   return compact
-    ? clamp(window.innerWidth * 0.27, 92, 124)
-    : clamp(window.innerWidth * 0.17, 154, 220);
+    ? clamp(estimatedSize * 0.27, 72, 94)
+    : clamp(estimatedSize * 0.27, 82, 114);
 }
 
 function getShowcasePose(size: number) {
@@ -86,37 +95,11 @@ function getShowcasePose(size: number) {
 
   return {
     x: compact
-      ? -window.innerWidth * 0.38
-      : -Math.min(window.innerWidth * 0.16, 250),
-    y: compact ? window.innerHeight * 0.11 : window.innerHeight * 0.13,
-    recordX: compact ? size * 0.39 : size * 0.44,
+      ? -Math.min(window.innerWidth * 0.12, size * 0.14)
+      : -Math.min(window.innerWidth * 0.075, size * 0.16),
+    y: compact ? -window.innerHeight * 0.025 : 0,
+    recordX: compact ? size * 0.28 : size * 0.31,
   };
-}
-
-function VinylSurface({
-  album,
-  labelSizes,
-}: {
-  album: VinylAlbum;
-  labelSizes: string;
-}) {
-  return (
-    <span className={styles.vinylSurface} aria-hidden="true">
-      <span className={styles.grooves} />
-      <span className={styles.recordSheen} />
-      <span className={styles.recordLabel}>
-        <Image
-          src={album.cover}
-          alt=""
-          fill
-          sizes={labelSizes}
-          loading="eager"
-          draggable={false}
-        />
-      </span>
-      <span className={styles.spindleHole} />
-    </span>
-  );
 }
 
 function Turntable({
@@ -254,12 +237,12 @@ function Turntable({
             }
           >
             {album ? (
-              <span
-                className={`${styles.deckRecordSpin} ${styles.isSpinning}`}
-                style={spinStyle}
-              >
-                <VinylSurface album={album} labelSizes="54px" />
-              </span>
+              <VinylRecord
+                album={album}
+                playing={motorOn}
+                className={styles.deckVinyl}
+                variant="platter"
+              />
             ) : null}
           </button>
 
@@ -296,6 +279,18 @@ function Turntable({
             <span className={styles.speedValues} aria-hidden="true">
               <span>33</span>
               <span>45</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.returnKnob}
+            onClick={onStop}
+            disabled={phase !== "playing"}
+            aria-label="Return record to its sleeve"
+          >
+            <span className={styles.controlLegend} aria-hidden="true">
+              RETURN
             </span>
           </button>
         </div>
@@ -350,6 +345,7 @@ function Turntable({
             <svg
               className={styles.armTube}
               viewBox="0 0 360 74"
+              preserveAspectRatio="none"
               aria-hidden="true"
             >
               <path d="M18 37 C 96 37, 137 58, 206 48 S 284 20, 333 37" />
@@ -373,6 +369,13 @@ function Turntable({
         </div>
 
         <span className={styles.stylusLamp} aria-hidden="true" />
+
+        {album ? (
+          <div className={styles.nowPlayingMeta} aria-hidden="true">
+            <strong>{album.title}</strong>
+            <span>{album.artist}</span>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -397,7 +400,10 @@ export function MusicPlayerExperience() {
   const phaseRef = useRef<PlayerPhase>("browsing");
   const gestureRef = useRef<GestureState>({
     pointerId: null,
-    startX: 0,
+    startY: 0,
+    lastY: 0,
+    lastTime: 0,
+    velocityY: 0,
     startPosition: INITIAL_ALBUM_INDEX,
     tapIndex: null,
     moved: false,
@@ -409,10 +415,14 @@ export function MusicPlayerExperience() {
     startY: 0,
   });
   const tonearmAngleRef = useRef(TONEARM_HOME_ANGLE);
-  const wheelTimeRef = useRef(0);
+  const wheelSnapRef = useRef<number | null>(null);
+  const backdropIndexRef = useRef(INITIAL_ALBUM_INDEX);
 
   const [phase, setPhaseState] = useState<PlayerPhase>("browsing");
   const [activeIndex, setActiveIndex] = useState(INITIAL_ALBUM_INDEX);
+  const [previousBackdropIndex, setPreviousBackdropIndex] = useState<
+    number | null
+  >(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loadedIndex, setLoadedIndex] = useState<number | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -434,9 +444,18 @@ export function MusicPlayerExperience() {
 
   const layoutShelf = useCallback(() => {
     const position = positionRef.current.value;
-    const gap = getShelfGap();
+    const pitch = getShelfPitch();
     const removedIndex = removedIndexRef.current;
     const gapProgress = gapProgressRef.current.value;
+    const referenceSlot = slotRefs.current.find(
+      (slot): slot is HTMLButtonElement => Boolean(slot),
+    );
+    const sleeveSize = referenceSlot?.offsetWidth ?? 320;
+    const velocityTilt = clamp(
+      gestureRef.current.velocityY / 1600,
+      -1,
+      1,
+    ) * 3;
 
     slotRefs.current.forEach((slot, index) => {
       if (!slot) {
@@ -453,28 +472,41 @@ export function MusicPlayerExperience() {
       const relative =
         wrappedRelative +
         (removalSide < 0
-          ? gapProgress * 0.5
+          ? -gapProgress * 0.34
           : removalSide > 0
-            ? -gapProgress * 0.5
+            ? gapProgress * 0.34
             : 0);
       const distance = Math.abs(relative);
-      const scale = clamp(1.04 - distance * 0.105, 0.58, 1.04);
+      const focus = 1 - clamp(distance, 0, 1);
+      const veil = clamp((distance - 1) * 0.045, 0, 0.22);
+      const depthBlur = relative > 2.2
+        ? clamp((relative - 2.2) * 4.2, 0, 12)
+        : relative < -3.25
+          ? clamp((-relative - 3.25) * 1.9, 0, 4.5)
+          : 0;
       const sleeve = slot.querySelector<HTMLElement>("[data-shelf-sleeve]");
 
+      slot.dataset.stackSide = relative < -0.08
+        ? "above"
+        : relative > 0.08
+          ? "below"
+          : "focus";
+      slot.style.setProperty("--shelf-veil", veil.toFixed(3));
+
       gsap.set(slot, {
-        x: relative * gap,
-        y: distance * 7 + (index % 2 === 0 ? 2 : -2),
-        z: -distance * 72,
-        scale,
-        rotationY: clamp(relative * -5.5, -28, 28),
-        rotationZ: clamp(relative * 1.4, -5.5, 5.5),
-        autoAlpha: clamp(1 - distance * 0.16, 0.12, 1),
-        zIndex: Math.round(100 - distance * 8),
-        filter: `brightness(${clamp(1.06 - distance * 0.09, 0.6, 1.06)}) blur(${clamp(
-          (distance - 1.35) * 0.75,
-          0,
-          2.5,
-        )}px)`,
+        x: Math.sin(index * 1.73) * Math.min(4, sleeveSize * 0.012),
+        y: relative * pitch,
+        z: clamp(relative, -5.2, 3.2) * sleeveSize * 0.16 + focus * sleeveSize * 0.045,
+        rotationX: (reducedMotion ? 70 : 75 - focus * 2) + velocityTilt,
+        rotationY: 0,
+        rotationZ: reducedMotion ? 0 : Math.sin(index * 2.17) * 0.7,
+        scale: 1,
+        zIndex: Math.round(100 + relative * 10),
+        autoAlpha: distance > 5.35 ? 0 : clamp(1 - Math.max(0, distance - 4.35) * 0.64, 0.2, 1),
+        visibility: distance > 5.6 ? "hidden" : "visible",
+        filter: reducedMotion
+          ? "none"
+          : `blur(${depthBlur}px) brightness(${clamp(1.02 - distance * 0.035, 0.82, 1.02)})`,
       });
 
       if (sleeve) {
@@ -483,7 +515,7 @@ export function MusicPlayerExperience() {
         });
       }
     });
-  }, []);
+  }, [reducedMotion]);
 
   const animateShelfTo = useCallback(
     (index: number, onComplete?: () => void) => {
@@ -496,11 +528,18 @@ export function MusicPlayerExperience() {
       shelfTweenRef.current?.kill();
       shelfTweenRef.current = gsap.to(positionRef.current, {
         value: target,
-        duration: reducedMotion ? 0.14 : clamp(0.2 + distance * 0.08, 0.24, 0.56),
-        ease: reducedMotion ? "power1.out" : "power3.out",
+        duration: reducedMotion ? 0.12 : clamp(0.3 + distance * 0.08, 0.34, 0.66),
+        ease: reducedMotion ? "power1.out" : "expo.out",
         overwrite: true,
-        onUpdate: layoutShelf,
-        onComplete,
+        onUpdate: () => {
+          gestureRef.current.velocityY *= 0.82;
+          layoutShelf();
+        },
+        onComplete: () => {
+          gestureRef.current.velocityY = 0;
+          layoutShelf();
+          onComplete?.();
+        },
       });
     },
     [layoutShelf, reducedMotion],
@@ -552,6 +591,24 @@ export function MusicPlayerExperience() {
     return () => preference.removeEventListener("change", updatePreference);
   }, []);
 
+  useEffect(() => {
+    const previousIndex = backdropIndexRef.current;
+
+    if (previousIndex === activeIndex) {
+      return;
+    }
+
+    setPreviousBackdropIndex(previousIndex);
+    backdropIndexRef.current = activeIndex;
+
+    const timer = window.setTimeout(
+      () => setPreviousBackdropIndex(null),
+      reducedMotion ? 20 : 360,
+    );
+
+    return () => window.clearTimeout(timer);
+  }, [activeIndex, reducedMotion]);
+
   useLayoutEffect(() => {
     layoutShelf();
 
@@ -569,19 +626,15 @@ export function MusicPlayerExperience() {
     const context = gsap.context(() => {
       const duration = reducedMotion ? 0.01 : 1;
 
+      gsap.set("[data-turntable]", { autoAlpha: 0, scale: 0.96 });
+
       gsap
         .timeline({ defaults: { ease: "power3.out" } })
         .fromTo(
-          "[data-turntable]",
-          { autoAlpha: 0, y: -28, scale: 0.965 },
-          { autoAlpha: 1, y: 0, scale: 1, duration: duration * 1.15 },
-          0,
-        )
-        .fromTo(
           "[data-rack]",
-          { autoAlpha: 0, y: 38 },
-          { autoAlpha: 1, y: 0, duration: duration * 0.95 },
-          duration * 0.16,
+          { autoAlpha: 0, scale: 1.035 },
+          { autoAlpha: 1, scale: 1, duration: duration * 0.95 },
+          0,
         )
         .fromTo(
           "[data-shelf-slot]",
@@ -591,7 +644,7 @@ export function MusicPlayerExperience() {
             duration: duration * 0.48,
             stagger: reducedMotion ? 0 : 0.035,
           },
-          duration * 0.28,
+          duration * 0.16,
         );
     }, rootRef);
 
@@ -642,7 +695,7 @@ export function MusicPlayerExperience() {
     const startScale = slotBounds
       ? clamp(slotBounds.width / Math.max(size, 1), 0.38, 0.82)
       : 0.65;
-    const duration = reducedMotion ? 0.22 : 1;
+    const duration = reducedMotion ? 0.18 : 0.72;
 
     removedIndexRef.current = selectedIndex;
     gapProgressRef.current.value = 0;
@@ -652,6 +705,7 @@ export function MusicPlayerExperience() {
       x: startX,
       y: startY,
       scale: startScale,
+      rotationX: reducedMotion ? 0 : 67,
       rotationY: 0,
       rotationZ: 0,
       autoAlpha: reducedMotion ? 0 : 1,
@@ -724,8 +778,9 @@ export function MusicPlayerExperience() {
           x: pose.x,
           y: pose.y,
           scale: 1,
+          rotationX: 0,
           rotationY: 0,
-          rotationZ: -1.2,
+          rotationZ: reducedMotion ? 0 : -4.6,
           autoAlpha: 1,
           duration,
           ease: reducedMotion ? "power1.out" : "power4.inOut",
@@ -738,7 +793,7 @@ export function MusicPlayerExperience() {
           x: pose.x,
           y: pose.y,
           scale: 0.955,
-          rotationX: 0,
+          rotationX: reducedMotion ? 0 : 2,
           rotationY: 0,
           autoAlpha: 1,
         },
@@ -749,8 +804,10 @@ export function MusicPlayerExperience() {
         {
           x: pose.x + pose.recordX,
           scale: 0.975,
+          rotationX: 0,
+          rotationZ: reducedMotion ? 0 : 1.8,
           duration: duration * 0.52,
-          ease: "power3.out",
+          ease: reducedMotion ? "power1.out" : "back.out(1.16)",
         },
         0.58 * duration,
       );
@@ -766,6 +823,9 @@ export function MusicPlayerExperience() {
     return () => {
       sequenceRef.current?.kill();
       shelfTweenRef.current?.kill();
+      if (wheelSnapRef.current !== null) {
+        window.clearTimeout(wheelSnapRef.current);
+      }
     };
   }, []);
 
@@ -784,9 +844,14 @@ export function MusicPlayerExperience() {
     );
     const pressedIndex = Number(pressedSlot?.dataset.recordIndex);
 
+    const now = performance.now();
+
     gestureRef.current = {
       pointerId: event.pointerId,
-      startX: event.clientX,
+      startY: event.clientY,
+      lastY: event.clientY,
+      lastTime: now,
+      velocityY: 0,
       startPosition: positionRef.current.value,
       tapIndex: Number.isFinite(pressedIndex) ? pressedIndex : null,
       moved: false,
@@ -804,14 +869,27 @@ export function MusicPlayerExperience() {
       return;
     }
 
-    const delta = event.clientX - gesture.startX;
+    const delta = event.clientY - gesture.startY;
+    const now = performance.now();
+    const elapsed = Math.max(now - gesture.lastTime, 8);
+    const sampledVelocity =
+      ((event.clientY - gesture.lastY) / elapsed) * 1000;
 
-    if (!gesture.moved && Math.abs(delta) > 10) {
+    gesture.velocityY = gesture.velocityY * 0.55 + sampledVelocity * 0.45;
+    gesture.lastY = event.clientY;
+    gesture.lastTime = now;
+
+    if (!gesture.moved && Math.abs(delta) > 8) {
       gesture.moved = true;
     }
 
     positionRef.current.value =
-      gesture.startPosition - delta / getShelfGap();
+      gesture.startPosition - delta / getShelfPitch();
+    const nextActive = wrapAlbumIndex(Math.round(positionRef.current.value));
+
+    if (nextActive !== activeIndex) {
+      setActiveIndex(nextActive);
+    }
     layoutShelf();
   };
 
@@ -822,16 +900,17 @@ export function MusicPlayerExperience() {
       return;
     }
 
+    const velocityIndex = -gesture.velocityY / getShelfPitch();
+    const projectedPosition =
+      positionRef.current.value + clamp(velocityIndex * 0.18, -4, 4);
     const snapTarget = wrapAlbumIndex(
-      Math.round(positionRef.current.value),
-    );
-    const coordinateTarget = wrapAlbumIndex(
       Math.round(
-        gesture.startPosition +
-          (event.clientX - window.innerWidth / 2) / getShelfGap(),
+        event.type === "pointercancel"
+          ? positionRef.current.value
+          : projectedPosition,
       ),
     );
-    const tapTarget = gesture.tapIndex ?? coordinateTarget;
+    const tapTarget = gesture.tapIndex ?? activeIndex;
     gestureRef.current.pointerId = null;
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -852,23 +931,41 @@ export function MusicPlayerExperience() {
     }
 
     event.preventDefault();
-    const now = performance.now();
-
-    if (now - wheelTimeRef.current < 150) {
+    if (Math.abs(event.deltaY) < Math.abs(event.deltaX)) {
       return;
     }
 
     const delta =
-      Math.abs(event.deltaX) > Math.abs(event.deltaY)
-        ? event.deltaX
-        : event.deltaY;
+      event.deltaMode === 1
+        ? event.deltaY * 16
+        : event.deltaMode === 2
+          ? event.deltaY * window.innerHeight
+          : event.deltaY;
 
-    if (Math.abs(delta) < 4) {
+    if (Math.abs(delta) < 0.5) {
       return;
     }
 
-    wheelTimeRef.current = now;
-    focusAlbum(activeIndex + (delta > 0 ? 1 : -1));
+    shelfTweenRef.current?.kill();
+    gestureRef.current.velocityY = clamp(delta * -7, -1500, 1500);
+    positionRef.current.value +=
+      (clamp(delta, -120, 120) / getShelfPitch()) * 0.42;
+
+    const nextActive = wrapAlbumIndex(Math.round(positionRef.current.value));
+    if (nextActive !== activeIndex) {
+      setActiveIndex(nextActive);
+    }
+    layoutShelf();
+
+    if (wheelSnapRef.current !== null) {
+      window.clearTimeout(wheelSnapRef.current);
+    }
+    wheelSnapRef.current = window.setTimeout(() => {
+      wheelSnapRef.current = null;
+      const target = wrapAlbumIndex(Math.round(positionRef.current.value));
+      setActiveIndex(target);
+      animateShelfTo(target);
+    }, reducedMotion ? 0 : 90);
   };
 
   const handleRackKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -876,12 +973,12 @@ export function MusicPlayerExperience() {
       return;
     }
 
-    if (event.key === "ArrowLeft") {
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
       event.preventDefault();
       const nextIndex = wrapAlbumIndex(activeIndex - 1);
       focusAlbum(nextIndex);
       slotRefs.current[nextIndex]?.focus({ preventScroll: true });
-    } else if (event.key === "ArrowRight") {
+    } else if (event.key === "ArrowDown" || event.key === "ArrowRight") {
       event.preventDefault();
       const nextIndex = wrapAlbumIndex(activeIndex + 1);
       focusAlbum(nextIndex);
@@ -1139,6 +1236,10 @@ export function MusicPlayerExperience() {
   );
 
   const placeRecord = useCallback(() => {
+    const turntable = rootRef.current?.querySelector<HTMLElement>(
+      "[data-turntable]",
+    );
+
     if (
       phaseRef.current !== "showcase" ||
       selectedIndex === null ||
@@ -1147,7 +1248,9 @@ export function MusicPlayerExperience() {
       !platterRef.current ||
       !deckRecordRef.current ||
       !tonearmRef.current ||
-      !stylusRef.current
+      !stylusRef.current ||
+      !rackRef.current ||
+      !turntable
     ) {
       return;
     }
@@ -1175,7 +1278,7 @@ export function MusicPlayerExperience() {
     const landingScale =
       currentScale *
       ((platterBounds.width * 0.82) / Math.max(recordBounds.width, 1));
-    const flyDuration = reducedMotion ? 0.24 : 1.08;
+    const motionBeat = reducedMotion ? 0.24 : 1;
 
     sequenceRef.current?.kill();
     gsap.set(deckRecord, { autoAlpha: 0 });
@@ -1191,11 +1294,35 @@ export function MusicPlayerExperience() {
     sequenceRef.current = sequence;
     sequence
       .to(
+        rackRef.current,
+        {
+          autoAlpha: 0,
+          scale: reducedMotion ? 1 : 1.025,
+          duration: 0.34 * motionBeat,
+          ease: "power2.in",
+        },
+        0,
+      )
+      .fromTo(
+        turntable,
+        {
+          autoAlpha: 0,
+          scale: reducedMotion ? 1 : 0.94,
+        },
+        {
+          autoAlpha: 1,
+          scale: 1,
+          duration: 0.46 * motionBeat,
+          ease: "power3.out",
+        },
+        0.14 * motionBeat,
+      )
+      .to(
         sleeve,
         {
           x: "-=18",
           scale: 0.992,
-          duration: reducedMotion ? 0.01 : 0.08,
+          duration: 0.07 * motionBeat,
           ease: "power1.inOut",
         },
         0,
@@ -1205,10 +1332,10 @@ export function MusicPlayerExperience() {
         {
           x: "+=46",
           rotationZ: -3,
-          duration: flyDuration * 0.34,
+          duration: 0.22 * motionBeat,
           ease: "power2.inOut",
         },
-        reducedMotion ? 0 : 0.07,
+        0.04 * motionBeat,
       )
       .to(
         sleeve,
@@ -1217,10 +1344,10 @@ export function MusicPlayerExperience() {
           scale: 0.88,
           rotationZ: -2.4,
           autoAlpha: 0,
-          duration: flyDuration * 0.56,
+          duration: 0.36 * motionBeat,
           ease: "power2.in",
         },
-        flyDuration * 0.28,
+        0.19 * motionBeat,
       )
       .to(
         record,
@@ -1230,59 +1357,60 @@ export function MusicPlayerExperience() {
           scale: landingScale,
           rotationX: 0,
           rotationZ: reducedMotion ? 0 : 23,
-          duration: flyDuration * 0.78,
+          duration: 0.56 * motionBeat,
           ease: reducedMotion ? "power1.out" : "power3.inOut",
         },
-        flyDuration * 0.31,
+        0.2 * motionBeat,
       )
       .to(
         record,
         {
           y: `+=${reducedMotion ? 0 : 34}`,
           rotationZ: -3,
-          duration: flyDuration * 0.18,
+          duration: 0.12 * motionBeat,
           ease: "power2.in",
         },
-        flyDuration * 0.91,
+        0.7 * motionBeat,
       )
-      .set(record, { autoAlpha: 0 })
-      .set(deckRecord, { autoAlpha: 1 })
-      .call(() => setMotorOn(true))
+      .set(record, { autoAlpha: 0 }, 0.82 * motionBeat)
+      .set(deckRecord, { autoAlpha: 1 }, 0.82 * motionBeat)
+      .call(() => setMotorOn(true), undefined, 0.82 * motionBeat)
       .fromTo(
         deckRecord,
         { scale: 1.018 },
         {
           scale: 1,
-          duration: reducedMotion ? 0.01 : 0.14,
+          duration: 0.12 * motionBeat,
           ease: "power2.out",
         },
+        0.82 * motionBeat,
       )
       .to(
         stylusRef.current,
         {
           y: reducedMotion ? -1 : -6,
-          duration: reducedMotion ? 0.05 : 0.14,
+          duration: 0.1 * motionBeat,
           ease: "power2.out",
         },
-        ">+0.18",
+        0.86 * motionBeat,
       )
       .to(
         tonearmRef.current,
         {
           rotationZ: TONEARM_PLAY_ANGLE,
-          duration: reducedMotion ? 0.18 : 0.66,
+          duration: 0.46 * motionBeat,
           ease: "power2.inOut",
         },
-        ">",
+        0.92 * motionBeat,
       )
       .to(
         stylusRef.current,
         {
           y: 0,
-          duration: reducedMotion ? 0.14 : 0.31,
+          duration: 0.18 * motionBeat,
           ease: "power2.inOut",
         },
-        ">+0.08",
+        1.35 * motionBeat,
       );
   }, [reducedMotion, selectedIndex, updatePhase]);
 
@@ -1365,6 +1493,7 @@ export function MusicPlayerExperience() {
           x: targetX,
           y: targetY,
           scale: targetScale,
+          rotationX: reducedMotion ? 0 : 67,
           rotationY: 0,
           rotationZ: 0,
           duration,
@@ -1400,6 +1529,10 @@ export function MusicPlayerExperience() {
   ]);
 
   const returnRecord = useCallback(() => {
+    const turntable = rootRef.current?.querySelector<HTMLElement>(
+      "[data-turntable]",
+    );
+
     if (
       phaseRef.current !== "playing" ||
       selectedIndex === null ||
@@ -1409,7 +1542,8 @@ export function MusicPlayerExperience() {
       !deckRecordRef.current ||
       !tonearmRef.current ||
       !stylusRef.current ||
-      !rackRef.current
+      !rackRef.current ||
+      !turntable
     ) {
       return;
     }
@@ -1449,7 +1583,7 @@ export function MusicPlayerExperience() {
     const shelfScale = slotBounds
       ? clamp(slotBounds.width / Math.max(sleeveSize, 1), 0.38, 0.82)
       : 0.65;
-    const duration = reducedMotion ? 0.2 : 1;
+    const motionBeat = reducedMotion ? 0.25 : 1;
 
     sequenceRef.current?.kill();
     const sequence = gsap.timeline({
@@ -1471,7 +1605,7 @@ export function MusicPlayerExperience() {
         stylusRef.current,
         {
           y: reducedMotion ? -1 : -7,
-          duration: reducedMotion ? 0.08 : 0.18,
+          duration: 0.12 * motionBeat,
           ease: "power2.out",
         },
         0,
@@ -1480,28 +1614,38 @@ export function MusicPlayerExperience() {
         tonearmRef.current,
         {
           rotationZ: TONEARM_HOME_ANGLE,
-          duration: reducedMotion ? 0.2 : 0.7,
+          duration: 0.45 * motionBeat,
           ease: "power2.inOut",
         },
-        reducedMotion ? 0.08 : 0.16,
+        0.06 * motionBeat,
       )
       .to(
         stylusRef.current,
         {
           y: 0,
-          duration: reducedMotion ? 0.08 : 0.15,
+          duration: 0.1 * motionBeat,
         },
-        ">",
+        0.46 * motionBeat,
       )
       .to(
         deckRecord,
         {
           autoAlpha: 0,
-          duration: reducedMotion ? 0.05 : 0.16,
+          duration: 0.12 * motionBeat,
         },
-        ">+0.12",
+        0.42 * motionBeat,
       )
-      .call(() => setMotorOn(false))
+      .to(
+        turntable,
+        {
+          autoAlpha: 0,
+          scale: reducedMotion ? 1 : 0.955,
+          duration: 0.22 * motionBeat,
+          ease: "power2.in",
+        },
+        0.44 * motionBeat,
+      )
+      .call(() => setMotorOn(false), undefined, 0.48 * motionBeat)
       .set(
         record,
         {
@@ -1513,7 +1657,7 @@ export function MusicPlayerExperience() {
           rotationZ: -3,
           autoAlpha: 1,
         },
-        ">",
+        0.5 * motionBeat,
       )
       .to(
         record,
@@ -1523,19 +1667,19 @@ export function MusicPlayerExperience() {
           scale: 0.975,
           rotationX: 0,
           rotationZ: -2,
-          duration,
+          duration: 0.5 * motionBeat,
           ease: reducedMotion ? "power1.out" : "power3.inOut",
         },
-        ">",
+        0.5 * motionBeat,
       )
       .to(
         record,
         {
           y: pose.y,
-          duration: duration * 0.18,
+          duration: 0.1 * motionBeat,
           ease: "power2.out",
         },
-        ">",
+        0.95 * motionBeat,
       )
       .set(
         sleeve,
@@ -1543,49 +1687,52 @@ export function MusicPlayerExperience() {
           x: pose.x,
           y: pose.y,
           scale: 0.88,
+          rotationX: 0,
           rotationY: 0,
-          rotationZ: -2.4,
+          rotationZ: reducedMotion ? 0 : -4.6,
           autoAlpha: 1,
         },
-        `>-${duration * 0.12}`,
+        0.88 * motionBeat,
       )
       .to(
         sleeve,
         {
           scale: 1,
-          rotationZ: -1.2,
-          duration: duration * 0.28,
+          rotationZ: reducedMotion ? 0 : -4.6,
+          duration: 0.2 * motionBeat,
           ease: "power2.out",
         },
+        0.9 * motionBeat,
       )
       .to(
         record,
         {
           x: pose.x,
-          duration: duration * 0.48,
+          duration: 0.28 * motionBeat,
           ease: "power2.inOut",
         },
-        ">",
+        1.05 * motionBeat,
       )
       .to(
         gapProgressRef.current,
         {
           value: 0,
-          duration: reducedMotion ? 0.08 : duration * 0.46,
+          duration: 0.34 * motionBeat,
           ease: "power3.inOut",
           onUpdate: layoutShelf,
         },
-        `>-${duration * 0.12}`,
+        1.15 * motionBeat,
       )
       .to(
         rackRef.current,
         {
-          opacity: 0.58,
+          autoAlpha: 0.58,
+          scale: reducedMotion ? 1 : 1.018,
           filter: reducedMotion ? "none" : "blur(0.8px)",
-          duration: reducedMotion ? 0.08 : duration * 0.36,
+          duration: 0.3 * motionBeat,
           ease: "power2.out",
         },
-        "<",
+        1.15 * motionBeat,
       )
       .to(
         [sleeve, record],
@@ -1593,40 +1740,42 @@ export function MusicPlayerExperience() {
           x: shelfX,
           y: shelfY - (reducedMotion ? 0 : 22),
           scale: shelfScale,
+          rotationX: reducedMotion ? 0 : 67,
           rotationY: 0,
           rotationZ: 0,
-          duration: duration * 0.72,
+          duration: 0.48 * motionBeat,
           ease: "power3.inOut",
         },
-        ">",
+        1.34 * motionBeat,
       )
       .to(
         [sleeve, record],
         {
           y: shelfY,
-          duration: duration * 0.24,
+          duration: 0.12 * motionBeat,
           ease: "power2.in",
         },
-        ">",
+        1.78 * motionBeat,
       )
       .to(
         [sleeve, record],
         {
           autoAlpha: 0,
-          duration: reducedMotion ? 0.01 : 0.1,
+          duration: 0.08 * motionBeat,
         },
-        ">-0.05",
+        1.88 * motionBeat,
       )
       .to(
         rackRef.current,
         {
-          opacity: 1,
+          autoAlpha: 1,
           y: 0,
+          scale: 1,
           filter: "none",
-          duration: duration * 0.55,
+          duration: 0.35 * motionBeat,
           ease: "power2.out",
         },
-        `>-${duration * 0.42}`,
+        1.48 * motionBeat,
       );
   }, [
     layoutShelf,
@@ -1655,7 +1804,7 @@ export function MusicPlayerExperience() {
 
   const statusText = (() => {
     if (!selectedAlbum) {
-      return `${vinylAlbums[activeIndex].title} is centered in the record rack.`;
+      return `${vinylAlbums[activeIndex].title} is focused in the vertical album waterfall.`;
     }
 
     if (phase === "playing") {
@@ -1715,7 +1864,7 @@ export function MusicPlayerExperience() {
         className={styles.recordRack}
         data-rack
         tabIndex={0}
-        aria-label="Kanye West record collection"
+        aria-label="Kanye West record collection, vertical three-dimensional album shelf"
         aria-describedby="vinyl-status"
         onPointerDown={handleRackPointerDown}
         onPointerMove={handleRackPointerMove}
@@ -1725,9 +1874,20 @@ export function MusicPlayerExperience() {
         onKeyDown={handleRackKeyDown}
       >
         <div className={styles.rackBackdrop} aria-hidden="true">
+          {previousBackdropIndex !== null ? (
+            <Image
+              key={`previous-${vinylAlbums[previousBackdropIndex].id}`}
+              className={`${styles.rackBackdropImage} ${styles.rackBackdropPrevious}`}
+              src={vinylAlbums[previousBackdropIndex].cover}
+              alt=""
+              fill
+              sizes="100vw"
+              draggable={false}
+            />
+          ) : null}
           <Image
             key={vinylAlbums[activeIndex].id}
-            className={styles.rackBackdropImage}
+            className={`${styles.rackBackdropImage} ${styles.rackBackdropCurrent}`}
             src={vinylAlbums[activeIndex].cover}
             alt=""
             fill
@@ -1737,8 +1897,8 @@ export function MusicPlayerExperience() {
           />
         </div>
         <header className={styles.rackHeader} aria-hidden="true">
-          <span>Queue</span>
-          <span>Drag to browse</span>
+          <span>Albums</span>
+          <span>Swipe vertically</span>
         </header>
         <div className={styles.focusGlow} aria-hidden="true" />
         <div className={styles.rackTrack}>
@@ -1774,12 +1934,15 @@ export function MusicPlayerExperience() {
                     src={album.cover}
                     alt=""
                     fill
-                    sizes="(max-width: 720px) 34vw, 205px"
+                    sizes="(max-width: 720px) 78vw, 420px"
                     priority={index === INITIAL_ALBUM_INDEX}
                     draggable={false}
                   />
                   <span className={styles.sleeveSpine}>
-                    <span>{album.title}</span>
+                    <span>
+                      <strong>{album.title}</strong>
+                      <small>{album.artist}</small>
+                    </span>
                   </span>
                   <span className={styles.sleeveEdge} />
                 </span>
@@ -1790,6 +1953,16 @@ export function MusicPlayerExperience() {
               </button>
             );
           })}
+        </div>
+        <div
+          key={`readout-${vinylAlbums[activeIndex].id}`}
+          className={styles.activeAlbumReadout}
+          aria-hidden="true"
+        >
+          <strong>{vinylAlbums[activeIndex].title}</strong>
+          <span>
+            {vinylAlbums[activeIndex].artist} · {vinylAlbums[activeIndex].year}
+          </span>
         </div>
         <div className={styles.rackProgress} aria-hidden="true">
           <span>{String(activeIndex + 1).padStart(2, "0")}</span>
@@ -1814,15 +1987,12 @@ export function MusicPlayerExperience() {
             disabled={phase !== "showcase"}
             aria-label={`Take ${selectedAlbum.title} out of its sleeve and play it`}
           >
-            <span
-              className={`${styles.floatingRecordSpin} ${
-                phase === "loading" || phase === "returning"
-                  ? styles.isSpinning
-                  : ""
-              }`}
-            >
-              <VinylSurface album={selectedAlbum} labelSizes="72px" />
-            </span>
+            <VinylRecord
+              album={selectedAlbum}
+              playing={phase === "loading"}
+              className={styles.floatingVinyl}
+              variant="floating"
+            />
           </button>
 
           <button
