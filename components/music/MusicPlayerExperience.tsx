@@ -57,6 +57,16 @@ const TONEARM_PLAY_ANGLE = -66;
 const TONEARM_MIN_ANGLE = -79;
 const TONEARM_MAX_ANGLE = -20;
 const TONEARM_RECORD_THRESHOLD = -72;
+const SHELF_CYCLES = [-1, 0, 1] as const;
+
+const shelfInstances = SHELF_CYCLES.flatMap((cycle) =>
+  vinylAlbums.map((album, albumIndex) => ({
+    album,
+    albumIndex,
+    cycle,
+    key: `${cycle}:${album.id}`,
+  })),
+);
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -93,8 +103,7 @@ function getNearestVirtualPosition(index: number, currentPosition: number) {
 
 function getShelfAxis(): ShelfAxis {
   const isWideShelf =
-    window.innerWidth >= 820 &&
-    window.innerHeight >= 600 &&
+    window.innerWidth >= 720 &&
     window.innerWidth / window.innerHeight >= 1.05;
 
   return isWideShelf ? "x" : "y";
@@ -102,24 +111,20 @@ function getShelfAxis(): ShelfAxis {
 
 function getEstimatedShelfSize(axis: ShelfAxis) {
   if (axis === "x") {
-    return Math.min(window.innerHeight * 0.8, window.innerWidth * 0.64, 860);
+    return Math.min(window.innerHeight * 0.68, window.innerWidth * 0.64);
   }
 
-  return Math.min(window.innerWidth * 0.78, 350);
+  return window.innerWidth * 0.82;
 }
 
 function getShelfPitch(axis = getShelfAxis(), sleeveSize?: number) {
   const estimatedSize = sleeveSize ?? getEstimatedShelfSize(axis);
 
   if (axis === "x") {
-    return clamp(
-      window.innerWidth * 0.092,
-      estimatedSize * 0.145,
-      estimatedSize * 0.22,
-    );
+    return Math.max(estimatedSize * 0.155, window.innerWidth * 0.09);
   }
 
-  return clamp(estimatedSize * 0.27, 72, 94);
+  return estimatedSize * 0.269;
 }
 
 function getShelfRelative(
@@ -136,17 +141,18 @@ function getShelfRotation(
   axis: ShelfAxis,
   reducedMotion: boolean,
 ) {
-  const side = relative < 0 ? -1 : 1;
+  const turnProgress = clamp(relative / 0.5, -1, 1);
+  const maximumRotation = reducedMotion ? 78 : 81;
 
   if (axis === "x") {
     return {
       rotationX: 0,
-      rotationY: -side * (reducedMotion ? 78 : 80),
+      rotationY: -turnProgress * maximumRotation,
     };
   }
 
   return {
-    rotationX: side * (reducedMotion ? 70 : 75),
+    rotationX: turnProgress * (reducedMotion ? 70 : 76),
     rotationY: 0,
   };
 }
@@ -173,7 +179,7 @@ function getShowcasePose(size: number) {
       ? -Math.min(window.innerWidth * 0.12, size * 0.14)
       : -Math.min(window.innerWidth * 0.075, size * 0.16),
     y: compact ? -window.innerHeight * 0.025 : 0,
-    recordX: compact ? size * 0.28 : size * 0.31,
+    recordX: compact ? size * 0.43 : size * 0.48,
   };
 }
 
@@ -460,6 +466,7 @@ export function MusicPlayerExperience() {
   const rootRef = useRef<HTMLElement>(null);
   const rackRef = useRef<HTMLElement>(null);
   const slotRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const shelfItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const sleeveRef = useRef<HTMLButtonElement>(null);
   const floatingRecordRef = useRef<HTMLButtonElement>(null);
   const platterRef = useRef<HTMLDivElement>(null);
@@ -544,20 +551,29 @@ export function MusicPlayerExperience() {
       1,
     ) * 3;
 
-    slotRefs.current.forEach((slot, index) => {
+    const visibleRadius =
+      (axis === "x" ? window.innerWidth : window.innerHeight) / (pitch * 2) +
+      (axis === "x" ? 1.35 : 1.6);
+
+    shelfItemRefs.current.forEach((slot) => {
       if (!slot) {
         return;
       }
 
-      if (index === removedIndex) {
+      const albumIndex = Number(slot.dataset.recordIndex);
+      const cycle = Number(slot.dataset.shelfCycle);
+
+      if (albumIndex === removedIndex && cycle === 0) {
         return;
       }
 
-      const wrappedRelative = getShelfRelative(index, position);
+      const wrappedRelative =
+        getShelfRelative(albumIndex, position) + cycle * vinylAlbums.length;
       const removalSide =
         removedIndex === null
           ? 0
-          : getShelfRelative(index, removedIndex);
+          : getShelfRelative(albumIndex, removedIndex) +
+            cycle * vinylAlbums.length;
       const relative =
         wrappedRelative +
         (removalSide < 0
@@ -589,8 +605,18 @@ export function MusicPlayerExperience() {
           ? "below"
           : "focus";
       slot.style.setProperty("--shelf-veil", veil.toFixed(3));
-      slot.style.setProperty("--spine-counter-x", `${-slotRotationX}deg`);
-      slot.style.setProperty("--spine-counter-y", `${-slotRotationY}deg`);
+      slot.style.setProperty("--face-blur", `${depthBlur.toFixed(2)}px`);
+      slot.style.setProperty(
+        "--face-brightness",
+        `${clamp(
+          (axis === "x" ? 1.035 : 1.025) -
+            distance * (axis === "x" ? 0.025 : 0.034),
+          axis === "x" ? 0.86 : 0.81,
+          1.035,
+        ).toFixed(3)}`,
+      );
+
+      const visible = distance <= visibleRadius;
 
       gsap.set(
         slot,
@@ -604,21 +630,14 @@ export function MusicPlayerExperience() {
               rotationZ: 0,
               scale: 1,
               zIndex: Math.round(200 - distance * 12),
-              autoAlpha:
-                distance > 5.15
-                  ? 0
-                  : clamp(
-                      1 - Math.max(0, distance - 4.25) * 0.48,
-                      0.38,
-                      1,
-                    ),
-              visibility: distance > 5.4 ? "hidden" : "visible",
-              filter: reducedMotion
-                ? "none"
-                : `blur(${depthBlur}px) brightness(${clamp(1.03 - distance * 0.026, 0.87, 1.03)})`,
+              autoAlpha: visible ? 1 : 0,
+              visibility: visible ? "visible" : "hidden",
+              filter: "none",
             }
           : {
-              x: Math.sin(index * 1.73) * Math.min(4, sleeveSize * 0.012),
+              x:
+                Math.sin(albumIndex * 1.73) *
+                Math.min(4, sleeveSize * 0.012),
               y: relative * pitch,
               z:
                 clamp(relative, -5.2, 3.2) * sleeveSize * 0.16 +
@@ -627,21 +646,12 @@ export function MusicPlayerExperience() {
               rotationY: 0,
               rotationZ: reducedMotion
                 ? 0
-                : Math.sin(index * 2.17) * 0.7,
+                : Math.sin(albumIndex * 2.17) * 0.7,
               scale: 1,
               zIndex: Math.round(100 + relative * 10),
-              autoAlpha:
-                distance > 5.35
-                  ? 0
-                  : clamp(
-                      1 - Math.max(0, distance - 4.35) * 0.64,
-                      0.2,
-                      1,
-                    ),
-              visibility: distance > 5.6 ? "hidden" : "visible",
-              filter: reducedMotion
-                ? "none"
-                : `blur(${depthBlur}px) brightness(${clamp(1.02 - distance * 0.035, 0.82, 1.02)})`,
+              autoAlpha: visible ? 1 : 0,
+              visibility: visible ? "visible" : "hidden",
+              filter: "none",
             },
       );
 
@@ -673,6 +683,7 @@ export function MusicPlayerExperience() {
         },
         onComplete: () => {
           gestureRef.current.velocity = 0;
+          positionRef.current.value = wrapAlbumIndex(target);
           layoutShelf();
           onComplete?.();
         },
@@ -704,7 +715,7 @@ export function MusicPlayerExperience() {
       };
 
       if (Math.abs(positionRef.current.value - virtualTarget) < 0.025) {
-        positionRef.current.value = virtualTarget;
+        positionRef.current.value = target;
         layoutShelf();
         beginExtraction();
         return;
@@ -778,7 +789,7 @@ export function MusicPlayerExperience() {
           {
             autoAlpha: 1,
             duration: duration * 0.48,
-            stagger: reducedMotion ? 0 : 0.035,
+            stagger: reducedMotion ? 0 : 0.012,
           },
           duration * 0.16,
         );
@@ -925,7 +936,7 @@ export function MusicPlayerExperience() {
           y: pose.y,
           scale: 1,
           rotationX: 0,
-          rotationY: 0,
+          rotationY: reducedMotion ? 0 : -3.2,
           rotationZ: reducedMotion ? 0 : -4.6,
           autoAlpha: 1,
           duration,
@@ -2083,57 +2094,114 @@ export function MusicPlayerExperience() {
         </header>
         <div className={styles.focusGlow} aria-hidden="true" />
         <div className={styles.rackTrack}>
-          {vinylAlbums.map((album, index) => {
-            const albumStyle = {
-              "--spine-color": album.spine,
-              "--edge-color": album.edge,
-              "--spine-ink": getContrastingInk(album.spine),
-            } as CSSProperties;
+          {shelfInstances.map(
+            ({ album, albumIndex: index, cycle, key }, instanceIndex) => {
+              const albumStyle = {
+                "--spine-color": album.spine,
+                "--edge-color": album.edge,
+                "--spine-ink": getContrastingInk(album.spine),
+              } as CSSProperties;
+              const canonical = cycle === 0;
 
-            return (
-              <button
-                key={album.id}
-                ref={(node) => {
-                  slotRefs.current[index] = node;
-                }}
-                type="button"
-                className={styles.shelfSlot}
-                style={albumStyle}
-                disabled={phase !== "browsing"}
-                data-shelf-slot
-                data-record-index={index}
-                data-active={index === activeIndex}
-                aria-label={`Select ${album.title}, ${album.year}`}
-                aria-current={index === activeIndex ? "true" : undefined}
-                onClick={(event) => {
-                  if (event.detail === 0) {
-                    focusAlbum(index, true);
+              return (
+                <button
+                  key={key}
+                  ref={(node) => {
+                    shelfItemRefs.current[instanceIndex] = node;
+                    if (canonical) {
+                      slotRefs.current[index] = node;
+                    }
+                  }}
+                  type="button"
+                  className={styles.shelfSlot}
+                  style={albumStyle}
+                  disabled={!canonical || phase !== "browsing"}
+                  tabIndex={canonical ? 0 : -1}
+                  data-shelf-slot
+                  data-record-index={index}
+                  data-shelf-cycle={cycle}
+                  data-shelf-clone={canonical ? undefined : true}
+                  data-active={canonical && index === activeIndex}
+                  aria-label={
+                    canonical
+                      ? `Select ${album.title}, ${album.year}`
+                      : undefined
                   }
-                }}
-              >
-                <span className={styles.shelfSleeve} data-shelf-sleeve>
-                  <Image
-                    src={album.cover}
-                    alt=""
-                    fill
-                    sizes="(max-width: 819px) 78vw, 80vh"
-                    priority={index === INITIAL_ALBUM_INDEX}
-                    draggable={false}
-                  />
-                  <span className={styles.sleeveSpine} aria-hidden="true" />
-                  <span className={styles.shelfSpineLabel} aria-hidden="true">
-                    <strong>{album.title}</strong>
-                    <small>{album.artist}</small>
+                  aria-hidden={canonical ? undefined : true}
+                  aria-current={
+                    canonical && index === activeIndex ? "true" : undefined
+                  }
+                  onClick={(event) => {
+                    if (event.detail === 0) {
+                      focusAlbum(index, true);
+                    }
+                  }}
+                >
+                  <span
+                    className={`${styles.shelfSleeve} ${styles.sleeveShell}`}
+                    data-shelf-sleeve
+                  >
+                    <span
+                      className={`${styles.sleeveFace} ${styles.sleeveFront}`}
+                    >
+                      <Image
+                        src={album.cover}
+                        alt=""
+                        fill
+                        sizes="(max-width: 719px) 82vw, min(68vh, 64vw)"
+                        loading="eager"
+                        draggable={false}
+                      />
+                    </span>
+                    <span
+                      className={`${styles.sleeveFace} ${styles.sleeveRear}`}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveLeft}`}
+                      aria-hidden="true"
+                    >
+                      <span className={styles.shelfSpineLabel}>
+                        <strong>{album.title}</strong>
+                        <small>{album.artist}</small>
+                      </span>
+                    </span>
+                    <span
+                      className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveRight}`}
+                      aria-hidden="true"
+                    >
+                      <span className={styles.shelfSpineLabel}>
+                        <strong>{album.title}</strong>
+                        <small>{album.artist}</small>
+                      </span>
+                    </span>
+                    <span
+                      className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveTop}`}
+                      aria-hidden="true"
+                    >
+                      <span className={styles.shelfSpineLabel}>
+                        <strong>{album.title}</strong>
+                        <small>{album.artist}</small>
+                      </span>
+                    </span>
+                    <span
+                      className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveBottom}`}
+                      aria-hidden="true"
+                    >
+                      <span className={styles.shelfSpineLabel}>
+                        <strong>{album.title}</strong>
+                        <small>{album.artist}</small>
+                      </span>
+                    </span>
                   </span>
-                  <span className={styles.sleeveEdge} />
-                </span>
-                <span className={styles.albumMeta} aria-hidden="true">
-                  <span className={styles.albumTitle}>{album.title}</span>
-                  <span className={styles.albumArtist}>{album.artist}</span>
-                </span>
-              </button>
-            );
-          })}
+                  <span className={styles.albumMeta} aria-hidden="true">
+                    <span className={styles.albumTitle}>{album.title}</span>
+                    <span className={styles.albumArtist}>{album.artist}</span>
+                  </span>
+                </button>
+              );
+            },
+          )}
         </div>
         <div
           key={`readout-${vinylAlbums[activeIndex].id}`}
@@ -2174,21 +2242,51 @@ export function MusicPlayerExperience() {
             ref={sleeveRef}
             type="button"
             className={styles.presentedSleeve}
+            style={
+              {
+                "--spine-color": selectedAlbum.spine,
+                "--edge-color": selectedAlbum.edge,
+                "--spine-ink": getContrastingInk(selectedAlbum.spine),
+              } as CSSProperties
+            }
             onClick={placeRecord}
             disabled={phase !== "showcase"}
             aria-label={`Play ${selectedAlbum.title}`}
           >
-            <span className={styles.sleeveBack} aria-hidden="true" />
-            <Image
-              src={selectedAlbum.cover}
-              alt={`${selectedAlbum.title} album cover`}
-              fill
-              sizes="(max-width: 720px) 68vw, 330px"
-              priority
-              draggable={false}
-            />
-            <span className={styles.sleevePaper} aria-hidden="true" />
-            <span className={styles.presentedSpine} aria-hidden="true" />
+            <span
+              className={`${styles.sleeveShell} ${styles.presentedSleeveShell}`}
+            >
+              <span className={`${styles.sleeveFace} ${styles.sleeveFront}`}>
+                <Image
+                  src={selectedAlbum.cover}
+                  alt={`${selectedAlbum.title} album cover`}
+                  fill
+                  sizes="(max-width: 720px) 82vw, 440px"
+                  priority
+                  draggable={false}
+                />
+              </span>
+              <span
+                className={`${styles.sleeveFace} ${styles.sleeveRear}`}
+                aria-hidden="true"
+              />
+              <span
+                className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveLeft}`}
+                aria-hidden="true"
+              />
+              <span
+                className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveRight}`}
+                aria-hidden="true"
+              />
+              <span
+                className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveTop}`}
+                aria-hidden="true"
+              />
+              <span
+                className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveBottom}`}
+                aria-hidden="true"
+              />
+            </span>
           </button>
         </div>
       ) : null}
