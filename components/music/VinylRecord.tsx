@@ -8,6 +8,8 @@ export type VinylRecordVariant = "floating" | "platter";
 export type VinylRecordProps = {
   album: VinylAlbum;
   playing?: boolean;
+  /** Override the material's native RPM when the deck speed is changed. */
+  spinDuration?: number;
   className?: string;
   artworkSizes?: string;
   labelSizes?: string;
@@ -28,6 +30,7 @@ type VinylRecordStyle = CSSProperties & {
 export function VinylRecord({
   album,
   playing = false,
+  spinDuration,
   className,
   artworkSizes = "(max-width: 768px) 78vw, 560px",
   labelSizes = "180px",
@@ -39,7 +42,7 @@ export function VinylRecord({
     "--vinyl-primary": vinyl.primary,
     "--vinyl-secondary": vinyl.secondary ?? album.spine,
     "--vinyl-accent": vinyl.accent ?? album.edge,
-    "--vinyl-spin-duration": `${60 / rpm}s`,
+    "--vinyl-spin-duration": `${spinDuration ?? 60 / rpm}s`,
   };
   const rootClassName = [styles.record, className].filter(Boolean).join(" ");
   const hasDiscArtwork =
@@ -74,6 +77,7 @@ export function VinylRecord({
               alt=""
               fill
               sizes={artworkSizes}
+              loading="eager"
               draggable={false}
             />
           </span>
@@ -97,6 +101,7 @@ export function VinylRecord({
               alt=""
               fill
               sizes={labelSizes}
+              loading="eager"
               draggable={false}
             />
           ) : (
