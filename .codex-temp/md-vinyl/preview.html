@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MD Vinyl App Preview Study</title>
+    <style>
+      html, body { margin: 0; min-height: 100%; background: #111; }
+      body { display: grid; min-height: 100vh; place-items: center; }
+      video { display: block; height: 100vh; width: auto; max-width: 100vw; }
+      nav { position: fixed; inset: 12px auto auto 12px; display: grid; grid-template-columns: repeat(3, 44px); gap: 6px; z-index: 2; }
+      button { min-height: 34px; border: 1px solid #555; border-radius: 6px; background: #222; color: #fff; }
+    </style>
+  </head>
+  <body>
+    <nav aria-label="Frame picker">
+      <button type="button" data-time="0">0</button>
+      <button type="button" data-time="1">1</button>
+      <button type="button" data-time="2">2</button>
+      <button type="button" data-time="3">3</button>
+      <button type="button" data-time="4">4</button>
+      <button type="button" data-time="5">5</button>
+      <button type="button" data-time="6">6</button>
+      <button type="button" data-time="7">7</button>
+      <button type="button" data-time="8">8</button>
+      <button type="button" data-time="9">9</button>
+      <button type="button" data-time="10">10</button>
+      <button type="button" data-time="18">18</button>
+      <button type="button" data-time="20">20</button>
+      <button type="button" data-time="22">22</button>
+      <button type="button" data-time="24">24</button>
+      <button type="button" data-time="24.5">24.5</button>
+      <button type="button" data-time="25">25</button>
+      <button type="button" data-time="25.5">25.5</button>
+      <button type="button" data-time="26">26</button>
+      <button type="button" data-time="26.5">26.5</button>
+      <button type="button" data-time="27">27</button>
+      <button type="button" data-time="27.5">27.5</button>
+      <button type="button" data-time="28">28</button>
+      <button type="button" data-time="28.5">28.5</button>
+      <button type="button" data-time="29">29</button>
+    </nav>
+    <video controls muted autoplay playsinline src="/official-preview.mp4"></video>
+    <script>
+      const video = document.querySelector("video");
+      document.querySelector("nav").addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button) return;
+        video.pause();
+        video.currentTime = Number(button.dataset.time);
+      });
+    </script>
+  </body>
+</html>
