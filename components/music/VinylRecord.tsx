@@ -3,10 +3,12 @@
 import Image from "next/image";
 import gsap from "gsap";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   type CSSProperties,
+  type RefObject,
 } from "react";
 import type { VinylAlbum } from "@/data/records";
 import styles from "@/components/music/vinyl-record.module.css";
@@ -18,6 +20,9 @@ export type VinylRecordProps = {
   playing?: boolean;
   /** Override the material's native RPM when the deck speed is changed. */
   spinDuration?: number;
+  /** Share one physical motor angle across the platter, record and strobe. */
+  controlledRotation?: boolean;
+  rotorRef?: RefObject<HTMLSpanElement | null>;
   className?: string;
   artworkSizes?: string;
   labelSizes?: string;
@@ -33,20 +38,26 @@ type VinylRecordStyle = CSSProperties & {
   "--vinyl-secondary": string;
   "--vinyl-accent": string;
   "--vinyl-spin-duration": string;
+  "--label-background": string;
+  "--label-foreground": string;
+  "--label-accent": string;
 };
 
 export function VinylRecord({
   album,
   playing = false,
   spinDuration,
+  controlledRotation = false,
+  rotorRef,
   className,
   artworkSizes = "(max-width: 768px) 78vw, 560px",
   labelSizes = "180px",
   variant = "floating",
 }: VinylRecordProps) {
   const { vinyl } = album;
+  const { label } = vinyl;
   const rpm = vinyl.rpm ?? 33.333;
-  const rotorRef = useRef<HTMLSpanElement>(null);
+  const internalRotorRef = useRef<HTMLSpanElement>(null);
   const spinTweenRef = useRef<gsap.core.Tween | null>(null);
   const rateTweenRef = useRef<gsap.core.Tween | null>(null);
   const resolvedSpinDuration = spinDuration ?? 60 / rpm;
@@ -55,14 +66,30 @@ export function VinylRecord({
     "--vinyl-secondary": vinyl.secondary ?? album.spine,
     "--vinyl-accent": vinyl.accent ?? album.edge,
     "--vinyl-spin-duration": `${resolvedSpinDuration}s`,
+    "--label-background": label.background,
+    "--label-foreground": label.foreground,
+    "--label-accent": label.accent ?? vinyl.accent ?? album.edge,
   };
   const rootClassName = [styles.record, className].filter(Boolean).join(" ");
   const hasDiscArtwork =
     vinyl.artwork === "picture-disc" || vinyl.artwork === "half-picture";
-  const hasLabelArtwork = vinyl.artwork !== "none";
+  const hasLabelArtwork = label.style === "artwork" || label.style === "heart";
+  const bindRotor = useCallback(
+    (node: HTMLSpanElement | null) => {
+      internalRotorRef.current = node;
+      if (rotorRef) {
+        rotorRef.current = node;
+      }
+    },
+    [rotorRef],
+  );
 
   useLayoutEffect(() => {
-    const rotor = rotorRef.current;
+    if (controlledRotation) {
+      return;
+    }
+
+    const rotor = internalRotorRef.current;
 
     if (!rotor) {
       return;
@@ -83,9 +110,13 @@ export function VinylRecord({
       spinTween.kill();
       spinTweenRef.current = null;
     };
-  }, []);
+  }, [controlledRotation]);
 
   useEffect(() => {
+    if (controlledRotation) {
+      return;
+    }
+
     const spinTween = spinTweenRef.current;
 
     if (!spinTween) {
@@ -111,16 +142,19 @@ export function VinylRecord({
     return () => {
       rateTweenRef.current?.kill();
     };
-  }, [playing, resolvedSpinDuration]);
+  }, [controlledRotation, playing, resolvedSpinDuration]);
 
   return (
     <span
       className={rootClassName}
       data-kind={vinyl.kind}
       data-artwork={vinyl.artwork}
+      data-label-style={label.style}
+      data-release-status={vinyl.releaseStatus}
       data-playing={playing ? "true" : "false"}
       data-state={playing ? "playing" : "stopped"}
       data-variant={variant}
+      data-vinyl-root
       style={recordStyle}
       aria-hidden="true"
     >
@@ -131,7 +165,7 @@ export function VinylRecord({
         <span className={styles.edgeNotches} />
       </span>
 
-      <span ref={rotorRef} className={styles.rotor} data-rotor>
+      <span ref={bindRotor} className={styles.rotor} data-rotor>
         <span className={styles.material} />
 
         {hasDiscArtwork ? (
@@ -161,7 +195,7 @@ export function VinylRecord({
           {hasLabelArtwork ? (
             <Image
               className={styles.labelArtwork}
-              src={album.cover}
+              src={label.artwork ?? album.cover}
               alt=""
               fill
               sizes={labelSizes}
@@ -169,14 +203,14 @@ export function VinylRecord({
               draggable={false}
             />
           ) : (
-            <span className={styles.blankLabel}>
-              <span className={styles.labelCopy}>
-                <small>SIDE A · {rpm === 45 ? "45" : "33⅓"} RPM</small>
-                <strong>{album.title}</strong>
-                <small>{album.artist}</small>
-              </span>
-            </span>
+            <span className={styles.blankLabel} />
           )}
+          <span className={styles.labelCopy}>
+            <small>{label.kicker ?? "SIDE A"}</small>
+            <strong>{label.title ?? album.title}</strong>
+            <small>{label.subtitle ?? album.artist}</small>
+            <em>SIDE A · {rpm === 45 ? "45" : "33⅓"} RPM</em>
+          </span>
           <span className={styles.labelVarnish} />
           <span className={styles.labelRing} />
         </span>

@@ -1829,6 +1829,51 @@
   }
 }
 
+/* Final playback mechanics: these overrides intentionally avoid the shelf. */
+.deckRecord {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.deckRecord:disabled {
+  cursor: default;
+}
+
+.page[data-phase="playing"] .deckRecord:not(:disabled):focus-visible {
+  outline: 2px solid rgb(255 255 255 / 78%);
+  outline-offset: 6px;
+}
+
+.tonearm .armTube,
+.tonearm .counterweight,
+.tonearm .stylus {
+  transition-property: translate;
+}
+
+.tonearm[data-raised="true"] .armTube,
+.tonearm[data-raised="true"] .counterweight,
+.tonearm[data-raised="true"] .stylus {
+  transition-duration: 280ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tonearm[data-raised="false"] .armTube,
+.tonearm[data-raised="false"] .counterweight,
+.tonearm[data-raised="false"] .stylus {
+  transition-duration: 500ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.7, 1);
+}
+
+.turntableScene[data-motor-state="starting"] .quartzIndicator i,
+.turntableScene[data-motor-state="changing"] .quartzIndicator i,
+.turntableScene[data-motor-state="braking"] .quartzIndicator i {
+  background: #9c6c34;
+  box-shadow: 0 0 7px rgb(235 164 80 / 38%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .armTube,
   .counterweight,

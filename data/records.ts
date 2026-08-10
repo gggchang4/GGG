@@ -13,12 +13,35 @@ export type VinylArtworkTreatment =
   | "half-picture"
   | "none";
 
+export type VinylLabelStyle =
+  | "classic"
+  | "artwork"
+  | "heart"
+  | "minimal"
+  | "printed";
+
+export type VinylReleaseStatus = "official" | "concept";
+
+export type VinylLabel = {
+  style: VinylLabelStyle;
+  background: string;
+  foreground: string;
+  accent?: string;
+  kicker?: string;
+  title?: string;
+  subtitle?: string;
+  artwork?: string;
+};
+
 export type VinylMaterial = {
   kind: VinylMaterialKind;
   artwork: VinylArtworkTreatment;
   primary: string;
   secondary?: string;
   accent?: string;
+  label: VinylLabel;
+  releaseStatus: VinylReleaseStatus;
+  edition: string;
   /** Physical playback speed used by the visual rotor. */
   rpm?: 33.333 | 45;
 };
@@ -45,10 +68,21 @@ export const vinylAlbums: VinylAlbum[] = [
     edge: "#d5ad70",
     vinyl: {
       kind: "black",
-      artwork: "label",
-      primary: "#090807",
-      secondary: "#2e211a",
-      accent: "#c9a565",
+      artwork: "none",
+      primary: "#050505",
+      secondary: "#17110e",
+      accent: "#b98039",
+      label: {
+        style: "classic",
+        background: "#24140f",
+        foreground: "#eadcc5",
+        accent: "#b98039",
+        kicker: "ROC-A-FELLA RECORDS",
+        title: "THE COLLEGE DROPOUT",
+        subtitle: "KANYE WEST",
+      },
+      releaseStatus: "official",
+      edition: "2LP standard black vinyl",
       rpm: 33.333,
     },
   },
@@ -61,11 +95,22 @@ export const vinylAlbums: VinylAlbum[] = [
     spine: "#4b271c",
     edge: "#c59664",
     vinyl: {
-      kind: "solid",
-      artwork: "label",
-      primary: "#54251d",
-      secondary: "#190f0d",
-      accent: "#d49b69",
+      kind: "black",
+      artwork: "none",
+      primary: "#050505",
+      secondary: "#17130f",
+      accent: "#c19a42",
+      label: {
+        style: "classic",
+        background: "#21150f",
+        foreground: "#e9dcc2",
+        accent: "#b79136",
+        kicker: "ROC-A-FELLA · DEF JAM",
+        title: "LATE REGISTRATION",
+        subtitle: "KANYE WEST",
+      },
+      releaseStatus: "official",
+      edition: "2LP standard black vinyl",
       rpm: 33.333,
     },
   },
@@ -78,12 +123,22 @@ export const vinylAlbums: VinylAlbum[] = [
     spine: "#b320a2",
     edge: "#ff78cf",
     vinyl: {
-      kind: "translucent",
-      artwork: "label",
-      primary: "#ff48ca",
-      secondary: "#6d2cff",
+      kind: "solid",
+      artwork: "none",
+      primary: "#a52a9d",
+      secondary: "#5d2f72",
       accent: "#75e8ff",
-      rpm: 45,
+      label: {
+        style: "artwork",
+        background: "#b92aa8",
+        foreground: "#fff5fc",
+        accent: "#75e8ff",
+        kicker: "ARCHIVE CONCEPT",
+        subtitle: "NO OFFICIAL LP PRESSING",
+      },
+      releaseStatus: "concept",
+      edition: "Archive concept — no official LP pressing",
+      rpm: 33.333,
     },
   },
   {
@@ -95,11 +150,22 @@ export const vinylAlbums: VinylAlbum[] = [
     spine: "#eceae4",
     edge: "#ef736b",
     vinyl: {
-      kind: "split",
-      artwork: "half-picture",
-      primary: "#eee9df",
-      secondary: "#df5251",
-      accent: "#5e5d58",
+      kind: "black",
+      artwork: "none",
+      primary: "#050505",
+      secondary: "#191919",
+      accent: "#d9d9d4",
+      label: {
+        style: "heart",
+        background: "#d9dad5",
+        foreground: "#242424",
+        accent: "#de4b49",
+        kicker: "ROC-A-FELLA · DEF JAM",
+        title: "808S & HEARTBREAK",
+        subtitle: "KANYE WEST",
+      },
+      releaseStatus: "official",
+      edition: "2LP standard black vinyl",
       rpm: 33.333,
     },
   },
@@ -112,11 +178,21 @@ export const vinylAlbums: VinylAlbum[] = [
     spine: "#b41318",
     edge: "#e6b25e",
     vinyl: {
-      kind: "picture",
-      artwork: "picture-disc",
-      primary: "#85161b",
-      secondary: "#d9ad58",
-      accent: "#17100f",
+      kind: "black",
+      artwork: "none",
+      primary: "#050505",
+      secondary: "#17110f",
+      accent: "#b51419",
+      label: {
+        style: "artwork",
+        background: "#b51419",
+        foreground: "#e7c469",
+        accent: "#e7c469",
+        kicker: "ROC-A-FELLA RECORDS",
+        subtitle: "MY BEAUTIFUL DARK TWISTED FANTASY",
+      },
+      releaseStatus: "official",
+      edition: "3LP black vinyl with George Condo labels",
       rpm: 33.333,
     },
   },
@@ -131,10 +207,21 @@ export const vinylAlbums: VinylAlbum[] = [
     vinyl: {
       kind: "translucent",
       artwork: "none",
-      primary: "#dadbd8",
-      secondary: "#8a8d8d",
+      primary: "#d9dcd9",
+      secondary: "#737777",
       accent: "#dc413a",
-      rpm: 45,
+      label: {
+        style: "minimal",
+        background: "#d9dcd9",
+        foreground: "#242626",
+        accent: "#d53e38",
+        kicker: "ARCHIVE CONCEPT",
+        title: "YEEZUS",
+        subtitle: "NO OFFICIAL LP PRESSING",
+      },
+      releaseStatus: "concept",
+      edition: "Archive concept — no official LP pressing",
+      rpm: 33.333,
     },
   },
   {
@@ -146,11 +233,22 @@ export const vinylAlbums: VinylAlbum[] = [
     spine: "#e86d32",
     edge: "#101010",
     vinyl: {
-      kind: "splatter",
-      artwork: "label",
-      primary: "#ed7a35",
-      secondary: "#16130f",
-      accent: "#f0d0a2",
+      kind: "translucent",
+      artwork: "none",
+      primary: "#d7d9d5",
+      secondary: "#868b88",
+      accent: "#ec7a3a",
+      label: {
+        style: "minimal",
+        background: "#ec7a3a",
+        foreground: "#17120f",
+        accent: "#f1d0a6",
+        kicker: "ARCHIVE CONCEPT",
+        title: "THE LIFE OF PABLO",
+        subtitle: "NO OFFICIAL LP PRESSING",
+      },
+      releaseStatus: "concept",
+      edition: "Archive concept — no official LP pressing",
       rpm: 33.333,
     },
   },
@@ -163,11 +261,22 @@ export const vinylAlbums: VinylAlbum[] = [
     spine: "#28556d",
     edge: "#d2cf9e",
     vinyl: {
-      kind: "marble",
-      artwork: "label",
-      primary: "#648da2",
-      secondary: "#d0cf9d",
-      accent: "#244b61",
+      kind: "black",
+      artwork: "none",
+      primary: "#050505",
+      secondary: "#18201a",
+      accent: "#c7ef20",
+      label: {
+        style: "minimal",
+        background: "#c7ef20",
+        foreground: "#10140f",
+        accent: "#2d5c42",
+        kicker: "GOOD MUSIC · DEF JAM",
+        title: "YE",
+        subtitle: "KANYE WEST",
+      },
+      releaseStatus: "official",
+      edition: "1LP standard black vinyl",
       rpm: 33.333,
     },
   },
@@ -180,11 +289,22 @@ export const vinylAlbums: VinylAlbum[] = [
     spine: "#bc4f22",
     edge: "#f0c35d",
     vinyl: {
-      kind: "marble",
-      artwork: "half-picture",
-      primary: "#c85f2b",
-      secondary: "#4d2033",
-      accent: "#e7bd58",
+      kind: "translucent",
+      artwork: "none",
+      primary: "#ed7099",
+      secondary: "#aa3e68",
+      accent: "#f1e8d4",
+      label: {
+        style: "minimal",
+        background: "#f1e8d4",
+        foreground: "#211a1d",
+        accent: "#df5c89",
+        kicker: "GETTING OUT OUR DREAMS",
+        title: "KIDS SEE GHOSTS",
+        subtitle: "KANYE WEST · KID CUDI",
+      },
+      releaseStatus: "official",
+      edition: "RSD 2020 translucent pink vinyl",
       rpm: 33.333,
     },
   },
@@ -197,12 +317,23 @@ export const vinylAlbums: VinylAlbum[] = [
     spine: "#173f9f",
     edge: "#b9c8f5",
     vinyl: {
-      kind: "split",
-      artwork: "half-picture",
-      primary: "#16449f",
-      secondary: "#d6e1ff",
-      accent: "#faf6df",
-      rpm: 45,
+      kind: "translucent",
+      artwork: "none",
+      primary: "#123cc5",
+      secondary: "#071e83",
+      accent: "#efd465",
+      label: {
+        style: "printed",
+        background: "#1236b8",
+        foreground: "#efd465",
+        accent: "#efd465",
+        kicker: "NEW SONGS · AR 1331 A",
+        title: "JESUS IS KING",
+        subtitle: "KANYE WEST",
+      },
+      releaseStatus: "official",
+      edition: "1LP translucent cobalt blue vinyl",
+      rpm: 33.333,
     },
   },
   {
@@ -215,10 +346,21 @@ export const vinylAlbums: VinylAlbum[] = [
     edge: "#484848",
     vinyl: {
       kind: "black",
-      artwork: "picture-disc",
-      primary: "#050505",
-      secondary: "#242424",
-      accent: "#8c8c8c",
+      artwork: "none",
+      primary: "#030303",
+      secondary: "#121212",
+      accent: "#4d493d",
+      label: {
+        style: "printed",
+        background: "#080808",
+        foreground: "#716b59",
+        accent: "#38352e",
+        kicker: "YZY · DEF JAM",
+        title: "DONDA",
+        subtitle: "SIDE A",
+      },
+      releaseStatus: "official",
+      edition: "4LP standard black vinyl",
       rpm: 33.333,
     },
   },

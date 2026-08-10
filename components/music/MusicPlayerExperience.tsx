@@ -63,6 +63,13 @@ type GestureState = {
 
 type PlaybackSpeed = 33 | 45;
 
+type MotorState =
+  | "stopped"
+  | "starting"
+  | "changing"
+  | "locked"
+  | "braking";
+
 type TonearmGestureState = {
   pointerId: number | null;
   moved: boolean;
@@ -73,9 +80,9 @@ type TonearmGestureState = {
 const INITIAL_ALBUM_INDEX = 5;
 const TONEARM_HOME_ANGLE = -77;
 const TONEARM_PLAY_ANGLE = -66;
-const TONEARM_END_ANGLE = -34;
+const TONEARM_END_ANGLE = -43;
 const TONEARM_MIN_ANGLE = -79;
-const TONEARM_MAX_ANGLE = -24;
+const TONEARM_MAX_ANGLE = -40;
 const TONEARM_RECORD_THRESHOLD = -72;
 const SHELF_CYCLES = [-1, 0, 1] as const;
 
@@ -223,6 +230,10 @@ function getPlaybackDuration(album: VinylAlbum | null) {
   return 198 + ((album.year + album.title.length * 13) % 87);
 }
 
+function getPlaybackRpm(speed: PlaybackSpeed) {
+  return speed === 33 ? 33 + 1 / 3 : 45;
+}
+
 function formatPlaybackTime(seconds: number) {
   const safeSeconds = Math.max(0, Math.floor(seconds));
   const minutes = Math.floor(safeSeconds / 60);
@@ -246,6 +257,32 @@ function getProgressFromTonearmAngle(angle: number) {
   );
 }
 
+function getCubicBezierValue(
+  start: number,
+  controlA: number,
+  controlB: number,
+  end: number,
+  progress: number,
+) {
+  const inverse = 1 - progress;
+  return (
+    inverse ** 3 * start +
+    3 * inverse ** 2 * progress * controlA +
+    3 * inverse * progress ** 2 * controlB +
+    progress ** 3 * end
+  );
+}
+
+function setVinylPresentationVariant(
+  container: HTMLElement,
+  variant: "floating" | "platter",
+) {
+  const record = container.querySelector<HTMLElement>("[data-vinyl-root]");
+  if (record) {
+    record.dataset.variant = variant;
+  }
+}
+
 function Turntable({
   phase,
   album,
@@ -254,12 +291,16 @@ function Turntable({
   onNext,
   onSelectAlbum,
   motorOn,
+  motorState,
+  motorRpmRef,
   speed,
   tonearmAngle,
   tonearmRaised,
+  stylusContact,
   tonearmDragging,
   elapsedSeconds,
   onElapsedChange,
+  onSeek,
   onTogglePlayback,
   onToggleMotor,
   onToggleSpeed,
@@ -270,7 +311,9 @@ function Turntable({
   onTonearmPointerUp,
   onTonearmKeyDown,
   platterRef,
+  platterStrobeRef,
   deckRecordRef,
+  deckRotorRef,
   tonearmBaseRef,
   tonearmRef,
   stylusRef,
@@ -282,12 +325,16 @@ function Turntable({
   onNext: (shuffle?: boolean) => void;
   onSelectAlbum: (index: number) => void;
   motorOn: boolean;
+  motorState: MotorState;
+  motorRpmRef: RefObject<{ value: number }>;
   speed: PlaybackSpeed;
   tonearmAngle: number;
   tonearmRaised: boolean;
+  stylusContact: boolean;
   tonearmDragging: boolean;
   elapsedSeconds: number;
   onElapsedChange: Dispatch<SetStateAction<number>>;
+  onSeek: (seconds: number) => void;
   onTogglePlayback: () => void;
   onToggleMotor: () => void;
   onToggleSpeed: () => void;
@@ -298,20 +345,24 @@ function Turntable({
   onTonearmPointerUp: (event: PointerEvent<HTMLButtonElement>) => void;
   onTonearmKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
   platterRef: RefObject<HTMLDivElement | null>;
-  deckRecordRef: RefObject<HTMLDivElement | null>;
+  platterStrobeRef: RefObject<HTMLSpanElement | null>;
+  deckRecordRef: RefObject<HTMLButtonElement | null>;
+  deckRotorRef: RefObject<HTMLSpanElement | null>;
   tonearmBaseRef: RefObject<HTMLDivElement | null>;
   tonearmRef: RefObject<HTMLButtonElement | null>;
   stylusRef: RefObject<HTMLSpanElement | null>;
 }) {
-  const spinDuration = 60 / (speed === 33 ? 33 + 1 / 3 : 45);
-  const strobeRef = useRef<HTMLSpanElement>(null);
-  const strobeSpinTweenRef = useRef<gsap.core.Tween | null>(null);
-  const strobeRateTweenRef = useRef<gsap.core.Tween | null>(null);
+  const spinDuration = 60 / getPlaybackRpm(speed);
   const controlsLocked = phase !== "playing" || !album;
   const tonearmOnRecord = tonearmAngle >= TONEARM_RECORD_THRESHOLD;
   const isPlaying =
-    phase === "playing" && motorOn && !tonearmRaised && tonearmOnRecord;
+    phase === "playing" &&
+    motorOn &&
+    (motorState === "locked" || motorState === "changing") &&
+    stylusContact &&
+    tonearmOnRecord;
   const duration = getPlaybackDuration(album);
+  const nativeRpm = album?.vinyl.rpm ?? 33.333;
   const currentAlbumIndex = album
     ? vinylAlbums.findIndex((candidate) => candidate.id === album.id)
     : 0;
@@ -329,74 +380,36 @@ function Turntable({
   const [deviceOpen, setDeviceOpen] = useState(false);
   const [deviceName, setDeviceName] = useState("This browser");
   const [stylusLightOn, setStylusLightOn] = useState(true);
+  const [seekPreview, setSeekPreview] = useState<number | null>(null);
   const lastVolumeRef = useRef(72);
   const lastPlaybackTickRef = useRef<number | null>(null);
+  const seekPreviewRef = useRef<number | null>(null);
   const liked = album ? likedAlbums.has(album.id) : false;
-  const progress = duration > 0 ? (elapsedSeconds / duration) * 100 : 0;
+  const displayedElapsed = seekPreview ?? elapsedSeconds;
+  const progress = duration > 0 ? (displayedElapsed / duration) * 100 : 0;
   const nextAlbum = queueEntries[0]?.album ?? null;
   const mechanicalStatus =
     phase === "switching"
       ? "Changing record"
-      : !motorOn
+      : motorState === "starting"
+        ? "Starting platter"
+        : motorState === "changing"
+          ? "Changing platter speed"
+        : motorState === "braking"
+          ? "Electronic braking"
+          : motorState === "stopped"
         ? "Platter stopped"
         : tonearmRaised
-          ? "Cue paused"
-          : tonearmOnRecord
+          ? "Paused · platter spinning"
+          : stylusContact && tonearmOnRecord
             ? "Now playing"
-            : "Tonearm parked";
-
-  useLayoutEffect(() => {
-    const strobe = strobeRef.current;
-
-    if (!strobe) {
-      return;
-    }
-
-    const spinTween = gsap.to(strobe, {
-      rotation: "+=360",
-      duration: 1.8,
-      repeat: -1,
-      ease: "none",
-      paused: false,
-    });
-    spinTween.timeScale(0);
-    strobeSpinTweenRef.current = spinTween;
-
-    return () => {
-      strobeRateTweenRef.current?.kill();
-      spinTween.kill();
-      strobeSpinTweenRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const spinTween = strobeSpinTweenRef.current;
-
-    if (!spinTween) {
-      return;
-    }
-
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    const targetRate = motorOn && !reducedMotion ? 1.8 / spinDuration : 0;
-    const currentRate = spinTween.timeScale();
-    strobeRateTweenRef.current?.kill();
-    strobeRateTweenRef.current = gsap.to(spinTween, {
-      timeScale: targetRate,
-      duration: targetRate === 0 ? 0.9 : targetRate > currentRate ? 0.7 : 0.48,
-      ease: targetRate === 0 ? "power3.out" : "power2.out",
-      overwrite: true,
-    });
-
-    return () => {
-      strobeRateTweenRef.current?.kill();
-    };
-  }, [motorOn, spinDuration]);
+            : "Lowering cue";
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       onElapsedChange(0);
+      seekPreviewRef.current = null;
+      setSeekPreview(null);
       setDeviceOpen(false);
     });
 
@@ -415,13 +428,17 @@ function Turntable({
       const previous = lastPlaybackTickRef.current ?? now;
       const deltaSeconds = Math.min((now - previous) / 1000, 0.5);
       lastPlaybackTickRef.current = now;
+      const instantaneousPlaybackRate = Math.max(
+        motorRpmRef?.current?.value ?? 0,
+        0,
+      ) / nativeRpm;
       onElapsedChange((current) =>
-        Math.min(duration, current + deltaSeconds),
+        Math.min(duration, current + deltaSeconds * instantaneousPlaybackRate),
       );
     }, 250);
 
     return () => window.clearInterval(timer);
-  }, [duration, isPlaying, onElapsedChange]);
+  }, [duration, isPlaying, motorRpmRef, nativeRpm, onElapsedChange]);
 
   useEffect(() => {
     if (!album || duration <= 0 || elapsedSeconds < duration) {
@@ -429,8 +446,9 @@ function Turntable({
     }
 
     const frame = window.requestAnimationFrame(() => {
-      onElapsedChange(0);
-      if (repeatMode !== "one") {
+      if (repeatMode === "one") {
+        onSeek(0);
+      } else {
         onNext(shuffleEnabled);
       }
     });
@@ -440,8 +458,8 @@ function Turntable({
     album,
     duration,
     elapsedSeconds,
-    onElapsedChange,
     onNext,
+    onSeek,
     repeatMode,
     shuffleEnabled,
   ]);
@@ -475,13 +493,13 @@ function Turntable({
       } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
         event.preventDefault();
         const delta = event.key === "ArrowRight" ? 5 : -5;
-        onElapsedChange((current) => clamp(current + delta, 0, duration));
+        onSeek(clamp(elapsedSeconds + delta, 0, duration));
       }
     };
 
     window.addEventListener("keydown", handlePlaybackKey);
     return () => window.removeEventListener("keydown", handlePlaybackKey);
-  }, [duration, onElapsedChange, onTogglePlayback, phase, volume]);
+  }, [duration, elapsedSeconds, onSeek, onTogglePlayback, phase, volume]);
 
   const toggleLike = () => {
     if (!album) {
@@ -514,6 +532,48 @@ function Turntable({
     }
   };
 
+  const previewSeek = (value: number) => {
+    seekPreviewRef.current = value;
+    setSeekPreview(value);
+  };
+
+  const cancelSeekPreview = () => {
+    seekPreviewRef.current = null;
+    setSeekPreview(null);
+  };
+
+  const commitSeek = (fallbackValue: number) => {
+    const value = seekPreviewRef.current ?? fallbackValue;
+    cancelSeekPreview();
+    onSeek(clamp(value, 0, duration));
+  };
+
+  const previewKeyboardSeek = (event: KeyboardEvent<HTMLInputElement>) => {
+    const currentValue = seekPreviewRef.current ?? displayedElapsed;
+    let nextValue: number | null = null;
+
+    if (event.key === "Home") {
+      nextValue = 0;
+    } else if (event.key === "End") {
+      nextValue = duration;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      nextValue = currentValue - 5;
+    } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      nextValue = currentValue + 5;
+    } else if (event.key === "PageDown") {
+      nextValue = currentValue - 30;
+    } else if (event.key === "PageUp") {
+      nextValue = currentValue + 30;
+    }
+
+    if (nextValue === null) {
+      return;
+    }
+
+    event.preventDefault();
+    previewSeek(clamp(nextValue, 0, duration));
+  };
+
   const progressStyle = {
     "--range-progress": `${progress}%`,
   } as CSSProperties;
@@ -529,6 +589,7 @@ function Turntable({
         phase === "loading" || phase === "switching" || phase === "returning"
       }
       data-motor={motorOn ? "on" : "off"}
+      data-motor-state={motorState}
       data-cue={tonearmRaised ? "raised" : "down"}
       data-speed={speed}
     >
@@ -586,7 +647,7 @@ function Turntable({
 
           <span
             className={styles.quartzIndicator}
-            data-locked={motorOn}
+            data-locked={motorState === "locked"}
             aria-hidden="true"
           >
             <i /> QUARTZ LOCK
@@ -596,27 +657,32 @@ function Turntable({
         <div ref={platterRef} className={styles.platter}>
           <span className={styles.platterRim} aria-hidden="true" />
           <span
-            ref={strobeRef}
+            ref={platterStrobeRef}
             className={styles.platterStrobe}
             aria-hidden="true"
           />
           <span className={styles.platterMat} aria-hidden="true" />
 
-          <div
+          <button
             ref={deckRecordRef}
+            type="button"
             className={styles.deckRecord}
-            aria-hidden="true"
+            onClick={() => setQueueOpen(true)}
+            disabled={controlsLocked}
+            aria-label="Open this record's play queue"
           >
             {album ? (
               <VinylRecord
                 album={album}
                 playing={motorOn}
                 spinDuration={spinDuration}
+                controlledRotation
+                rotorRef={deckRotorRef}
                 className={styles.deckVinyl}
                 variant="platter"
               />
             ) : null}
-          </div>
+          </button>
 
           <span className={styles.spindle} aria-hidden="true" />
         </div>
@@ -741,7 +807,11 @@ function Turntable({
               <div className={styles.contextCopy}>
                 <div className={styles.contextEyebrow}>
                   <span>{isPlaying ? "Playing from album" : mechanicalStatus}</span>
-                  <span className={styles.qualityBadge}>Vinyl mode</span>
+                  <span className={styles.qualityBadge} title={album.vinyl.edition}>
+                    {album.vinyl.releaseStatus === "official"
+                      ? "Official pressing"
+                      : "Archive concept"}
+                  </span>
                 </div>
                 <h1 id="now-playing-title" className={styles.contextTitle}>
                   {album.title}
@@ -877,21 +947,48 @@ function Turntable({
                   </button>
                 </div>
                 <div className={styles.timeline}>
-                  <time>{formatPlaybackTime(elapsedSeconds)}</time>
+                  <time>{formatPlaybackTime(displayedElapsed)}</time>
                   <input
                     type="range"
                     className={styles.playerSeek}
                     min="0"
                     max={duration}
                     step="0.25"
-                    value={Math.min(elapsedSeconds, duration)}
+                    value={Math.min(displayedElapsed, duration)}
                     style={progressStyle}
-                    onInput={(event) =>
-                      onElapsedChange(Number(event.currentTarget.value))
+                    onPointerDown={(event) =>
+                      previewSeek(Number(event.currentTarget.value))
                     }
+                    onInput={(event) =>
+                      previewSeek(Number(event.currentTarget.value))
+                    }
+                    onChange={(event) =>
+                      previewSeek(Number(event.currentTarget.value))
+                    }
+                    onPointerUp={(event) =>
+                      commitSeek(Number(event.currentTarget.value))
+                    }
+                    onPointerCancel={cancelSeekPreview}
+                    onKeyDown={previewKeyboardSeek}
+                    onKeyUp={(event) => {
+                      if (
+                        event.key.startsWith("Arrow") ||
+                        event.key === "Home" ||
+                        event.key === "End" ||
+                        event.key === "PageUp" ||
+                        event.key === "PageDown"
+                      ) {
+                        commitSeek(Number(event.currentTarget.value));
+                      }
+                    }}
+                    onBlur={(event) => {
+                      if (seekPreview !== null) {
+                        commitSeek(Number(event.currentTarget.value));
+                      }
+                    }}
                     disabled={controlsLocked}
                     aria-label="Playback position"
-                    aria-valuetext={`${formatPlaybackTime(elapsedSeconds)} of ${formatPlaybackTime(duration)}`}
+                    aria-valuetext={`${formatPlaybackTime(displayedElapsed)} of ${formatPlaybackTime(duration)}`}
                   />
                   <time>{formatPlaybackTime(duration)}</time>
                 </div>
@@ -931,7 +1028,7 @@ function Turntable({
                   {deviceOpen ? (
                     <div className={styles.devicePopover} role="dialog" aria-label="Connect to a device">
                       <strong>Connect to a device</strong>
-                      {["This browser", "Studio speakers"].map((device) => (
+                      {["This browser"].map((device) => (
                         <button
                           key={device}
                           type="button"
@@ -945,7 +1042,7 @@ function Turntable({
                           <MonitorSpeaker aria-hidden="true" />
                           <span>
                             <strong>{device}</strong>
-                            <small>{device === "This browser" ? "Web Player" : "Available"}</small>
+                            <small>Current web player</small>
                           </span>
                           {deviceName === device ? <Check aria-hidden="true" /> : null}
                         </button>
@@ -1053,12 +1150,19 @@ export function MusicPlayerExperience() {
   const sleeveRef = useRef<HTMLButtonElement>(null);
   const floatingRecordRef = useRef<HTMLButtonElement>(null);
   const platterRef = useRef<HTMLDivElement>(null);
-  const deckRecordRef = useRef<HTMLDivElement>(null);
+  const platterStrobeRef = useRef<HTMLSpanElement>(null);
+  const floatingRotorRef = useRef<HTMLSpanElement>(null);
+  const deckRecordRef = useRef<HTMLButtonElement>(null);
+  const deckRotorRef = useRef<HTMLSpanElement>(null);
   const tonearmBaseRef = useRef<HTMLDivElement>(null);
   const tonearmRef = useRef<HTMLButtonElement>(null);
   const stylusRef = useRef<HTMLSpanElement>(null);
   const sequenceRef = useRef<gsap.core.Timeline | null>(null);
   const mechanicsSequenceRef = useRef<gsap.core.Timeline | null>(null);
+  const cueSettleRef = useRef<gsap.core.Tween | null>(null);
+  const motorTweenRef = useRef<gsap.core.Tween | null>(null);
+  const motorRpmRef = useRef({ value: 0 });
+  const platterAngleRef = useRef(0);
   const shelfTweenRef = useRef<gsap.core.Tween | null>(null);
   const positionRef = useRef({ value: INITIAL_ALBUM_INDEX });
   const removedIndexRef = useRef<number | null>(null);
@@ -1091,9 +1195,11 @@ export function MusicPlayerExperience() {
   const [loadedIndex, setLoadedIndex] = useState<number | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [motorOn, setMotorOn] = useState(false);
+  const [motorState, setMotorState] = useState<MotorState>("stopped");
   const [speed, setSpeed] = useState<PlaybackSpeed>(33);
   const [tonearmAngle, setTonearmAngle] = useState(TONEARM_HOME_ANGLE);
   const [tonearmRaised, setTonearmRaised] = useState(true);
+  const [stylusContact, setStylusContact] = useState(false);
   const [tonearmDragging, setTonearmDragging] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -1322,6 +1428,93 @@ export function MusicPlayerExperience() {
 
     return () => preference.removeEventListener("change", updatePreference);
   }, []);
+
+  useLayoutEffect(() => {
+    let syncedFloatingRotor: HTMLSpanElement | null = null;
+    let syncedDeckRotor: HTMLSpanElement | null = null;
+    let syncedStrobe: HTMLSpanElement | null = null;
+
+    const updatePhysicalRotation = () => {
+      const deltaSeconds = Math.min(gsap.ticker.deltaRatio(60) / 60, 0.05);
+      const currentRpm = motorRpmRef.current.value;
+      const isRotating = !reducedMotion && Math.abs(currentRpm) >= 0.001;
+
+      if (isRotating) {
+        platterAngleRef.current =
+          (platterAngleRef.current + currentRpm * 6 * deltaSeconds) % 360;
+      }
+
+      // Keep newly mounted floating/deck rotors phase-aligned even while the
+      // motor is stopped. Otherwise a replacement record renders at 0° and
+      // snaps to the preserved platter angle on the first powered frame.
+      const rotation = platterAngleRef.current;
+      if (
+        floatingRotorRef.current &&
+        (isRotating || floatingRotorRef.current !== syncedFloatingRotor)
+      ) {
+        gsap.set(floatingRotorRef.current, { rotation });
+      }
+      if (
+        deckRotorRef.current &&
+        (isRotating || deckRotorRef.current !== syncedDeckRotor)
+      ) {
+        gsap.set(deckRotorRef.current, { rotation });
+      }
+      if (
+        platterStrobeRef.current &&
+        (isRotating || platterStrobeRef.current !== syncedStrobe)
+      ) {
+        gsap.set(platterStrobeRef.current, { rotation });
+      }
+
+      syncedFloatingRotor = floatingRotorRef.current;
+      syncedDeckRotor = deckRotorRef.current;
+      syncedStrobe = platterStrobeRef.current;
+    };
+
+    gsap.ticker.add(updatePhysicalRotation);
+    return () => gsap.ticker.remove(updatePhysicalRotation);
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    motorTweenRef.current?.kill();
+
+    const targetRpm = motorOn ? getPlaybackRpm(speed) : 0;
+    const currentRpm = motorRpmRef.current.value;
+    const speedChange = motorOn && currentRpm > 0.5;
+    const duration = reducedMotion
+      ? 0.08
+      : motorOn
+        ? speedChange
+          ? 0.52
+          : 0.7
+        : 0.68;
+
+    setMotorState(
+      motorOn
+        ? speedChange
+          ? "changing"
+          : "starting"
+        : currentRpm > 0.5
+          ? "braking"
+          : "stopped",
+    );
+
+    motorTweenRef.current = gsap.to(motorRpmRef.current, {
+      value: targetRpm,
+      duration,
+      ease: motorOn ? "power2.out" : "power3.out",
+      overwrite: true,
+      onComplete: () => {
+        motorRpmRef.current.value = targetRpm;
+        setMotorState(motorOn ? "locked" : "stopped");
+      },
+    });
+
+    return () => {
+      motorTweenRef.current?.kill();
+    };
+  }, [motorOn, reducedMotion, speed]);
 
   useLayoutEffect(() => {
     layoutShelf();
@@ -1557,6 +1750,7 @@ export function MusicPlayerExperience() {
       sequenceRef.current?.kill();
       mechanicsSequenceRef.current?.kill();
       shelfTweenRef.current?.kill();
+      cueSettleRef.current?.kill();
       if (wheelSnapRef.current !== null) {
         window.clearTimeout(wheelSnapRef.current);
       }
@@ -1770,22 +1964,23 @@ export function MusicPlayerExperience() {
   );
 
   const setCueRaised = useCallback(
-    (raised: boolean, animate = true) => {
+    (raised: boolean) => {
+      cueSettleRef.current?.kill();
       setTonearmRaised(raised);
+      setStylusContact(false);
 
-      if (!stylusRef.current) {
-        return;
-      }
-
-      if (animate) {
-        gsap.to(stylusRef.current, {
-          y: raised ? -6 : 0,
-          duration: reducedMotion ? 0.08 : 0.22,
-          ease: raised ? "power2.out" : "power2.inOut",
-          overwrite: true,
-        });
-      } else {
-        gsap.set(stylusRef.current, { y: raised ? -6 : 0 });
+      if (!raised) {
+        cueSettleRef.current = gsap.delayedCall(
+          reducedMotion ? 0.08 : 0.5,
+          () => {
+            if (
+              phaseRef.current === "playing" &&
+              tonearmAngleRef.current >= TONEARM_RECORD_THRESHOLD
+            ) {
+              setStylusContact(true);
+            }
+          },
+        );
       }
     },
     [reducedMotion],
@@ -1795,8 +1990,8 @@ export function MusicPlayerExperience() {
     if (
       phase !== "playing" ||
       loadedIndex === null ||
-      !motorOn ||
-      tonearmRaised ||
+      (motorState !== "locked" && motorState !== "changing") ||
+      !stylusContact ||
       tonearmDragging ||
       tonearmAngleRef.current < TONEARM_RECORD_THRESHOLD
     ) {
@@ -1809,11 +2004,11 @@ export function MusicPlayerExperience() {
   }, [
     elapsedSeconds,
     loadedIndex,
-    motorOn,
+    motorState,
     phase,
     setTonearmVisual,
     tonearmDragging,
-    tonearmRaised,
+    stylusContact,
   ]);
 
   const togglePlayback = useCallback(() => {
@@ -1822,8 +2017,8 @@ export function MusicPlayerExperience() {
     }
 
     const currentlyPlaying =
-      motorOn &&
-      !tonearmRaised &&
+      (motorState === "locked" || motorState === "changing") &&
+      stylusContact &&
       tonearmAngleRef.current >= TONEARM_RECORD_THRESHOLD;
 
     if (currentlyPlaying) {
@@ -1838,15 +2033,12 @@ export function MusicPlayerExperience() {
 
     const needsArmMove =
       tonearmAngleRef.current < TONEARM_RECORD_THRESHOLD;
-    const motorSettleTime = motorOn ? 0 : reducedMotion ? 0.08 : 0.68;
+    const motorSettleTime =
+      motorState === "locked" ? 0 : reducedMotion ? 0.08 : 0.72;
     const armStartTime = needsArmMove
-      ? motorOn
-        ? reducedMotion
-          ? 0
-          : 0.12
-        : reducedMotion
-          ? 0.03
-          : 0.2
+      ? reducedMotion
+        ? 0.03
+        : 0.12
       : 0;
     const armTravelTime = needsArmMove
       ? reducedMotion
@@ -1886,10 +2078,17 @@ export function MusicPlayerExperience() {
 
     const cueTime = Math.max(
       motorSettleTime,
-      armStartTime + armTravelTime + (needsArmMove ? 0.08 : 0),
+      armStartTime + armTravelTime + (needsArmMove ? 0.1 : 0),
     );
     sequence.call(() => setCueRaised(false), undefined, cueTime);
-  }, [loadedIndex, motorOn, reducedMotion, setCueRaised, tonearmRaised]);
+  }, [
+    loadedIndex,
+    motorOn,
+    motorState,
+    reducedMotion,
+    setCueRaised,
+    stylusContact,
+  ]);
 
   const toggleMotor = useCallback(() => {
     if (phaseRef.current !== "playing" || loadedIndex === null) {
@@ -1940,8 +2139,34 @@ export function MusicPlayerExperience() {
     }
 
     const nextRaised = !tonearmRaised;
+    if (
+      !nextRaised &&
+      tonearmAngleRef.current >= TONEARM_RECORD_THRESHOLD &&
+      motorState !== "locked"
+    ) {
+      mechanicsSequenceRef.current?.kill();
+      if (!motorOn) {
+        setMotorOn(true);
+      }
+      const sequence = gsap.timeline();
+      mechanicsSequenceRef.current = sequence;
+      sequence.call(
+        () => setCueRaised(false),
+        undefined,
+        reducedMotion ? 0.08 : 0.72,
+      );
+      return;
+    }
+
     setCueRaised(nextRaised);
-  }, [loadedIndex, setCueRaised, tonearmRaised]);
+  }, [
+    loadedIndex,
+    motorOn,
+    motorState,
+    reducedMotion,
+    setCueRaised,
+    tonearmRaised,
+  ]);
 
   const getTonearmAngleFromPointer = useCallback(
     (clientX: number, clientY: number) => {
@@ -1985,10 +2210,9 @@ export function MusicPlayerExperience() {
         startY: event.clientY,
       };
       event.currentTarget.setPointerCapture(event.pointerId);
-      setCueRaised(true);
       setTonearmDragging(true);
     },
-    [loadedIndex, setCueRaised],
+    [loadedIndex],
   );
 
   const handleTonearmPointerMove = useCallback(
@@ -2039,11 +2263,14 @@ export function MusicPlayerExperience() {
       setTonearmDragging(false);
 
       if (event.type === "pointercancel") {
-        setTonearmVisual(tonearmAngleRef.current, true);
+        if (gesture.moved) {
+          setTonearmVisual(tonearmAngleRef.current, true);
+        }
         return;
       }
 
       if (!gesture.moved) {
+        toggleCue();
         return;
       }
 
@@ -2063,7 +2290,7 @@ export function MusicPlayerExperience() {
         );
       }
     },
-    [loadedIndex, setCueRaised, setTonearmVisual],
+    [loadedIndex, setCueRaised, setTonearmVisual, toggleCue],
   );
 
   const handleTonearmKeyDown = useCallback(
@@ -2109,6 +2336,80 @@ export function MusicPlayerExperience() {
     [loadedIndex, setCueRaised, setTonearmVisual, toggleCue],
   );
 
+  const seekPlayback = useCallback(
+    (requestedSeconds: number) => {
+      if (
+        phaseRef.current !== "playing" ||
+        loadedIndex === null ||
+        !tonearmRef.current
+      ) {
+        return;
+      }
+
+      const duration = getPlaybackDuration(vinylAlbums[loadedIndex]);
+      const targetSeconds = clamp(requestedSeconds, 0, duration);
+      const targetAngle = getTonearmAngleFromProgress(
+        duration > 0 ? targetSeconds / duration : 0,
+      );
+      const angularDistance = Math.abs(
+        targetAngle - tonearmAngleRef.current,
+      );
+      const shouldResume =
+        (motorState === "locked" || motorState === "changing") &&
+        stylusContact;
+      const liftDuration = tonearmRaised
+        ? 0
+        : reducedMotion
+          ? 0.08
+          : 0.28;
+      const travelDuration = reducedMotion
+        ? 0.08
+        : clamp(0.28 + angularDistance * 0.014, 0.36, 0.68);
+
+      mechanicsSequenceRef.current?.kill();
+      setCueRaised(true);
+
+      const sequence = gsap.timeline();
+      mechanicsSequenceRef.current = sequence;
+      sequence
+        .to(
+          tonearmRef.current,
+          {
+            rotationZ: targetAngle,
+            duration: travelDuration,
+            ease: "sine.inOut",
+            overwrite: true,
+          },
+          liftDuration,
+        )
+        .call(
+          () => {
+            tonearmAngleRef.current = targetAngle;
+            setTonearmAngle(targetAngle);
+            setElapsedSeconds(targetSeconds);
+          },
+          undefined,
+          liftDuration + travelDuration,
+        );
+
+      if (shouldResume) {
+        sequence.call(
+          () => setCueRaised(false),
+          undefined,
+          liftDuration + travelDuration + (reducedMotion ? 0.02 : 0.1),
+        );
+      }
+    },
+    [
+      loadedIndex,
+      motorState,
+      reducedMotion,
+      setCueRaised,
+      stylusContact,
+      tonearmRaised,
+    ],
+  );
+
   const placeRecord = useCallback(() => {
     const turntable = rootRef.current?.querySelector<HTMLElement>(
       "[data-turntable]",
@@ -2122,7 +2423,6 @@ export function MusicPlayerExperience() {
       !platterRef.current ||
       !deckRecordRef.current ||
       !tonearmRef.current ||
-      !stylusRef.current ||
       !rackRef.current ||
       !turntable
     ) {
@@ -2133,7 +2433,7 @@ export function MusicPlayerExperience() {
     setLoadedIndex(selectedIndex);
     setSpeed(vinylAlbums[selectedIndex].vinyl.rpm === 45 ? 45 : 33);
     setMotorOn(false);
-    setTonearmRaised(true);
+    setCueRaised(true);
     tonearmAngleRef.current = TONEARM_HOME_ANGLE;
     setTonearmAngle(TONEARM_HOME_ANGLE);
 
@@ -2156,14 +2456,18 @@ export function MusicPlayerExperience() {
       deckRecordBounds.top +
       deckRecordBounds.height / 2 -
       (recordBounds.top + recordBounds.height / 2);
+    // The showcased disc is slightly tilted, so its screen-space bounding box
+    // is wider than its real CSS diameter. Scaling from that distorted box
+    // made the hidden deck disc appear a few pixels larger at the DOM handoff.
+    // Use the untransformed diameter so both records meet at exactly one size.
     const landingScale =
-      currentScale *
-      (deckRecordBounds.width / Math.max(recordBounds.width, 1));
+      deckRecordBounds.width / Math.max(record.offsetWidth, 1);
     const targetX = currentX + deltaX;
     const targetY = currentY + deltaY;
 
     sequenceRef.current?.kill();
-    gsap.set(deckRecord, { autoAlpha: 0 });
+    setVinylPresentationVariant(record, "floating");
+    gsap.set(deckRecord, { autoAlpha: 0, x: 0, y: 0, scale: 1 });
     gsap.set(record, {
       transformPerspective: 1100,
       transformOrigin: "50% 50%",
@@ -2177,9 +2481,9 @@ export function MusicPlayerExperience() {
           tonearmAngleRef.current = TONEARM_PLAY_ANGLE;
           setTonearmAngle(TONEARM_PLAY_ANGLE);
           setElapsedSeconds(0);
-          setTonearmRaised(false);
           setMotorOn(true);
           updatePhase("playing");
+          setCueRaised(false);
         },
       });
       sequenceRef.current = reducedSequence;
@@ -2192,25 +2496,26 @@ export function MusicPlayerExperience() {
       return;
     }
 
+    const flight = { progress: 0 };
+    const flightStartX = currentX + 48;
+    const flightStartY = currentY - 28;
+    const flightEndY = targetY - 26;
     const sequence = gsap.timeline({
       onComplete: () => {
         tonearmAngleRef.current = TONEARM_PLAY_ANGLE;
         setTonearmAngle(TONEARM_PLAY_ANGLE);
         setElapsedSeconds(0);
-        setTonearmRaised(false);
-        updatePhase("playing");
       },
     });
     sequenceRef.current = sequence;
     sequence
       .addLabel("clear", 0)
-      .addLabel("carry", 0.22)
-      .addLabel("align", 0.78)
-      .addLabel("seat", 1.1)
-      .addLabel("handoff", 1.3)
-      .addLabel("motor", 1.4)
-      .addLabel("cue", 1.72)
-      .addLabel("needle", 2.3)
+      .addLabel("carry", 0.24)
+      .addLabel("seat", 1.08)
+      .addLabel("handoff", 1.29)
+      .addLabel("motor", 1.34)
+      .addLabel("arm", 1.46)
+      .addLabel("needle", 2.12)
       .to(
         rackRef.current,
         {
@@ -2249,44 +2554,56 @@ export function MusicPlayerExperience() {
       .to(
         record,
         {
-          x: currentX + 50,
-          y: currentY - 28,
+          x: flightStartX,
+          y: flightStartY,
           scale: currentScale * 1.02,
-          rotationX: -8,
+          rotationX: -6,
           rotationY: 0,
           rotationZ: -2,
-          duration: 0.22,
+          duration: 0.24,
           ease: "power3.out",
         },
         "clear",
       )
       .to(
-        record,
+        flight,
         {
-          x: currentX + deltaX * 0.58,
-          y: currentY + deltaY * 0.58 - 74,
-          scale: landingScale * 1.055,
-          rotationX: -9,
-          rotationY: 2,
-          rotationZ: 4,
-          duration: 0.56,
-          ease: "power2.inOut",
+          progress: 1,
+          duration: 0.84,
+          ease: "sine.inOut",
+          onUpdate: () => {
+            const progress = flight.progress;
+            const lift = Math.sin(Math.PI * progress);
+            const x = getCubicBezierValue(
+              flightStartX,
+              currentX + deltaX * 0.34,
+              targetX - deltaX * 0.12,
+              targetX,
+              progress,
+            );
+            const y = getCubicBezierValue(
+              flightStartY,
+              flightStartY - 92,
+              flightEndY - 54,
+              flightEndY,
+              progress,
+            );
+            const scale =
+              currentScale * 1.02 +
+              (landingScale * 1.008 - currentScale * 1.02) * progress +
+              lift * 0.018;
+
+            gsap.set(record, {
+              x,
+              y,
+              scale,
+              rotationX: -6 + 3 * progress - lift * 2,
+              rotationY: lift * 1.2,
+              rotationZ: -2 + 3 * progress + lift * 1.5,
+            });
+          },
         },
         "carry",
-      )
-      .to(
-        record,
-        {
-          x: targetX,
-          y: targetY - 24,
-          scale: landingScale * 1.008,
-          rotationX: -3,
-          rotationY: 1,
-          rotationZ: 1,
-          duration: 0.32,
-          ease: "power2.inOut",
-        },
-        "align",
       )
       .to(
         record,
@@ -2296,35 +2613,19 @@ export function MusicPlayerExperience() {
           rotationX: 0,
           rotationY: 0,
           rotationZ: 0,
-          duration: 0.18,
-          ease: "power2.out",
+          duration: 0.21,
+          ease: "sine.out",
         },
         "seat",
       )
-      .to(
-        record,
-        { autoAlpha: 0, duration: 0.1, ease: "none" },
-        "handoff",
+      .call(
+        () => setVinylPresentationVariant(record, "platter"),
+        undefined,
+        "handoff-=0.02",
       )
-      .to(
-        deckRecord,
-        {
-          autoAlpha: 1,
-          duration: 0.1,
-          ease: "none",
-        },
-        "handoff",
-      )
+      .set(record, { autoAlpha: 0 }, "handoff")
+      .set(deckRecord, { autoAlpha: 1 }, "handoff")
       .call(() => setMotorOn(true), undefined, "motor")
-      .to(
-        stylusRef.current,
-        {
-          y: -7,
-          duration: 0.2,
-          ease: "power2.out",
-        },
-        "cue",
-      )
       .to(
         tonearmRef.current,
         {
@@ -2332,19 +2633,21 @@ export function MusicPlayerExperience() {
           duration: 0.52,
           ease: "sine.inOut",
         },
-        "cue+=0.18",
+        "arm",
       )
-      .to(
-        stylusRef.current,
-        {
-          y: 0,
-          duration: 0.34,
-          ease: "sine.in",
+      .call(
+        () => {
+          tonearmAngleRef.current = TONEARM_PLAY_ANGLE;
+          setTonearmAngle(TONEARM_PLAY_ANGLE);
+          setElapsedSeconds(0);
+          updatePhase("playing");
+          setCueRaised(false);
         },
+        undefined,
         "needle",
       )
-      .set(record, { willChange: "auto" }, "needle+=0.34");
-  }, [reducedMotion, selectedIndex, updatePhase]);
+      .set(record, { willChange: "auto" }, "needle+=0.5");
+  }, [reducedMotion, selectedIndex, setCueRaised, updatePhase]);
 
   const closeSleeve = useCallback(() => {
     if (
@@ -2483,7 +2786,6 @@ export function MusicPlayerExperience() {
       !platterRef.current ||
       !deckRecordRef.current ||
       !tonearmRef.current ||
-      !stylusRef.current ||
       !rackRef.current ||
       !turntable
     ) {
@@ -2491,7 +2793,7 @@ export function MusicPlayerExperience() {
     }
 
     updatePhase("returning");
-    setTonearmRaised(true);
+    setCueRaised(true);
 
     const sleeve = sleeveRef.current;
     const record = floatingRecordRef.current;
@@ -2560,38 +2862,20 @@ export function MusicPlayerExperience() {
 
     sequence
       .addLabel("lift", 0)
-      .addLabel("park", 0.22 * motionBeat)
-      .addLabel("brake", 0.92 * motionBeat)
-      .addLabel("handoff", 1.68 * motionBeat)
-      .addLabel("carry", 1.98 * motionBeat)
+      .addLabel("park", 0.3 * motionBeat)
+      .addLabel("brake", 0.94 * motionBeat)
+      .addLabel("handoff", 1.7 * motionBeat)
+      .addLabel("carry", 2 * motionBeat)
       .addLabel("sleeve", 2.34 * motionBeat)
       .addLabel("shelf", 2.9 * motionBeat)
-      .to(
-        stylusRef.current,
-        {
-          y: reducedMotion ? -1 : -7,
-          duration: 0.22 * motionBeat,
-          ease: "power2.out",
-        },
-        "lift",
-      )
       .to(
         tonearmRef.current,
         {
           rotationZ: TONEARM_HOME_ANGLE,
-          duration: 0.55 * motionBeat,
+          duration: 0.56 * motionBeat,
           ease: "sine.inOut",
         },
         "park",
-      )
-      .to(
-        stylusRef.current,
-        {
-          y: 0,
-          duration: 0.14 * motionBeat,
-          ease: "sine.in",
-        },
-        0.78 * motionBeat,
       )
       .call(() => setMotorOn(false), undefined, "brake")
       .set(
@@ -2608,16 +2892,13 @@ export function MusicPlayerExperience() {
         },
         "handoff",
       )
-      .to(
-        deckRecord,
-        { autoAlpha: 0, duration: 0.1 * motionBeat, ease: "none" },
+      .call(
+        () => setVinylPresentationVariant(record, "platter"),
+        undefined,
         "handoff",
       )
-      .to(
-        record,
-        { autoAlpha: 1, duration: 0.1 * motionBeat, ease: "none" },
-        "handoff",
-      )
+      .set(deckRecord, { autoAlpha: 0 }, "handoff")
+      .set(record, { autoAlpha: 1 }, "handoff")
       .to(
         record,
         {
@@ -2627,7 +2908,12 @@ export function MusicPlayerExperience() {
           duration: 0.2 * motionBeat,
           ease: "power2.out",
         },
-        `handoff+=${0.1 * motionBeat}`,
+        `handoff+=${0.02 * motionBeat}`,
+      )
+      .call(
+        () => setVinylPresentationVariant(record, "floating"),
+        undefined,
+        `handoff+=${0.12 * motionBeat}`,
       )
       .to(
         record,
@@ -2650,7 +2936,7 @@ export function MusicPlayerExperience() {
           duration: 0.14 * motionBeat,
           ease: "power2.out",
         },
-        `carry+=${0.5 * motionBeat}`,
+        `carry+=${0.54 * motionBeat}`,
       )
       .set(
         sleeve,
@@ -2661,20 +2947,21 @@ export function MusicPlayerExperience() {
           rotationX: 0,
           rotationY: 0,
           rotationZ: reducedMotion ? 0 : -4.6,
-          autoAlpha: 1,
+          autoAlpha: 0,
         },
-        "sleeve",
+        `sleeve-=${0.12 * motionBeat}`,
       )
       .set(record, { zIndex: 2 }, `sleeve+=${0.18 * motionBeat}`)
       .to(
         sleeve,
         {
+          autoAlpha: 1,
           scale: 1,
           rotationZ: reducedMotion ? 0 : -4.6,
-          duration: 0.2 * motionBeat,
+          duration: 0.26 * motionBeat,
           ease: "power2.out",
         },
-        "sleeve",
+        `sleeve-=${0.12 * motionBeat}`,
       )
       .to(
         record,
@@ -2765,6 +3052,7 @@ export function MusicPlayerExperience() {
     reducedMotion,
     restoreShelfAlbum,
     selectedIndex,
+    setCueRaised,
     updatePhase,
   ]);
 
@@ -2775,8 +3063,7 @@ export function MusicPlayerExperience() {
         loadedIndex === null ||
         selectedIndex === null ||
         !deckRecordRef.current ||
-        !tonearmRef.current ||
-        !stylusRef.current
+        !tonearmRef.current
       ) {
         return;
       }
@@ -2788,8 +3075,9 @@ export function MusicPlayerExperience() {
 
       const deckRecord = deckRecordRef.current;
       const tonearm = tonearmRef.current;
-      const stylus = stylusRef.current;
-      const resumeAfterSwitch = motorOn && !tonearmRaised;
+      const resumeAfterSwitch =
+        (motorState === "locked" || motorState === "changing") &&
+        stylusContact;
       const beat = reducedMotion ? 0.22 : 1;
 
       const updateAlbum = () => {
@@ -2815,96 +3103,116 @@ export function MusicPlayerExperience() {
         setSelectedIndex(nextIndex);
         setLoadedIndex(nextIndex);
         setSpeed(vinylAlbums[nextIndex].vinyl.rpm === 45 ? 45 : 33);
+        setElapsedSeconds(0);
         layoutShelf();
       };
 
       updatePhase("switching");
-      setMotorOn(false);
-      setTonearmRaised(true);
+      setCueRaised(true);
       sequenceRef.current?.kill();
 
       const sequence = gsap.timeline({
         onComplete: () => {
-          tonearmAngleRef.current = TONEARM_PLAY_ANGLE;
-          setTonearmAngle(TONEARM_PLAY_ANGLE);
-          setTonearmRaised(false);
-          setMotorOn(resumeAfterSwitch);
-          updatePhase("playing");
+          if (!resumeAfterSwitch) {
+            tonearmAngleRef.current = TONEARM_HOME_ANGLE;
+            setTonearmAngle(TONEARM_HOME_ANGLE);
+            setMotorOn(false);
+            updatePhase("playing");
+          }
         },
       });
       sequenceRef.current = sequence;
       sequence
-        .to(stylus, {
-          y: reducedMotion ? -1 : -7,
-          duration: 0.1 * beat,
-          ease: "power2.out",
-        })
+        .addLabel("park", 0.3 * beat)
+        .addLabel("brake", 0.94 * beat)
+        .addLabel("remove", 1.7 * beat)
+        .addLabel("replace", 1.96 * beat)
+        .addLabel("motor", 2.34 * beat)
+        .addLabel("arm", 2.46 * beat)
+        .addLabel("needle", 3.12 * beat)
         .to(
           tonearm,
           {
             rotationZ: TONEARM_HOME_ANGLE,
-            duration: 0.28 * beat,
-            ease: "power2.inOut",
+            duration: 0.56 * beat,
+            ease: "sine.inOut",
           },
-          0.04 * beat,
+          "park",
         )
+        .call(() => setMotorOn(false), undefined, "brake")
         .to(
           deckRecord,
           {
             autoAlpha: 0,
-            scale: 0.965,
-            duration: 0.18 * beat,
-            ease: "power2.in",
-          },
-          0.12 * beat,
-        )
-        .call(updateAlbum, undefined, 0.3 * beat)
-        .fromTo(
-          deckRecord,
-          { autoAlpha: 0, scale: 1.035 },
-          {
-            autoAlpha: 1,
-            scale: 1,
-            duration: 0.24 * beat,
-            ease: "power3.out",
-          },
-          0.35 * beat,
-        )
-        .to(
-          tonearm,
-          {
-            rotationZ: TONEARM_PLAY_ANGLE,
-            duration: 0.36 * beat,
+            y: reducedMotion ? 0 : -28,
+            scale: reducedMotion ? 1 : 1.018,
+            duration: 0.2 * beat,
             ease: "power2.inOut",
           },
-          0.44 * beat,
+          "remove",
         )
-        .to(
-          stylus,
+        .call(updateAlbum, undefined, "replace")
+        .fromTo(
+          deckRecord,
           {
-            y: 0,
-            duration: 0.14 * beat,
-            ease: "sine.inOut",
+            autoAlpha: 0,
+            y: reducedMotion ? 0 : -28,
+            scale: reducedMotion ? 1 : 1.018,
           },
-          0.76 * beat,
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.22 * beat,
+            ease: "sine.out",
+          },
+          `replace+=${0.06 * beat}`,
         );
+
+      if (resumeAfterSwitch) {
+        sequence
+          .call(() => setMotorOn(true), undefined, "motor")
+          .to(
+            tonearm,
+            {
+              rotationZ: TONEARM_PLAY_ANGLE,
+              duration: 0.52 * beat,
+              ease: "sine.inOut",
+            },
+            "arm",
+          )
+          .call(
+            () => {
+              tonearmAngleRef.current = TONEARM_PLAY_ANGLE;
+              setTonearmAngle(TONEARM_PLAY_ANGLE);
+              updatePhase("playing");
+              setCueRaised(false);
+            },
+            undefined,
+            "needle",
+          )
+          .set(deckRecord, { willChange: "auto" }, `needle+=${0.5 * beat}`);
+      }
     },
     [
       layoutShelf,
       loadedIndex,
-      motorOn,
+      motorState,
       reducedMotion,
       selectedIndex,
-      tonearmRaised,
+      setCueRaised,
+      stylusContact,
       updatePhase,
     ],
   );
 
   const playPreviousAlbum = useCallback(() => {
-    if (loadedIndex !== null) {
+    if (loadedIndex !== null && elapsedSeconds > 3) {
+      seekPlayback(0);
+    } else if (loadedIndex !== null) {
       selectPlayingAlbum(loadedIndex - 1);
     }
-  }, [loadedIndex, selectPlayingAlbum]);
+  }, [elapsedSeconds, loadedIndex, seekPlayback, selectPlayingAlbum]);
 
   const playNextAlbum = useCallback(
     (shuffle = false) => {
@@ -2946,7 +3254,8 @@ export function MusicPlayerExperience() {
     }
 
     if (phase === "playing") {
-      return motorOn && !tonearmRaised
+      return (motorState === "locked" || motorState === "changing") &&
+        stylusContact
         ? `${selectedAlbum.title} is playing.`
         : `${selectedAlbum.title} is paused.`;
     }
@@ -2975,12 +3284,16 @@ export function MusicPlayerExperience() {
           onNext={playNextAlbum}
           onSelectAlbum={selectPlayingAlbum}
           motorOn={motorOn}
+          motorState={motorState}
+          motorRpmRef={motorRpmRef}
           speed={speed}
           tonearmAngle={tonearmAngle}
           tonearmRaised={tonearmRaised}
+          stylusContact={stylusContact}
           tonearmDragging={tonearmDragging}
           elapsedSeconds={elapsedSeconds}
           onElapsedChange={setElapsedSeconds}
+          onSeek={seekPlayback}
           onTogglePlayback={togglePlayback}
           onToggleMotor={toggleMotor}
           onToggleSpeed={toggleSpeed}
@@ -2991,7 +3304,9 @@ export function MusicPlayerExperience() {
           onTonearmPointerUp={finishTonearmGesture}
           onTonearmKeyDown={handleTonearmKeyDown}
           platterRef={platterRef}
+          platterStrobeRef={platterStrobeRef}
           deckRecordRef={deckRecordRef}
+          deckRotorRef={deckRotorRef}
           tonearmBaseRef={tonearmBaseRef}
           tonearmRef={tonearmRef}
           stylusRef={stylusRef}
@@ -3158,6 +3473,8 @@ export function MusicPlayerExperience() {
             <VinylRecord
               album={selectedAlbum}
               playing={false}
+              controlledRotation
+              rotorRef={floatingRotorRef}
               className={styles.floatingVinyl}
               variant="floating"
             />
