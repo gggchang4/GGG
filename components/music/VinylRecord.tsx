@@ -1,5 +1,13 @@
+"use client";
+
 import Image from "next/image";
-import type { CSSProperties } from "react";
+import gsap from "gsap";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type CSSProperties,
+} from "react";
 import type { VinylAlbum } from "@/data/records";
 import styles from "@/components/music/vinyl-record.module.css";
 
@@ -38,16 +46,72 @@ export function VinylRecord({
 }: VinylRecordProps) {
   const { vinyl } = album;
   const rpm = vinyl.rpm ?? 33.333;
+  const rotorRef = useRef<HTMLSpanElement>(null);
+  const spinTweenRef = useRef<gsap.core.Tween | null>(null);
+  const rateTweenRef = useRef<gsap.core.Tween | null>(null);
+  const resolvedSpinDuration = spinDuration ?? 60 / rpm;
   const recordStyle: VinylRecordStyle = {
     "--vinyl-primary": vinyl.primary,
     "--vinyl-secondary": vinyl.secondary ?? album.spine,
     "--vinyl-accent": vinyl.accent ?? album.edge,
-    "--vinyl-spin-duration": `${spinDuration ?? 60 / rpm}s`,
+    "--vinyl-spin-duration": `${resolvedSpinDuration}s`,
   };
   const rootClassName = [styles.record, className].filter(Boolean).join(" ");
   const hasDiscArtwork =
     vinyl.artwork === "picture-disc" || vinyl.artwork === "half-picture";
   const hasLabelArtwork = vinyl.artwork !== "none";
+
+  useLayoutEffect(() => {
+    const rotor = rotorRef.current;
+
+    if (!rotor) {
+      return;
+    }
+
+    const spinTween = gsap.to(rotor, {
+      rotation: "+=360",
+      duration: 1.8,
+      repeat: -1,
+      ease: "none",
+      paused: false,
+    });
+    spinTween.timeScale(0);
+    spinTweenRef.current = spinTween;
+
+    return () => {
+      rateTweenRef.current?.kill();
+      spinTween.kill();
+      spinTweenRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const spinTween = spinTweenRef.current;
+
+    if (!spinTween) {
+      return;
+    }
+
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const targetRate =
+      playing && !reducedMotion ? 1.8 / resolvedSpinDuration : 0;
+    const currentRate = spinTween.timeScale();
+
+    rateTweenRef.current?.kill();
+    rateTweenRef.current = gsap.to(spinTween, {
+      timeScale: targetRate,
+      duration:
+        targetRate === 0 ? 0.9 : targetRate > currentRate ? 0.7 : 0.48,
+      ease: targetRate === 0 ? "power3.out" : "power2.out",
+      overwrite: true,
+    });
+
+    return () => {
+      rateTweenRef.current?.kill();
+    };
+  }, [playing, resolvedSpinDuration]);
 
   return (
     <span
@@ -67,7 +131,7 @@ export function VinylRecord({
         <span className={styles.edgeNotches} />
       </span>
 
-      <span className={styles.rotor} data-rotor>
+      <span ref={rotorRef} className={styles.rotor} data-rotor>
         <span className={styles.material} />
 
         {hasDiscArtwork ? (
@@ -105,7 +169,13 @@ export function VinylRecord({
               draggable={false}
             />
           ) : (
-            <span className={styles.blankLabel} />
+            <span className={styles.blankLabel}>
+              <span className={styles.labelCopy}>
+                <small>SIDE A · {rpm === 45 ? "45" : "33⅓"} RPM</small>
+                <strong>{album.title}</strong>
+                <small>{album.artist}</small>
+              </span>
+            </span>
           )}
           <span className={styles.labelVarnish} />
           <span className={styles.labelRing} />
@@ -116,11 +186,11 @@ export function VinylRecord({
         </span>
       </span>
 
+      <span className={styles.stationaryShade} />
       <span className={styles.stationaryLight} data-stationary-light>
         <span className={styles.lightFan} />
         <span className={styles.lightStreak} />
         <span className={styles.edgeGlint} />
-        <span className={styles.spindleHighlight} />
       </span>
     </span>
   );

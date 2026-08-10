@@ -1410,6 +1410,434 @@
   }
 }
 
+/* Physical turntable layer ------------------------------------------------- */
+
+.deck::after {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: clamp(18px, 2.2vw, 42px);
+  width: min(78vw, 96dvh, 940px);
+  height: min(82dvh, 760px);
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: clamp(20px, 2.2vw, 34px);
+  background:
+    linear-gradient(108deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 22px),
+    radial-gradient(circle at 22% 14%, rgb(255 255 255 / 5%), transparent 34%),
+    linear-gradient(145deg, #1b1e1f, #0f1112 58%, #090a0b);
+  box-shadow:
+    0 38px 70px rgb(0 0 0 / 46%),
+    0 8px 18px rgb(0 0 0 / 54%),
+    inset 0 1px rgb(255 255 255 / 8%),
+    inset 0 0 0 2px rgb(0 0 0 / 28%),
+    inset 0 -34px 70px rgb(0 0 0 / 28%);
+  content: "";
+  pointer-events: none;
+  transform: translateY(-55%);
+}
+
+.deckMark,
+.platterRim,
+.platterStrobe,
+.platterMat,
+.spindle,
+.stylusLamp {
+  display: block;
+}
+
+.deckMark {
+  z-index: 12;
+  top: calc(50% - min(41dvh, 380px));
+  bottom: auto;
+  left: clamp(38px, 4.6vw, 88px);
+  color: rgb(232 234 231 / 38%);
+  font-size: clamp(6px, 0.48vw, 8px);
+}
+
+.platter {
+  z-index: 5;
+  top: 50%;
+  left: clamp(24px, 4vw, 72px);
+  width: min(68vw, 72dvh, 700px);
+  filter:
+    drop-shadow(0 26px 24px rgb(0 0 0 / 48%))
+    drop-shadow(0 7px 7px rgb(0 0 0 / 42%));
+  transform: translateY(-57%);
+}
+
+.platterRim {
+  z-index: 1;
+  inset: 0;
+  background:
+    repeating-conic-gradient(from 0deg, #aeb0ae 0 0.28deg, #353839 0.36deg 0.78deg),
+    linear-gradient(#747876, #353938);
+  box-shadow:
+    0 0 0 2px #080909,
+    0 0 0 4px #747775,
+    0 6px 12px rgb(0 0 0 / 70%),
+    inset 0 0 0 5px rgb(255 255 255 / 10%),
+    inset 0 -8px 16px rgb(0 0 0 / 66%);
+}
+
+.platterStrobe {
+  z-index: 2;
+  inset: 0.7%;
+  opacity: 0.58;
+  will-change: transform;
+}
+
+.platterMat {
+  z-index: 3;
+  inset: 5.2%;
+  background:
+    repeating-radial-gradient(circle, transparent 0 5px, rgb(255 255 255 / 2.7%) 5.5px 6px),
+    radial-gradient(circle at 47% 43%, #242729, #111315 67%, #08090a);
+  box-shadow:
+    inset 0 0 34px rgb(0 0 0 / 76%),
+    inset 0 0 0 1px rgb(255 255 255 / 5%),
+    0 0 0 1px #050606;
+}
+
+.deckRecord {
+  z-index: 6;
+  inset: 5.8%;
+  filter: drop-shadow(0 8px 7px rgb(0 0 0 / 52%));
+}
+
+.spindle {
+  z-index: 9;
+  width: 2.15%;
+  background: radial-gradient(circle at 34% 27%, #fff 0 7%, #c6c9c6 21%, #777b79 49%, #343736 76%);
+  box-shadow:
+    0 3px 4px rgb(0 0 0 / 76%),
+    0 0 0 1px rgb(255 255 255 / 30%),
+    inset 0 -1px 2px rgb(0 0 0 / 40%);
+}
+
+.hardwarePanel {
+  position: absolute;
+  z-index: 12;
+  bottom: calc(104px + max(18px, 2.4dvh));
+  left: clamp(14px, 1.8vw, 34px);
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  color: rgb(233 235 231 / 52%);
+  font-family: var(--font-mono), monospace;
+  pointer-events: auto;
+}
+
+.startStopButton,
+.speedSelector button {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.startStopButton {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  background: transparent;
+}
+
+.startStopCap {
+  position: relative;
+  display: block;
+  width: 48px;
+  aspect-ratio: 1;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 37% 30%, #9b9f9d 0 6%, #4d5150 31%, #202323 65%, #0d0f10 100%);
+  box-shadow:
+    0 5px 8px rgb(0 0 0 / 60%),
+    inset 0 1px rgb(255 255 255 / 24%),
+    inset 0 -4px 7px rgb(0 0 0 / 48%);
+  transition: filter 180ms ease, transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.startStopCap i {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 2px;
+  height: 11px;
+  border-radius: 2px;
+  background: #e7e0ce;
+  box-shadow: 0 0 3px rgb(255 255 255 / 30%);
+  transform: translateX(-50%);
+}
+
+.startStopButton[data-active="true"] .startStopCap {
+  filter: brightness(1.08);
+  transform: rotate(42deg);
+}
+
+.startStopButton small {
+  font-size: 6px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.speedSelector {
+  display: grid;
+  grid-template-columns: repeat(2, 24px);
+  gap: 4px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 9px;
+  background: rgb(5 6 7 / 68%);
+  box-shadow: inset 0 1px rgb(255 255 255 / 5%);
+}
+
+.speedSelector > span {
+  grid-column: 1 / -1;
+  font-size: 6px;
+  letter-spacing: 0.16em;
+  text-align: center;
+}
+
+.speedSelector button {
+  height: 21px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 5px;
+  background: #17191a;
+  font-size: 7px;
+  box-shadow: inset 0 1px rgb(255 255 255 / 7%);
+}
+
+.speedSelector button[data-active="true"] {
+  border-color: rgb(224 181 111 / 38%);
+  color: #f1cf91;
+  background: #282219;
+  box-shadow: 0 0 9px rgb(231 180 91 / 14%);
+}
+
+.quartzIndicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 7px;
+  font-size: 6px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.quartzIndicator i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #4c3420;
+}
+
+.quartzIndicator[data-locked="true"] i {
+  background: #f1b866;
+  box-shadow: 0 0 8px rgb(241 184 102 / 76%);
+}
+
+.hardwarePanel button:focus-visible,
+.stylusLamp:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.hardwarePanel button:disabled,
+.stylusLamp:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.tonearmBase {
+  z-index: 10;
+  background:
+    radial-gradient(circle at 40% 30%, #707573 0 5%, #353938 28%, #171a1a 58%, #080909 75%);
+}
+
+.gimbalCap {
+  position: absolute;
+  z-index: 7;
+  inset: 32%;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, #d3d5d2, #6c706e 38%, #202323 72%);
+  box-shadow:
+    0 3px 5px rgb(0 0 0 / 60%),
+    inset 0 1px rgb(255 255 255 / 30%);
+  pointer-events: none;
+}
+
+.antiSkateDial {
+  position: absolute;
+  z-index: 6;
+  top: -18%;
+  right: -24%;
+  display: grid;
+  place-items: center;
+  width: 36%;
+  aspect-ratio: 1;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(#737775 0 5deg, #262929 5deg 10deg);
+  box-shadow: 0 5px 8px rgb(0 0 0 / 54%);
+}
+
+.antiSkateDial i {
+  display: grid;
+  place-items: center;
+  width: 67%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  color: rgb(255 255 255 / 52%);
+  background: #17191a;
+  font: 600 7px/1 var(--font-mono), monospace;
+}
+
+.armRest {
+  position: absolute;
+  z-index: 4;
+  right: 66%;
+  bottom: -79%;
+  width: 14%;
+  height: 52%;
+  border-radius: 4px 4px 8px 8px;
+  background: linear-gradient(90deg, #202323, #a3a7a4 44%, #333635 70%);
+  box-shadow: 0 4px 5px rgb(0 0 0 / 55%);
+  opacity: 0.72;
+}
+
+.armRest::before {
+  position: absolute;
+  top: -13%;
+  left: -34%;
+  width: 168%;
+  height: 18%;
+  border-radius: 999px;
+  content: "";
+  background: #141616;
+  box-shadow: inset 0 1px rgb(255 255 255 / 12%);
+}
+
+.armRest[data-occupied="true"] {
+  opacity: 1;
+}
+
+.armTube,
+.counterweight,
+.stylus {
+  transition: translate 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tonearm[data-raised="true"] .armTube,
+.tonearm[data-raised="true"] .counterweight,
+.tonearm[data-raised="true"] .stylus {
+  translate: 0 -3px;
+}
+
+.cueLever::after {
+  position: absolute;
+  right: 50%;
+  bottom: -8px;
+  color: rgb(255 255 255 / 38%);
+  font: 600 6px/1 var(--font-mono), monospace;
+  letter-spacing: 0.1em;
+  content: "CUE";
+  transform: translateX(50%);
+}
+
+.stylusLamp {
+  z-index: 12;
+  top: 8.5%;
+  right: auto;
+  left: min(47.5vw, 645px);
+  width: clamp(13px, 1.2vw, 20px);
+  appearance: none;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 11%);
+  background: #111313;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.stylusLamp::before {
+  position: absolute;
+  right: 42%;
+  bottom: 70%;
+  width: 16%;
+  height: 250%;
+  border-radius: 99px;
+  content: "";
+  background: linear-gradient(90deg, #292c2b, #a8adaa 48%, #313433);
+  box-shadow: 0 2px 3px rgb(0 0 0 / 55%);
+  transform: rotate(19deg);
+  transform-origin: bottom;
+}
+
+.stylusLamp[data-active="true"]::after {
+  background: #ffd08a;
+  box-shadow:
+    0 0 6px #ffbd68,
+    0 0 18px rgb(255 183 93 / 68%);
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .deck::after {
+    left: 8px;
+    width: min(96vw, 88dvh);
+    height: min(74dvh, 640px);
+  }
+
+  .platter {
+    left: -8vw;
+    width: min(86vw, 68dvh);
+  }
+
+  .hardwarePanel,
+  .deckMark,
+  .antiSkateDial,
+  .armRest,
+  .stylusLamp {
+    display: none;
+  }
+
+  .deckRecord {
+    inset: 6%;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .deck::after {
+    left: 8px;
+    width: min(66vw, 98dvh);
+    height: 92dvh;
+  }
+
+  .platter {
+    left: 2vw;
+    width: min(60vw, 82dvh);
+  }
+
+  .hardwarePanel,
+  .deckMark {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .armTube,
+  .counterweight,
+  .stylus,
+  .startStopCap {
+    transition-duration: 0.01ms;
+  }
+}
+
 /* MD Vinyl-inspired full-screen album waterfall and player ----------------- */
 
 @property --active-spine {
@@ -3911,5 +4339,80 @@
   .playingBars[data-playing="true"] i {
     animation: none;
     transition-duration: 0.01ms;
+  }
+}
+
+/* Keep the physical hardware above the legacy full-screen player cascade. */
+
+.deckMark,
+.platterRim,
+.platterStrobe,
+.platterMat,
+.spindle,
+.stylusLamp {
+  display: block;
+}
+
+.platter {
+  z-index: 5;
+  top: 50%;
+  left: clamp(24px, 4vw, 72px);
+  width: min(68vw, 72dvh, 700px);
+  filter:
+    drop-shadow(0 26px 24px rgb(0 0 0 / 48%))
+    drop-shadow(0 7px 7px rgb(0 0 0 / 42%));
+  transform: translateY(-57%);
+}
+
+.deckRecord {
+  z-index: 6;
+  inset: 5.8%;
+  filter: drop-shadow(0 8px 7px rgb(0 0 0 / 52%));
+}
+
+.deckMark {
+  z-index: 12;
+  top: calc(50% - min(41dvh, 380px));
+  bottom: auto;
+  left: clamp(38px, 4.6vw, 88px);
+}
+
+.stylusLamp {
+  z-index: 12;
+  top: 8.5%;
+  right: auto;
+  left: min(47.5vw, 645px);
+  width: clamp(13px, 1.2vw, 20px);
+  pointer-events: auto;
+}
+
+@media (max-width: 720px) {
+  .platter {
+    left: -8vw;
+    width: min(86vw, 68dvh);
+  }
+
+  .hardwarePanel,
+  .deckMark,
+  .antiSkateDial,
+  .armRest,
+  .stylusLamp {
+    display: none;
+  }
+
+  .deckRecord {
+    inset: 6%;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .platter {
+    left: 2vw;
+    width: min(60vw, 82dvh);
+  }
+
+  .hardwarePanel,
+  .deckMark {
+    display: none;
   }
 }
