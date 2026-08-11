@@ -1,0 +1,171 @@
+.nowPlaying {
+  position: fixed;
+  z-index: 12;
+  right: max(clamp(1rem, 2.6vw, 2.5rem), env(safe-area-inset-right));
+  bottom: max(clamp(1rem, 2.6vw, 2.35rem), env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: clamp(0.7rem, 1.35vw, 1.15rem);
+  color: rgb(20 21 18 / 0.9);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  animation: arrive 720ms 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.copy {
+  display: grid;
+  max-width: clamp(7.5rem, 12vw, 11rem);
+  justify-items: end;
+  text-align: right;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.34);
+}
+
+.copy small,
+.copy > span {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.copy small {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.28rem;
+  color: rgb(20 21 18 / 0.66);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+}
+
+.copy small::before {
+  width: 1rem;
+  height: 1px;
+  background: currentColor;
+  content: "";
+}
+
+.copy strong {
+  overflow: hidden;
+  width: 100%;
+  font-size: clamp(0.7rem, 0.9vw, 0.84rem);
+  font-weight: 680;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy > span {
+  overflow: hidden;
+  width: 100%;
+  margin-top: 0.32rem;
+  color: rgb(20 21 18 / 0.64);
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recordFrame {
+  position: relative;
+  display: block;
+  width: clamp(5.8rem, 8vw, 7.5rem);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.recordFrame::after {
+  position: absolute;
+  z-index: -1;
+  right: 13%;
+  bottom: -6%;
+  left: 13%;
+  height: 12%;
+  border-radius: 50%;
+  background: rgb(22 29 28 / 0.2);
+  content: "";
+  filter: blur(0.7rem);
+  opacity: 0.45;
+  transition: opacity 280ms ease, transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.record {
+  filter: drop-shadow(0 0.65rem 0.7rem rgb(14 20 19 / 18%));
+}
+
+.nowPlaying:hover .recordFrame {
+  transform: translateY(-0.2rem) scale(1.025);
+}
+
+.nowPlaying:hover .recordFrame::after {
+  opacity: 0.32;
+  transform: translateY(0.2rem) scaleX(0.9);
+}
+
+.nowPlaying:focus-visible {
+  border-radius: 999px;
+  outline: 1px solid rgb(20 21 18 / 0.66);
+  outline-offset: 0.45rem;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(0.75rem, 0.75rem, 0) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .nowPlaying {
+    right: max(0.85rem, env(safe-area-inset-right));
+    bottom: max(0.9rem, env(safe-area-inset-bottom));
+    gap: 0.62rem;
+  }
+
+  .copy {
+    max-width: min(7.2rem, 30vw);
+  }
+
+  .copy small {
+    font-size: 0.55rem;
+  }
+
+  .copy strong {
+    font-size: 0.72rem;
+  }
+
+  .copy > span {
+    display: none;
+  }
+
+  .recordFrame {
+    width: clamp(4.9rem, 21vw, 5.75rem);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .copy {
+    display: none;
+  }
+
+  .recordFrame {
+    width: clamp(4.25rem, 16vh, 5.25rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nowPlaying {
+    animation: none;
+  }
+
+  .recordFrame,
+  .recordFrame::after {
+    transition: none;
+  }
+}

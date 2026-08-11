@@ -13,6 +13,7 @@ import {
 } from "react";
 import gsap from "gsap";
 import { DiscNavigation } from "@/components/home/DiscNavigation";
+import { HomeNowPlayingVinyl } from "@/components/home/HomeNowPlayingVinyl";
 import { StaticGlassLens } from "@/components/home/StaticGlassLens";
 import { WaterSurface } from "@/components/home/WaterSurface";
 import { stylesConfig } from "@/data/stylesConfig";
@@ -387,6 +388,8 @@ export function HomeExperience() {
           </p>
         </div>
       </section>
+
+      <HomeNowPlayingVinyl />
     </main>
   );
 }

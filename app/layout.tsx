@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Kameron, Manrope } from "next/font/google";
+import { PlaybackProvider } from "@/components/music/PlaybackProvider";
 import "@/styles/global.css";
 
 const sans = Manrope({
@@ -43,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body className={`${sans.variable} ${mono.variable} ${signature.variable}`}>
-        {children}
+        <PlaybackProvider>{children}</PlaybackProvider>
       </body>
     </html>
   );
