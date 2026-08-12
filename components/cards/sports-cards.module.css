@@ -1,1322 +1,890 @@
 .page {
-  --active-color: #32125c;
-  --active-accent: #ef4a78;
-  --active-secondary: #f3bd19;
-  position: relative;
-  isolation: isolate;
   min-height: 100svh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 33%, color-mix(in srgb, var(--active-color) 34%, transparent), transparent 31rem),
-    linear-gradient(180deg, #0b0c0c 0%, #050606 100%);
-  color: #f4f2eb;
-  transition: background 520ms ease;
+  color: #f5f5f5;
+  background: #000;
+  isolation: isolate;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-.page::before,
-.page::after {
-  position: absolute;
-  z-index: -2;
-  content: "";
-  pointer-events: none;
+:global(html):has(.page),
+:global(body):has(.page) {
+  background: #000;
+  overscroll-behavior: none;
 }
 
-.page::before {
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgb(255 255 255 / 0.024) 1px, transparent 1px),
-    linear-gradient(rgb(255 255 255 / 0.018) 1px, transparent 1px);
-  background-size: 5rem 5rem;
-  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.65), transparent 78%);
+.page,
+.page * {
+  box-sizing: border-box;
 }
 
-.page::after {
-  right: -12rem;
-  bottom: -21rem;
-  width: 48rem;
-  aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--active-accent) 15%, transparent);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 7rem color-mix(in srgb, var(--active-color) 4%, transparent),
-    0 0 0 14rem color-mix(in srgb, var(--active-secondary) 2%, transparent);
+.page button,
+.page a {
+  color: inherit;
+  font: inherit;
 }
 
-.ambientGlow {
-  position: absolute;
-  z-index: -1;
-  top: -25vh;
-  left: calc(50% - 24rem);
-  width: 48rem;
-  height: 75vh;
-  background:
-    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--active-accent) 14%, transparent), transparent 51%),
-    radial-gradient(ellipse at 50% 14%, rgb(255 255 255 / 0.06), transparent 38%);
-  filter: blur(18px);
-  opacity: 0.82;
-  pointer-events: none;
-  transition: background 480ms ease;
-}
-
-.roomGrain {
-  position: absolute;
-  z-index: 20;
-  inset: 0;
-  opacity: 0.12;
-  pointer-events: none;
-}
-
-.roomGrain::before {
-  position: absolute;
-  inset: -50%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
-  content: "";
-  animation: grain 650ms steps(2) infinite;
+.page button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .header {
   position: relative;
-  z-index: 30;
+  z-index: 20;
   display: grid;
-  grid-template-columns: minmax(11rem, 1fr) auto minmax(11rem, 1fr);
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  min-height: 5.4rem;
-  padding: 0 clamp(1.25rem, 3.2vw, 3.5rem);
-  border-bottom: 1px solid rgb(255 255 255 / 0.11);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  animation: headerEnter 760ms 60ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  min-height: 72px;
+  padding: 0 clamp(20px, 3.5vw, 56px);
+  border-bottom: 1px solid #1b1b1b;
+  background: #000;
 }
 
-.brand {
+.backLink,
+.backButton {
   display: inline-flex;
-  justify-self: start;
   align-items: center;
-  gap: 0.78rem;
-  color: #f8f5ed;
-  font-size: 0.64rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  line-height: 1.2;
-}
-
-.brand small {
-  display: block;
-  margin-top: 0.2rem;
-  color: rgb(244 242 235 / 0.42);
-  font-size: 0.47rem;
-  font-weight: 400;
-  letter-spacing: 0.14em;
-}
-
-.brandMark {
-  display: grid;
-  width: 2.2rem;
-  aspect-ratio: 1;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.82);
-  border-radius: 50%;
-  font-family: var(--font-sans), sans-serif;
-  font-size: 0.64rem;
-  font-weight: 780;
-  letter-spacing: -0.08em;
-  transition:
-    color 220ms ease,
-    background 220ms ease;
-}
-
-.brand:hover .brandMark {
-  background: #f4f2eb;
-  color: #070808;
-}
-
-.sportSwitcher {
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  height: 5.4rem;
-}
-
-.sportSwitcher button {
-  position: relative;
-  min-width: clamp(7.6rem, 11vw, 10.5rem);
-  padding: 0 1.45rem;
+  gap: 9px;
+  width: max-content;
+  padding: 8px 0;
   border: 0;
-  border-right: 1px solid rgb(255 255 255 / 0.11);
+  color: #aaa;
   background: transparent;
-  color: rgb(244 242 235 / 0.38);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   cursor: pointer;
-  font-size: 0.63rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-align: left;
-  transition:
-    color 230ms ease,
-    background 230ms ease;
+  transition: color 160ms ease;
 }
 
-.sportSwitcher button:first-child {
-  border-left: 1px solid rgb(255 255 255 / 0.11);
+.backLink svg,
+.backButton svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.5;
 }
 
-.sportSwitcher button::after {
-  position: absolute;
-  right: 1.45rem;
-  bottom: -1px;
-  left: 1.45rem;
-  height: 2px;
-  background: var(--active-accent);
-  content: "";
-  transform: scaleX(0);
-  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sportSwitcher button > span {
-  display: block;
-  margin-bottom: 0.3rem;
-  color: rgb(244 242 235 / 0.25);
-  font-size: 0.48rem;
-}
-
-.sportSwitcher button:hover {
-  background: rgb(255 255 255 / 0.025);
-  color: rgb(244 242 235 / 0.78);
-}
-
-.sportSwitcher .sportActive {
-  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--active-color) 15%, transparent));
+.backLink:hover,
+.backButton:hover {
   color: #fff;
 }
 
-.sportSwitcher .sportActive::after {
-  transform: scaleX(1);
-}
-
-.headerMeta {
-  display: flex;
-  justify-self: end;
-  align-items: center;
-  gap: 0.8rem;
-  text-align: right;
-}
-
-.headerMeta p {
+.archiveLabel {
   margin: 0;
+  color: #d8d8d8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-align: center;
 }
 
-.headerMeta span,
-.headerMeta strong {
-  display: block;
-  font-size: 0.52rem;
-  font-weight: 400;
-  letter-spacing: 0.13em;
+.sportSwitcher {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #242424;
+  border-radius: 999px;
+  background: #050505;
 }
 
-.headerMeta strong {
-  margin-top: 0.16rem;
-  color: rgb(244 242 235 / 0.38);
+.sportSwitcher button {
+  min-width: 82px;
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 999px;
+  color: #6f6f6f;
+  background: transparent;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
 }
 
-.liveDot {
-  width: 0.42rem;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: var(--active-accent);
-  box-shadow: 0 0 0.8rem var(--active-accent);
-  animation: statusPulse 2.2s ease-in-out infinite;
+.sportSwitcher button:hover {
+  color: #d9d9d9;
+}
+
+.sportSwitcher .sportActive {
+  color: #050505;
+  background: #ededed;
+}
+
+.backLink:focus-visible,
+.backButton:focus-visible,
+.sportSwitcher button:focus-visible,
+.railViewport:focus-visible,
+.railCard:focus-visible,
+.activeCaption button:focus-visible,
+.railControls button:focus-visible,
+.closeButton:focus-visible,
+.inspectActions button:focus-visible,
+.mobileInfoButton:focus-visible,
+.interactiveCard:focus-visible {
+  outline: 1px solid #fff;
+  outline-offset: 4px;
 }
 
 .collection {
-  position: relative;
-  z-index: 2;
   display: grid;
-  min-height: calc(100svh - 8.3rem);
-  grid-template-rows: minmax(7rem, 0.62fr) minmax(19rem, 2fr) auto auto;
-  padding: clamp(1rem, 2vh, 1.6rem) 0 0;
-}
-
-.collectionIntro {
-  position: relative;
-  z-index: 4;
-  align-self: end;
-  width: 100%;
-  padding: 0 clamp(1.25rem, 3.2vw, 3.5rem);
-  pointer-events: none;
-}
-
-.collectionIntro p {
-  margin: 0 0 0.65rem;
-  color: rgb(244 242 235 / 0.4);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.54rem;
-  letter-spacing: 0.2em;
-  animation: copyEnter 720ms 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.collectionIntro h1 {
-  display: flex;
-  justify-content: space-between;
-  margin: 0;
-  color: rgb(244 242 235 / 0.92);
-  font-size: clamp(2.25rem, 5.3vw, 5.7rem);
-  font-weight: 670;
-  letter-spacing: -0.075em;
-  line-height: 0.8;
-  white-space: nowrap;
-  animation: copyEnter 850ms 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.collectionIntro h1 span {
-  color: transparent;
-  -webkit-text-stroke: 1px rgb(244 242 235 / 0.28);
+  grid-template-rows: minmax(320px, 1fr) auto auto;
+  min-height: calc(100svh - 128px);
+  background: #000;
 }
 
 .railViewport {
   position: relative;
-  z-index: 3;
-  width: 100%;
-  min-height: clamp(20rem, 48vh, 34rem);
+  min-height: 0;
   overflow: hidden;
-  cursor: grab;
   outline: none;
-  perspective: 80rem;
   touch-action: pan-y;
-}
-
-.railViewport::before,
-.railViewport::after {
-  position: absolute;
-  z-index: 50;
-  top: 0;
-  bottom: 0;
-  width: min(13vw, 10rem);
-  content: "";
-  pointer-events: none;
-}
-
-.railViewport::before {
-  left: 0;
-  background: linear-gradient(90deg, #070808, transparent);
-}
-
-.railViewport::after {
-  right: 0;
-  background: linear-gradient(-90deg, #070808, transparent);
-}
-
-.railViewport:focus-visible {
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .railViewport[data-dragging="true"] {
   cursor: grabbing;
 }
 
-.railViewport[data-dragging="true"] .railCard {
-  transition: none;
-}
-
 .rail {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  transform-style: preserve-3d;
-}
-
-.rail::before {
-  position: absolute;
-  bottom: 5.5%;
-  left: 50%;
-  width: min(44rem, 72vw);
-  height: 3rem;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgb(0 0 0 / 0.68), transparent 69%);
-  content: "";
-  filter: blur(9px);
-  transform: translateX(-50%);
+  perspective: 1400px;
+  perspective-origin: 50% 46%;
 }
 
 .railCard {
-  --card-x: 0px;
-  --card-distance: 0;
-  --card-scale: 1;
-  --card-opacity: 1;
-  --card-z: 10;
-  --card-rotate: 0deg;
+  --foil-angle: 122deg;
+  --foil-hue: 0deg;
+  --foil-opacity: 0.2;
+  --glare-x: var(--foil-x, 50%);
+  --glare-y: var(--foil-y, 50%);
+  --glare-angle: 122deg;
+  --glare-opacity: 0.16;
+  --coat-opacity: 0.16;
+  --fresnel-opacity: 0.12;
+  --specular-strength: 0.3;
   position: absolute;
-  z-index: var(--card-z);
-  width: clamp(11.3rem, 15.2vw, 15.5rem);
+  top: 48%;
+  left: 50%;
+  z-index: var(--card-z, 1);
+  width: clamp(170px, 14.6vw, 246px);
   aspect-ratio: 5 / 7;
   padding: 0;
+  overflow: visible;
   border: 0;
-  border-radius: 4.2%;
+  border-radius: 3.25%;
+  opacity: var(--card-opacity, 1);
   background: transparent;
-  box-shadow: 0 1.6rem 2.5rem rgb(0 0 0 / 0.2);
-  cursor: inherit;
-  opacity: var(--card-opacity);
-  filter: saturate(calc(1 - var(--card-distance) * 0.12));
-  transform: translate3d(var(--card-x), calc(var(--card-distance) * 1.05rem), calc(var(--card-distance) * -4rem)) rotate(var(--card-rotate)) scale(var(--card-scale));
-  transform-origin: 50% 84%;
+  box-shadow: 0 24px 45px rgb(0 0 0 / 75%);
+  transform:
+    translate3d(calc(-50% + var(--card-x, 0px)), -50%, 0)
+    rotateY(var(--card-rotate, 0deg))
+    scale(var(--card-scale, 1));
+  transform-style: preserve-3d;
+  cursor: pointer;
   transition:
-    transform 620ms cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 420ms ease,
-    filter 420ms ease,
-    box-shadow 420ms ease;
-  animation: cardArrive 820ms calc(240ms + var(--card-distance) * 80ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform 420ms cubic-bezier(0.22, 0.78, 0.2, 1),
+    opacity 300ms ease,
+    filter 300ms ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.railCard::after {
-  position: absolute;
-  inset: -0.55rem;
-  border: 1px solid transparent;
-  border-radius: 6.2%;
-  content: "";
-  pointer-events: none;
+.railViewport[data-dragging="true"] .railCard {
   transition:
-    border-color 260ms ease,
-    box-shadow 260ms ease;
+    opacity 120ms linear,
+    filter 120ms linear;
+}
+
+.railCard:not(.railCardActive) {
+  filter: saturate(0.68) brightness(0.7);
+}
+
+.railCard:not(.railCardActive):hover {
+  filter: saturate(0.85) brightness(0.88);
 }
 
 .railCardActive {
-  box-shadow:
-    0 2rem 3.5rem rgb(0 0 0 / 0.52),
-    0 0 2.8rem color-mix(in srgb, var(--active-color) 23%, transparent);
+  filter: none;
 }
 
-.railCardActive::after {
-  border-color: color-mix(in srgb, var(--active-accent) 54%, white 18%);
-  box-shadow: 0 0 1.5rem color-mix(in srgb, var(--active-accent) 12%, transparent);
+.railCardActive .cardArtwork {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 14%),
+    0 24px 48px rgb(0 0 0 / 78%);
 }
 
 .activeCaption {
   position: relative;
-  z-index: 5;
+  z-index: 10;
   display: grid;
-  grid-template-columns: 4.25rem 1fr auto;
+  grid-template-columns: minmax(54px, 0.45fr) minmax(220px, 1.4fr) minmax(120px, 0.55fr);
   align-items: center;
-  width: min(55rem, calc(100% - 2.5rem));
-  min-height: 4.3rem;
-  margin: -0.4rem auto 0;
-  border-top: 1px solid rgb(255 255 255 / 0.13);
-  border-bottom: 1px solid rgb(255 255 255 / 0.13);
-  font-family: var(--font-mono), ui-monospace, monospace;
+  gap: 24px;
+  width: min(780px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 14px 0 18px;
+  border-top: 1px solid #1c1c1c;
 }
 
 .activeCaption > span {
-  color: var(--active-accent);
-  font-size: 0.55rem;
-  letter-spacing: 0.1em;
+  color: #686868;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.18em;
 }
 
 .activeCaption > div {
-  padding-left: 1.35rem;
-  border-left: 1px solid rgb(255 255 255 / 0.13);
+  min-width: 0;
 }
 
 .activeCaption strong {
   display: block;
-  color: #f5f3ec;
-  font-family: var(--font-sans), sans-serif;
-  font-size: 0.95rem;
-  font-weight: 620;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+  overflow: hidden;
+  color: #f2f2f2;
+  font-size: clamp(19px, 2.2vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .activeCaption p {
-  margin: 0.26rem 0 0;
-  color: rgb(244 242 235 / 0.38);
-  font-size: 0.48rem;
-  letter-spacing: 0.08em;
+  margin: 7px 0 0;
+  overflow: hidden;
+  color: #707070;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .activeCaption > button {
+  justify-self: end;
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.8rem 0 0.8rem 1rem;
+  gap: 10px;
+  padding: 10px 0;
   border: 0;
+  color: #aaa;
   background: transparent;
-  color: rgb(244 242 235 / 0.74);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   cursor: pointer;
-  font-size: 0.54rem;
-  letter-spacing: 0.12em;
-  transition: color 220ms ease;
-}
-
-.activeCaption > button svg {
-  width: 0.9rem;
-  transform: rotate(135deg);
-  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 160ms ease;
 }
 
 .activeCaption > button:hover {
   color: #fff;
 }
 
-.activeCaption > button:hover svg {
-  transform: translate(0.2rem, -0.2rem) rotate(135deg);
+.activeCaption > button svg {
+  width: 15px;
+  height: 15px;
+  transform: rotate(180deg);
 }
 
 .railControls {
-  z-index: 5;
+  position: relative;
+  z-index: 10;
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 0 0;
+  justify-content: center;
+  gap: 18px;
+  padding-bottom: 13px;
 }
 
 .railControls > button {
   display: grid;
-  width: 1.8rem;
-  aspect-ratio: 1;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.12);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #222;
   border-radius: 50%;
-  background: transparent;
-  color: rgb(244 242 235 / 0.66);
+  place-items: center;
+  color: #8a8a8a;
+  background: #030303;
   cursor: pointer;
   transition:
-    border-color 220ms ease,
-    color 220ms ease,
-    background 220ms ease;
-}
-
-.railControls > button svg {
-  width: 0.78rem;
+    border-color 160ms ease,
+    color 160ms ease;
 }
 
 .railControls > button:hover:not(:disabled) {
-  border-color: rgb(255 255 255 / 0.42);
-  background: rgb(255 255 255 / 0.07);
+  border-color: #555;
   color: #fff;
 }
 
 .railControls > button:disabled {
+  color: #333;
   cursor: default;
-  opacity: 0.23;
+}
+
+.railControls > button svg {
+  width: 14px;
+  height: 14px;
 }
 
 .railControls > span {
   display: flex;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 8px;
 }
 
 .railControls > span button {
-  width: 1.15rem;
-  height: 0.16rem;
+  width: 4px;
+  height: 4px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.17);
+  border-radius: 50%;
+  background: #343434;
   cursor: pointer;
   transition:
-    width 260ms ease,
-    background 260ms ease;
+    width 180ms ease,
+    border-radius 180ms ease,
+    background-color 180ms ease;
 }
 
 .railControls > span .railDotActive {
-  width: 2.4rem;
-  background: var(--active-accent);
+  width: 20px;
+  border-radius: 2px;
+  background: #e8e8e8;
 }
 
 .footer {
-  position: absolute;
-  z-index: 6;
-  right: clamp(1.25rem, 3.2vw, 3.5rem);
-  bottom: 1.05rem;
-  left: clamp(1.25rem, 3.2vw, 3.5rem);
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 22;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  color: rgb(244 242 235 / 0.3);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.46rem;
-  letter-spacing: 0.11em;
-  pointer-events: none;
+  height: 56px;
+  padding: 0 clamp(20px, 3.5vw, 56px);
+  border-top: 1px solid #171717;
+  color: #525252;
+  background: #000;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
 .footer p {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 9px;
   margin: 0;
 }
 
 .footer svg {
-  width: 0.8rem;
+  width: 13px;
+  height: 13px;
 }
 
 .footer a {
-  position: relative;
-  z-index: 1;
-  pointer-events: auto;
-  text-decoration: underline;
-  text-underline-offset: 0.18rem;
+  color: #777;
+  text-decoration: none;
+  transition: color 160ms ease;
 }
 
-/* Shared card artwork ------------------------------------------------------ */
+.footer a:hover {
+  color: #fff;
+}
 
+/* The artwork owns no motion variables. It only consumes values inherited from
+   either the rail item or the quaternion-driven interactive card. */
 .cardArtwork {
-  --card-primary: #25235b;
-  --card-secondary: #e8dcb0;
-  --card-accent: #e84d72;
-  --portrait-position: 50% 50%;
-  --glare-x: 54%;
-  --glare-y: 48%;
-  --glare-angle: 118deg;
-  --glare-opacity: 0.26;
   position: relative;
   width: 100%;
   height: 100%;
+  aspect-ratio: 5 / 7;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.5);
-  border-radius: inherit;
-  background: #131414;
-  box-shadow:
-    inset 0 0 0 0.11rem rgb(5 6 6 / 0.78),
-    inset 0 0 0 0.2rem rgb(255 255 255 / 0.32),
-    inset 0 0 2.2rem rgb(0 0 0 / 0.4);
-  color: #fff;
-  container-type: inline-size;
-  font-family: var(--font-sans), sans-serif;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 3.1%;
+  background: #101010;
+  box-shadow: 0 14px 28px rgb(0 0 0 / 55%);
+  isolation: isolate;
   transform: translateZ(0);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.cardFrontArtwork::before,
-.cardFrontArtwork::after {
+.scanImage {
   position: absolute;
-  z-index: 3;
-  content: "";
-  pointer-events: none;
-}
-
-.cardFrontArtwork::before {
-  inset: 1.6%;
-  border: max(1px, 0.65cqi) solid color-mix(in srgb, var(--card-secondary) 77%, white 23%);
-  border-radius: 2.5%;
-  box-shadow:
-    inset 0 0 0 max(1px, 0.45cqi) rgb(0 0 0 / 0.65),
-    0 0 0 max(1px, 0.38cqi) rgb(255 255 255 / 0.22);
-  clip-path: polygon(0 0, 77% 0, 100% 16%, 100% 100%, 22% 100%, 0 85%);
-}
-
-.cardFrontArtwork::after {
-  inset: 3.2%;
-  border: 1px solid rgb(255 255 255 / 0.44);
-  border-radius: 1.4%;
-  clip-path: polygon(0 0, 74% 0, 100% 18%, 100% 100%, 19% 100%, 0 84%);
-}
-
-.cardImage {
-  z-index: 0;
-  object-fit: cover;
-  object-position: var(--portrait-position);
-  filter: saturate(0.94) contrast(1.08);
-  transform: scale(1.02);
-}
-
-.portraitGrade {
-  position: absolute;
+  inset: 0;
   z-index: 1;
-  inset: 0;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--card-primary) 38%, transparent) 0%, transparent 23%, transparent 53%, rgb(5 6 6 / 0.92) 96%),
-    linear-gradient(115deg, color-mix(in srgb, var(--card-primary) 55%, transparent), transparent 43%, color-mix(in srgb, var(--card-accent) 24%, transparent));
-  mix-blend-mode: multiply;
-}
-
-.cardFrameGraphic {
-  position: absolute;
-  z-index: 2;
-  inset: 0;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
   pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-.cardFrameGraphic::before,
-.cardFrameGraphic::after,
-.cardFrameGraphic span {
-  position: absolute;
-  content: "";
-}
-
-.cardFrameGraphic::before {
-  top: -10%;
-  right: -24%;
-  width: 71%;
-  height: 47%;
-  border: 0.85cqi solid rgb(255 255 255 / 0.52);
-  background: linear-gradient(135deg, transparent 20%, color-mix(in srgb, var(--card-accent) 34%, transparent));
-  clip-path: polygon(39% 0, 100% 0, 100% 100%);
-  transform: rotate(7deg);
-}
-
-.cardFrameGraphic::after {
-  bottom: 14%;
-  left: -35%;
-  width: 130%;
-  height: 33%;
-  border-top: 1.15cqi solid color-mix(in srgb, var(--card-secondary) 78%, white 22%);
-  border-bottom: 0.36cqi solid rgb(255 255 255 / 0.45);
-  background: linear-gradient(168deg, color-mix(in srgb, var(--card-primary) 94%, black), color-mix(in srgb, var(--card-primary) 55%, black));
-  box-shadow: 0 -1.7cqi 0 color-mix(in srgb, var(--card-accent) 65%, transparent);
-  transform: rotate(-8deg);
-}
-
-.cardFrameGraphic span:nth-child(1) {
-  top: 17%;
-  left: -25%;
-  width: 80%;
-  height: 1.8%;
-  background: linear-gradient(90deg, transparent, var(--card-secondary));
-  transform: rotate(-42deg);
-}
-
-.cardFrameGraphic span:nth-child(2) {
-  right: -32%;
-  bottom: 30%;
-  width: 96%;
-  height: 1.15%;
-  background: linear-gradient(90deg, var(--card-accent), transparent);
-  transform: rotate(-41deg);
-}
-
-.cardFrameGraphic span:nth-child(3) {
-  right: 4.7%;
-  bottom: 17%;
-  width: 41%;
-  height: 1px;
-  background: rgb(255 255 255 / 0.7);
-  transform: rotate(-8deg);
-}
-
-.cardTopline {
-  position: absolute;
-  z-index: 7;
-  top: 5.5%;
-  right: 5.7%;
-  left: 5.7%;
-  display: flex;
-  align-items: flex-start;
-  height: 8%;
-  color: rgb(255 255 255 / 0.88);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 2.7cqi;
-  letter-spacing: 0.08em;
-  text-shadow: 0 1px 0.35rem rgb(0 0 0 / 0.8);
-}
-
-.cardTopline > span:nth-child(2) {
-  margin-left: auto;
-}
-
-.cardTopline strong {
-  margin-left: 4.2%;
-  color: var(--card-secondary);
-  font-size: 2.2cqi;
-  font-weight: 600;
-}
-
-.cardMaker {
-  position: relative;
-  width: 18%;
-  height: 78%;
-  filter: brightness(0) invert(1) drop-shadow(0 1px 4px rgb(0 0 0 / 0.75));
-}
-
-.cardMaker img {
-  object-fit: contain;
-  object-position: left top;
-}
-
-.leagueMark {
-  position: absolute;
-  z-index: 7;
-  top: 14%;
-  right: 6%;
-  width: 9.5%;
-  height: 13%;
-  filter: brightness(0) invert(1) drop-shadow(0 1px 0.25rem rgb(0 0 0 / 0.7));
-  opacity: 0.84;
-}
-
-.leagueMark img {
-  object-fit: contain;
-}
-
-.cardNumberMark {
-  position: absolute;
-  z-index: 2;
-  top: 9%;
-  left: 4%;
-  color: rgb(255 255 255 / 0.14);
-  font-family: var(--font-sans), sans-serif;
-  font-size: 34cqi;
-  font-weight: 800;
-  letter-spacing: -0.12em;
-  line-height: 1;
-  text-shadow: 1px 1px 0 rgb(255 255 255 / 0.16);
-  transform: skewX(-9deg);
-}
-
-.cardSeries {
-  position: absolute;
-  z-index: 7;
-  top: 24%;
-  left: 5.2%;
-  display: grid;
-  gap: 0.55cqi;
-  color: #fff;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 2.35cqi;
-  letter-spacing: 0.1em;
-  line-height: 1;
-  text-shadow: 0 1px 0.35rem rgb(0 0 0 / 0.8);
-  text-transform: uppercase;
-  transform: rotate(-90deg) translateX(-100%);
-  transform-origin: top left;
-}
-
-.cardSeries strong {
-  color: var(--card-secondary);
-  font-size: 1.9cqi;
-  font-weight: 500;
-}
-
-.cardNameplate {
-  position: absolute;
-  z-index: 8;
-  right: 6.5%;
-  bottom: 7.4%;
-  left: 6.5%;
-  display: grid;
-  grid-template-columns: 1fr 36%;
-  align-items: end;
-  min-height: 11.5%;
-  padding: 0 1.5% 2%;
-  color: white;
-  text-shadow: 0 0.15rem 0.35rem rgb(0 0 0 / 0.7);
-}
-
-.cardNameplate > div {
-  display: grid;
-  align-content: end;
-  min-width: 0;
-}
-
-.cardNameplate > div span {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 3cqi;
-  letter-spacing: 0.22em;
-  line-height: 1;
-}
-
-.cardNameplate > div strong {
-  overflow: hidden;
-  color: #fff;
-  font-size: 8.6cqi;
-  font-style: italic;
-  font-weight: 800;
-  letter-spacing: -0.08em;
-  line-height: 0.9;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.cardNameplate > p {
-  display: grid;
-  gap: 0.85cqi;
-  justify-items: end;
-  margin: 0;
-  padding-bottom: 0.7cqi;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  text-align: right;
-}
-
-.cardNameplate > p span {
-  display: grid;
-  width: 5.5cqi;
-  aspect-ratio: 1;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--card-accent);
-  color: #fff;
-  font-size: 2.4cqi;
-  font-weight: 600;
-}
-
-.cardNameplate > p strong {
-  overflow: hidden;
-  max-width: 100%;
-  color: rgb(255 255 255 / 0.72);
-  font-size: 1.7cqi;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.cardSerial {
-  position: absolute;
-  z-index: 8;
-  right: 5.2%;
-  bottom: 2.8%;
-  left: 5.2%;
-  display: flex;
-  justify-content: space-between;
-  color: rgb(255 255 255 / 0.6);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 1.8cqi;
-  letter-spacing: 0.08em;
-}
-
-.cardSerial strong {
-  color: var(--card-secondary);
-  font-weight: 500;
-}
-
-.foilField,
+.foilDiffraction,
+.foilEtching,
 .foilGlare,
-.clearCoat {
+.clearCoat,
+.backSatin,
+.autographProtection {
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   pointer-events: none;
 }
 
-.foilField {
-  z-index: 4;
-  background:
-    repeating-linear-gradient(124deg, transparent 0 7%, rgb(255 255 255 / 0.14) 7.4%, transparent 8.2% 13%),
-    conic-gradient(from var(--glare-angle) at var(--glare-x) var(--glare-y), #ff4d88, #ffdf85, #74ffd5, #5dc7ff, #ba84ff, #ff4d88);
-  background-size: 100% 100%, 185% 185%;
-  background-position: center, var(--glare-x) var(--glare-y);
+.foilDiffraction {
+  z-index: 2;
+  background-position:
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    center;
+  background-size: 100% 100%, 230% 230%, 100% 100%;
   mix-blend-mode: color-dodge;
-  opacity: 0.22;
-  transition: opacity 180ms ease;
+  opacity: clamp(0, var(--foil-opacity, 0.2), 0.82);
+  filter:
+    hue-rotate(var(--foil-hue, 0deg))
+    saturate(1.5)
+    contrast(1.22);
+  transform: translateZ(0);
+  will-change: opacity, background-position, filter;
 }
 
-[data-foil="gold"] .foilField {
-  background:
-    repeating-linear-gradient(135deg, transparent 0 8%, rgb(255 253 206 / 0.2) 8.6%, transparent 9.5% 15%),
-    radial-gradient(circle at var(--glare-x) var(--glare-y), #fff9c6, #efbe39 20%, #9a5912 46%, transparent 69%);
+.foilEtching {
+  z-index: 3;
   mix-blend-mode: screen;
-  opacity: 0.36;
-}
-
-[data-foil="ice"] .foilField {
-  background:
-    linear-gradient(30deg, transparent 38%, rgb(255 255 255 / 0.35) 39% 41%, transparent 42%),
-    linear-gradient(150deg, transparent 38%, rgb(124 236 255 / 0.28) 39% 41%, transparent 42%),
-    conic-gradient(from var(--glare-angle), #e8fcff, #91d8ff, #e9bdff, #fff, #e8fcff);
-  background-size: 2.4rem 2.4rem, 2.4rem 2.4rem, 180% 180%;
-  background-position: 0 0, 0 0, var(--glare-x) var(--glare-y);
-  opacity: 0.3;
-}
-
-[data-foil="wave"] .foilField {
-  background:
-    repeating-radial-gradient(ellipse at var(--glare-x) var(--glare-y), transparent 0 7%, rgb(255 255 255 / 0.18) 7.5% 8%, transparent 8.8% 13%),
-    conic-gradient(from var(--glare-angle), #48a9ff, #8effe3, #fff585, #ff7ac6, #48a9ff);
-  mix-blend-mode: color-dodge;
-  opacity: 0.29;
-}
-
-[data-foil="chrome"] .foilField,
-[data-foil="prizm"] .foilField {
-  opacity: 0.3;
-}
-
-[data-foil="paper"] .foilField {
-  opacity: 0.06;
+  opacity: clamp(0, var(--foil-opacity, 0.2), 0.52);
+  filter: hue-rotate(var(--foil-hue, 0deg));
+  will-change: opacity, background-position, filter;
 }
 
 .foilGlare {
-  z-index: 9;
+  z-index: 4;
   background:
-    linear-gradient(var(--glare-angle), transparent 24%, rgb(255 255 255 / 0.06) 34%, rgb(255 255 255 / 0.72) 47%, rgb(164 241 255 / 0.3) 51%, transparent 67%),
-    radial-gradient(circle at var(--glare-x) var(--glare-y), rgb(255 255 255 / 0.52), transparent 27%);
-  background-size: 220% 220%, 100% 100%;
-  background-position: var(--glare-x) var(--glare-y), center;
-  mix-blend-mode: screen;
-  opacity: var(--glare-opacity);
-  transition: opacity 160ms ease;
+    radial-gradient(
+      ellipse 40% 30% at var(--glare-x, 52%) var(--glare-y, 45%),
+      rgb(255 255 255 / 92%) 0%,
+      rgb(255 255 255 / 48%) 9%,
+      rgb(210 225 255 / 16%) 29%,
+      transparent 62%
+    );
+  mix-blend-mode: color-dodge;
+  opacity: clamp(0, var(--glare-opacity, 0.18), 0.92);
+  transform: rotate(var(--glare-angle, 120deg)) scale(1.42);
+  transform-origin: var(--glare-x, 50%) var(--glare-y, 50%);
+  will-change: opacity, transform, background;
 }
 
 .clearCoat {
-  z-index: 10;
-  border-radius: inherit;
-  background:
-    linear-gradient(110deg, rgb(255 255 255 / 0.22), transparent 15% 82%, rgb(255 255 255 / 0.11)),
-    radial-gradient(ellipse at 15% 7%, rgb(255 255 255 / 0.28), transparent 20%);
-  box-shadow:
-    inset 0.22rem 0.16rem 0.45rem rgb(255 255 255 / 0.16),
-    inset -0.24rem -0.18rem 0.45rem rgb(0 0 0 / 0.32);
-  opacity: 0.7;
-}
-
-/* Card back --------------------------------------------------------------- */
-
-.cardBackArtwork {
-  display: grid;
-  grid-template-rows: 11% 23% 23% 23% 1fr;
-  padding: 5.2%;
-  background:
-    linear-gradient(145deg, color-mix(in srgb, var(--card-primary) 88%, #050606), #0a0b0b 72%);
-  box-shadow:
-    inset 0 0 0 0.12rem rgb(5 6 6 / 0.8),
-    inset 0 0 0 0.22rem color-mix(in srgb, var(--card-secondary) 42%, transparent),
-    inset 0 0 0 0.34rem rgb(255 255 255 / 0.12);
-}
-
-.cardBackArtwork::after {
-  position: absolute;
-  z-index: 6;
-  inset: 2.5%;
-  border: 1px solid color-mix(in srgb, var(--card-secondary) 58%, transparent);
-  border-radius: 2.5%;
-  content: "";
-  pointer-events: none;
-}
-
-.backSunburst {
-  position: absolute;
-  z-index: 0;
-  inset: -28%;
-  background: repeating-conic-gradient(from 19deg, rgb(255 255 255 / 0.06) 0 4deg, transparent 4deg 12deg);
-  opacity: 0.62;
-  transform: rotate(5deg);
-}
-
-.backHeader,
-.backIdentity,
-.backPortrait,
-.backStats,
-.backCopy,
-.backLegal {
-  position: relative;
-  z-index: 2;
-}
-
-.backHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  border-bottom: 1px solid color-mix(in srgb, var(--card-secondary) 46%, transparent);
-  color: rgb(255 255 255 / 0.66);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 2.4cqi;
-  letter-spacing: 0.08em;
-}
-
-.backBrandLogo {
-  position: relative;
-  width: 21%;
-  height: 56%;
-  filter: brightness(0) invert(1);
-}
-
-.backBrandLogo img {
-  object-fit: contain;
-}
-
-.backIdentity {
-  align-self: center;
-  padding: 0 3%;
-}
-
-.backIdentity p,
-.backIdentity h3,
-.backIdentity span {
-  margin: 0;
-}
-
-.backIdentity p {
-  color: var(--card-secondary);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 3cqi;
-  letter-spacing: 0.22em;
-}
-
-.backIdentity h3 {
-  max-width: 100%;
+  z-index: 5;
   overflow: hidden;
-  color: #fff;
-  font-size: 11.5cqi;
-  font-style: italic;
-  letter-spacing: -0.09em;
-  line-height: 0.96;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background:
+    radial-gradient(
+      ellipse 62% 46% at var(--glare-x, 52%) var(--glare-y, 45%),
+      rgb(255 255 255 / 65%) 0%,
+      rgb(255 255 255 / 15%) 18%,
+      transparent 56%
+    ),
+    linear-gradient(
+      var(--glare-angle, 120deg),
+      transparent 12%,
+      rgb(255 255 255 / 10%) 45%,
+      rgb(255 255 255 / 30%) 50%,
+      rgb(255 255 255 / 8%) 56%,
+      transparent 86%
+    );
+  mix-blend-mode: screen;
+  opacity: clamp(0.02, var(--coat-opacity, 0.16), 0.72);
+  will-change: opacity, background;
 }
 
-.backIdentity span {
-  display: block;
-  margin-top: 1.5%;
-  color: rgb(255 255 255 / 0.55);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 2.25cqi;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.backPortrait {
-  overflow: hidden;
-  margin: 0 3%;
-  border: 1px solid color-mix(in srgb, var(--card-secondary) 52%, transparent);
-  clip-path: polygon(0 0, 89% 0, 100% 25%, 100% 100%, 11% 100%, 0 75%);
-}
-
-.backPortrait .cardImage {
-  filter: grayscale(1) contrast(1.15) brightness(0.8);
-  mix-blend-mode: luminosity;
-  opacity: 0.62;
-}
-
-.backPortrait::after {
+.clearCoat::after {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--card-primary) 70%, transparent), transparent, color-mix(in srgb, var(--card-accent) 36%, transparent));
+  border: 1px solid rgb(255 255 255 / 82%);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 7px rgb(255 255 255 / 32%),
+    inset 0 0 28px rgb(255 255 255 / 8%);
   content: "";
-  mix-blend-mode: color;
+  opacity: clamp(0, var(--fresnel-opacity, 0.12), 0.8);
 }
 
-.backStats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  align-items: center;
-  margin: 0 3%;
-  border-bottom: 1px solid rgb(255 255 255 / 0.14);
+/* Topps Chrome: a wide spectral refraction with fine radial chrome etching. */
+.cardArtwork[data-foil="topps-refractor"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      circle at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 92%) 0 2%,
+      rgb(95 225 255 / 65%) 8%,
+      rgb(102 92 255 / 58%) 18%,
+      rgb(255 75 182 / 56%) 28%,
+      rgb(255 220 91 / 46%) 39%,
+      rgb(84 255 191 / 30%) 51%,
+      transparent 69%
+    ),
+    conic-gradient(
+      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
+      transparent 0deg,
+      rgb(80 226 255 / 42%) 34deg,
+      rgb(98 83 255 / 54%) 70deg,
+      rgb(255 61 190 / 47%) 112deg,
+      rgb(255 224 78 / 46%) 160deg,
+      rgb(84 255 180 / 38%) 211deg,
+      transparent 286deg,
+      rgb(255 255 255 / 26%) 360deg
+    ),
+    linear-gradient(135deg, rgb(255 255 255 / 10%), transparent 48%, rgb(255 255 255 / 8%));
 }
 
-.backStats div {
-  min-width: 0;
-  padding: 0 5%;
-  border-right: 1px solid rgb(255 255 255 / 0.12);
+.cardArtwork[data-foil="topps-refractor"] .foilEtching {
+  background:
+    repeating-conic-gradient(
+      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 15%) 0deg 0.28deg,
+      transparent 0.32deg 4.6deg
+    ),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + 16deg),
+      transparent 0 7px,
+      rgb(130 220 255 / 10%) 8px,
+      transparent 9px 17px
+    );
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
 }
 
-.backStats div:last-child {
-  border-right: 0;
+/* Panini Silver Prizm: cooler chrome, hard specular travel and narrow rainbows. */
+.cardArtwork[data-foil="prizm-silver"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      ellipse 54% 42% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 95%) 0%,
+      rgb(180 224 255 / 54%) 13%,
+      transparent 42%
+    ),
+    conic-gradient(
+      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 85 142 / 38%),
+      rgb(255 226 83 / 30%) 15%,
+      rgb(84 255 200 / 37%) 30%,
+      rgb(84 185 255 / 46%) 48%,
+      rgb(154 94 255 / 43%) 66%,
+      rgb(255 80 177 / 35%) 83%,
+      rgb(255 255 255 / 22%)
+    ),
+    repeating-linear-gradient(
+      118deg,
+      rgb(255 255 255 / 11%) 0 1px,
+      transparent 1px 5px
+    );
+  mix-blend-mode: screen;
+  filter:
+    hue-rotate(var(--foil-hue, 0deg))
+    saturate(1.15)
+    contrast(1.35);
 }
 
-.backStats dt {
-  color: var(--card-secondary);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 1.9cqi;
+.cardArtwork[data-foil="prizm-silver"] .foilEtching {
+  background:
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) - 34deg),
+      transparent 0 11px,
+      rgb(255 255 255 / 15%) 12px,
+      transparent 13px 24px
+    ),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + 52deg),
+      transparent 0 19px,
+      rgb(110 205 255 / 10%) 20px,
+      transparent 21px 39px
+    );
+  background-position:
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    calc(100% - var(--foil-x, 50%)) calc(100% - var(--foil-y, 50%));
 }
 
-.backStats dd {
+/* Topps Mercury blue: blue anodized chrome with cyan/magenta interference. */
+.cardArtwork[data-foil="mercury-blue"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      circle at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 90%) 0%,
+      rgb(89 235 255 / 72%) 9%,
+      rgb(29 105 255 / 56%) 24%,
+      rgb(169 61 255 / 44%) 38%,
+      transparent 65%
+    ),
+    conic-gradient(
+      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(18 91 255 / 30%),
+      rgb(56 236 255 / 55%) 19%,
+      rgb(80 105 255 / 42%) 37%,
+      rgb(220 63 255 / 43%) 54%,
+      rgb(68 216 255 / 48%) 72%,
+      rgb(17 77 255 / 27%)
+    ),
+    linear-gradient(145deg, rgb(16 104 255 / 18%), rgb(108 225 255 / 9%) 52%, rgb(93 22 220 / 17%));
+  mix-blend-mode: color-dodge;
+  filter:
+    hue-rotate(var(--foil-hue, 0deg))
+    saturate(1.42)
+    contrast(1.24);
+}
+
+.cardArtwork[data-foil="mercury-blue"] .foilEtching {
+  background:
+    repeating-radial-gradient(
+      ellipse at var(--foil-x, 50%) var(--foil-y, 50%),
+      transparent 0 7px,
+      rgb(126 226 255 / 14%) 8px,
+      transparent 9px 18px
+    ),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + 24deg),
+      transparent 0 13px,
+      rgb(255 255 255 / 12%) 14px,
+      transparent 15px 29px
+    );
+}
+
+/* Topps Mercury Gold: warm plated foil with fractured gold facets. */
+.cardArtwork[data-foil="topps-gold"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      ellipse 52% 42% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 94%) 0%,
+      rgb(255 237 154 / 72%) 10%,
+      rgb(255 181 39 / 54%) 25%,
+      rgb(236 104 19 / 35%) 41%,
+      transparent 66%
+    ),
+    conic-gradient(
+      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 223 97 / 38%),
+      rgb(255 255 224 / 54%) 12%,
+      rgb(237 151 28 / 44%) 27%,
+      rgb(255 228 126 / 51%) 43%,
+      rgb(225 105 18 / 35%) 59%,
+      rgb(255 246 187 / 55%) 76%,
+      rgb(255 189 42 / 40%)
+    ),
+    linear-gradient(135deg, rgb(255 221 112 / 25%), rgb(135 65 8 / 12%) 52%, rgb(255 243 194 / 22%));
+  mix-blend-mode: color-dodge;
+  filter:
+    hue-rotate(var(--foil-hue, 0deg))
+    saturate(1.18)
+    contrast(1.3);
+}
+
+.cardArtwork[data-foil="topps-gold"] .foilEtching {
+  background:
+    repeating-conic-gradient(
+      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 247 205 / 18%) 0deg 0.38deg,
+      transparent 0.45deg 5.8deg
+    ),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + 31deg),
+      transparent 0 9px,
+      rgb(255 211 92 / 16%) 10px,
+      transparent 11px 23px
+    );
+  background-position:
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    var(--foil-x, 50%) var(--foil-y, 50%);
+  mix-blend-mode: color-dodge;
+}
+
+/* Panini autograph stock uses the Silver Prizm recipe at a lower density so
+   the printed player and ink remain legible. The ink itself is redrawn above. */
+.cardArtwork[data-foil="prizm-auto"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      ellipse 58% 45% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 93%) 0%,
+      rgb(151 219 255 / 48%) 11%,
+      transparent 39%
+    ),
+    conic-gradient(
+      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 91 161 / 40%),
+      rgb(255 230 86 / 35%) 16%,
+      rgb(81 255 191 / 38%) 31%,
+      rgb(71 188 255 / 50%) 48%,
+      rgb(135 87 255 / 45%) 65%,
+      rgb(255 89 190 / 36%) 83%,
+      rgb(255 255 255 / 25%)
+    ),
+    repeating-linear-gradient(126deg, rgb(255 255 255 / 10%) 0 1px, transparent 1px 7px);
+  mix-blend-mode: screen;
+}
+
+.cardArtwork[data-foil="prizm-auto"] .foilEtching {
+  background:
+    repeating-conic-gradient(
+      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 12%) 0 0.35deg,
+      transparent 0.45deg 6.4deg
+    );
+  opacity: clamp(0, var(--foil-opacity, 0.2), 0.4);
+}
+
+.autographProtection {
+  z-index: 7;
   overflow: hidden;
-  margin: 1.1cqi 0 0;
-  color: white;
-  font-size: 3cqi;
-  font-weight: 650;
-  letter-spacing: -0.04em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  filter: contrast(1.025) saturate(0.98);
+  transform: translateZ(0);
 }
 
-.backCopy {
-  align-self: center;
-  padding: 0 3%;
-  font-family: var(--font-mono), ui-monospace, monospace;
+.autographProtection img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-.backCopy p {
-  max-width: 83%;
-  margin: 0;
-  color: rgb(255 255 255 / 0.38);
-  font-size: 1.7cqi;
-  letter-spacing: 0.09em;
-  line-height: 1.5;
+.cardArtwork[data-autograph="mercury"] .autographProtection {
+  clip-path: polygon(5% 61%, 95% 61%, 95% 88.5%, 5% 88.5%);
 }
 
-.backCopy span {
-  display: block;
-  margin-top: 2%;
-  color: var(--card-secondary);
-  font-size: 3.2cqi;
-  letter-spacing: 0.12em;
+.cardArtwork[data-autograph="prizm-bottom"] .autographProtection {
+  clip-path: polygon(5% 65%, 95% 65%, 95% 92%, 5% 92%);
 }
 
-.backLegal {
-  align-self: end;
-  display: flex;
-  justify-content: space-between;
-  color: rgb(255 255 255 / 0.28);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 1.35cqi;
-  letter-spacing: 0.06em;
+.cardArtwork[data-autograph="chrome-bottom"] .autographProtection {
+  clip-path: polygon(4% 62%, 96% 62%, 96% 93%, 4% 93%);
 }
 
-/* Inspector --------------------------------------------------------------- */
+.cardBackArtwork {
+  border-color: rgb(255 255 255 / 10%);
+}
+
+.backSatin {
+  z-index: 2;
+  background:
+    linear-gradient(
+      var(--glare-angle, 120deg),
+      transparent 23%,
+      rgb(255 255 255 / 16%) 48%,
+      rgb(255 255 255 / 6%) 56%,
+      transparent 78%
+    );
+  mix-blend-mode: soft-light;
+  opacity: clamp(0.02, var(--coat-opacity, 0.14), 0.3);
+}
 
 .inspector {
   position: fixed;
+  inset: 0;
   z-index: 100;
-  inset: 0;
   display: grid;
-  grid-template-rows: 5.4rem 1fr;
-  min-height: 100svh;
+  grid-template-rows: 72px minmax(0, 1fr);
   overflow: hidden;
-  background: #080909;
-  animation: inspectorEnter 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.inspectorBackdrop {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background:
-    radial-gradient(circle at 35% 48%, color-mix(in srgb, var(--active-color) 32%, transparent), transparent 29rem),
-    radial-gradient(circle at 35% 48%, color-mix(in srgb, var(--active-accent) 10%, transparent), transparent 45rem),
-    linear-gradient(120deg, #0c0d0d, #050606 70%);
-}
-
-.inspectorBackdrop::before {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgb(255 255 255 / 0.018) 1px, transparent 1px),
-    linear-gradient(rgb(255 255 255 / 0.018) 1px, transparent 1px);
-  background-size: 5rem 5rem;
-  content: "";
-  mask-image: radial-gradient(circle at 35% 45%, black, transparent 72%);
+  color: #f4f4f4;
+  background: #000;
 }
 
 .inspectorHeader {
   position: relative;
-  z-index: 4;
+  z-index: 10;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 0 clamp(1.25rem, 3.2vw, 3.5rem);
-  border-bottom: 1px solid rgb(255 255 255 / 0.12);
-  font-family: var(--font-mono), ui-monospace, monospace;
+  padding: 0 clamp(20px, 3.5vw, 56px);
+  border-bottom: 1px solid #1c1c1c;
+  background: #000;
 }
 
 .inspectorHeader > p {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
   margin: 0;
-  color: rgb(244 242 235 / 0.42);
-  font-size: 0.51rem;
-  letter-spacing: 0.13em;
-}
-
-.inspectorHeader > p svg {
-  width: 0.78rem;
-  color: var(--active-accent);
-}
-
-.backButton,
-.closeButton {
-  border: 0;
-  background: transparent;
-  color: rgb(244 242 235 / 0.68);
-  cursor: pointer;
-}
-
-.backButton {
-  display: inline-flex;
-  justify-self: start;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.8rem 0;
-  font-size: 0.53rem;
-  letter-spacing: 0.12em;
-}
-
-.backButton svg {
-  width: 0.9rem;
-  transition: transform 240ms ease;
-}
-
-.backButton:hover svg {
-  transform: translateX(-0.2rem);
+  color: #686868;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
 }
 
 .closeButton {
-  display: grid;
   justify-self: end;
-  width: 2.2rem;
-  aspect-ratio: 1;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.14);
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #242424;
   border-radius: 50%;
+  place-items: center;
+  color: #8d8d8d;
+  background: #030303;
+  cursor: pointer;
   transition:
-    color 220ms ease,
-    border-color 220ms ease,
-    transform 260ms ease;
-}
-
-.closeButton svg {
-  width: 0.9rem;
+    border-color 160ms ease,
+    color 160ms ease;
 }
 
 .closeButton:hover {
-  border-color: rgb(255 255 255 / 0.48);
-  color: white;
-  transform: rotate(90deg);
+  border-color: #555;
+  color: #fff;
+}
+
+.closeButton svg {
+  width: 14px;
+  height: 14px;
 }
 
 .inspectorLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.75fr);
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 28vw, 440px);
   min-height: 0;
 }
 
 .inspectCardStage {
-  --shadow-x: -1px;
+  --shadow-x: 0px;
   --shadow-y: 24px;
+  --shadow-scale: 1;
+  --shadow-opacity: 0.62;
   position: relative;
   display: grid;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+  perspective: 1050px;
+  perspective-origin: 50% 49%;
   place-items: center;
-  padding: clamp(2rem, 5vh, 4.5rem);
-  perspective: 90rem;
-  perspective-origin: 50% 45%;
-  animation: stageEnter 760ms 80ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.inspectCardStage::before {
-  position: absolute;
-  width: min(38rem, 72%);
-  aspect-ratio: 1;
-  border: 1px solid rgb(255 255 255 / 0.07);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 5rem rgb(255 255 255 / 0.012),
-    0 0 0 10rem rgb(255 255 255 / 0.008);
-  content: "";
+  background: #000;
+  isolation: isolate;
 }
 
 .interactiveCard {
-  --card-transform: rotateX(-2deg) rotateY(5deg);
+  --card-depth: 2.4px;
   position: relative;
-  z-index: 3;
-  width: clamp(18rem, min(31vw, 58vh), 27rem);
+  z-index: 2;
+  width: clamp(286px, min(31vw, 57vh), 430px);
   aspect-ratio: 5 / 7;
-  border-radius: 4.2%;
-  cursor: grab;
   outline: none;
   transform: var(--card-transform);
   transform-style: preserve-3d;
+  cursor: grab;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   will-change: transform;
-}
-
-.interactiveCard:focus-visible::after {
-  position: absolute;
-  inset: -0.7rem;
-  border: 1px solid var(--active-accent);
-  border-radius: 6%;
-  content: "";
-  transform: translateZ(-2px);
 }
 
 .interactiveCard[data-dragging="true"] {
@@ -1326,321 +894,303 @@
 .cardFace {
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  box-shadow:
-    var(--shadow-x) var(--shadow-y) 3.5rem rgb(0 0 0 / 0.58),
-    0 0 3rem color-mix(in srgb, var(--active-color) 16%, transparent);
+  border-radius: 3.1%;
   backface-visibility: hidden;
   transform-style: preserve-3d;
+  -webkit-backface-visibility: hidden;
 }
 
 .cardFaceFront {
-  transform: translateZ(0.1rem);
+  transform: translateZ(calc(var(--card-depth) / 2));
 }
 
 .cardFaceBack {
-  transform: rotateY(180deg) translateZ(0.1rem);
+  transform: rotateY(180deg) translateZ(calc(var(--card-depth) / 2));
+}
+
+.cardFace .cardArtwork {
+  border: 0;
+  box-shadow: none;
 }
 
 .cardEdge {
   position: absolute;
-  z-index: -1;
+  z-index: 1;
   display: block;
-  background: linear-gradient(90deg, #6e6d69, #fff, #575753);
+  background:
+    linear-gradient(90deg, #676767, #f0f0f0 46%, #777 72%, #292929);
+  backface-visibility: hidden;
   pointer-events: none;
 }
 
 .cardEdgeLeft,
 .cardEdgeRight {
-  top: 1.2%;
-  bottom: 1.2%;
-  width: 0.2rem;
+  top: 1.4%;
+  width: var(--card-depth);
+  height: 97.2%;
 }
 
 .cardEdgeLeft {
   left: 0;
-  transform: rotateY(90deg) translateZ(0.1rem);
+  transform: translateX(-50%) rotateY(90deg);
 }
 
 .cardEdgeRight {
   right: 0;
-  transform: rotateY(90deg) translateZ(-0.1rem);
+  transform: translateX(50%) rotateY(90deg);
 }
 
 .cardEdgeTop,
 .cardEdgeBottom {
-  right: 1.2%;
-  left: 1.2%;
-  height: 0.2rem;
+  left: 1.8%;
+  width: 96.4%;
+  height: var(--card-depth);
 }
 
 .cardEdgeTop {
   top: 0;
-  transform: rotateX(90deg) translateZ(0.1rem);
+  transform: translateY(-50%) rotateX(90deg);
 }
 
 .cardEdgeBottom {
   bottom: 0;
-  transform: rotateX(90deg) translateZ(-0.1rem);
+  transform: translateY(50%) rotateX(90deg);
 }
 
 .cardGroundShadow {
   position: absolute;
-  z-index: 1;
-  bottom: 7%;
+  top: 50%;
   left: 50%;
-  width: clamp(16rem, 34vw, 31rem);
-  height: 3rem;
+  z-index: 0;
+  width: clamp(250px, min(29vw, 52vh), 400px);
+  height: 54px;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgb(0 0 0 / 0.7), transparent 70%);
-  filter: blur(10px);
-  opacity: 0.75;
-  transform: translate3d(calc(-50% + var(--shadow-x)), 0, 0);
+  background: rgb(0 0 0 / 96%);
+  box-shadow: 0 0 32px rgb(255 255 255 / 6%);
+  opacity: var(--shadow-opacity, 0.62);
+  filter: blur(16px);
+  transform:
+    translate(calc(-50% + var(--shadow-x, 0px)), calc(240px + var(--shadow-y, 24px)))
+    scale(var(--shadow-scale, 1));
+  transform-origin: center;
+  will-change: opacity, transform;
 }
 
 .cardDetails {
   position: relative;
+  z-index: 5;
   display: flex;
   min-width: 0;
+  min-height: 0;
+  padding: clamp(34px, 5vh, 70px) clamp(28px, 3.2vw, 52px);
+  overflow: auto;
+  border-left: 1px solid #202020;
+  background: #030303;
   flex-direction: column;
-  justify-content: center;
-  padding: clamp(2rem, 4.2vw, 5rem) clamp(2rem, 4vw, 4.6rem);
-  border-left: 1px solid rgb(255 255 255 / 0.11);
-  background: linear-gradient(90deg, rgb(255 255 255 / 0.012), transparent);
-  animation: detailsEnter 700ms 170ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .detailIndex {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgb(255 255 255 / 0.15);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.57rem;
-  letter-spacing: 0.12em;
-}
-
-.detailIndex span {
-  color: var(--active-accent);
+  margin-bottom: clamp(34px, 7vh, 74px);
+  color: #5e5e5e;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
 }
 
 .detailIndex strong {
-  color: rgb(244 242 235 / 0.52);
-  font-weight: 500;
+  color: #bdbdbd;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .detailEyebrow {
-  margin: clamp(1.5rem, 3.6vh, 2.8rem) 0 0.85rem;
-  color: rgb(244 242 235 / 0.45);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.55rem;
-  letter-spacing: 0.12em;
+  margin: 0 0 13px;
+  color: #777;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 .cardDetails h2 {
   margin: 0;
-  color: #f7f4eb;
-  font-size: clamp(2.6rem, 4.5vw, 5.2rem);
-  font-style: italic;
-  font-weight: 740;
-  letter-spacing: -0.08em;
-  line-height: 0.78;
+  color: #f5f5f5;
+  font-size: clamp(38px, 4vw, 66px);
+  font-weight: 700;
+  letter-spacing: -0.065em;
+  line-height: 0.82;
   text-transform: uppercase;
 }
 
 .cardDetails h2 span {
   display: block;
-  margin-bottom: 0.25em;
-  color: var(--active-secondary);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.2em;
-  font-style: normal;
-  font-weight: 500;
-  letter-spacing: 0.23em;
+  margin-bottom: 7px;
+  color: #868686;
+  font-size: 0.38em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   line-height: 1;
 }
 
 .detailTeam {
-  margin: 1.25rem 0 0;
-  color: rgb(244 242 235 / 0.56);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.56rem;
-  letter-spacing: 0.08em;
+  margin: 19px 0 0;
+  color: #717171;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
   text-transform: uppercase;
 }
 
 .detailList {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: clamp(1.5rem, 4vh, 3.2rem) 0 0;
-  border-top: 1px solid rgb(255 255 255 / 0.12);
+  gap: 0;
+  margin: clamp(34px, 6vh, 66px) 0 0;
+  border-top: 1px solid #202020;
 }
 
 .detailList div {
-  min-width: 0;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid rgb(255 255 255 / 0.1);
-}
-
-.detailList div:nth-child(odd) {
-  padding-right: 1rem;
-  border-right: 1px solid rgb(255 255 255 / 0.1);
-}
-
-.detailList div:nth-child(even) {
-  padding-left: 1rem;
+  display: grid;
+  grid-template-columns: minmax(96px, 0.6fr) 1fr;
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid #1d1d1d;
 }
 
 .detailList dt,
 .detailList dd {
   margin: 0;
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
 
 .detailList dt {
-  color: rgb(244 242 235 / 0.3);
-  font-size: 0.45rem;
-  letter-spacing: 0.12em;
+  color: #555;
 }
 
 .detailList dd {
-  overflow: hidden;
-  margin-top: 0.32rem;
-  color: rgb(244 242 235 / 0.78);
-  font-size: 0.56rem;
-  letter-spacing: 0.04em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #aaa;
+  text-align: right;
 }
 
 .inspectActions {
   display: grid;
-  grid-template-columns: 1.55fr 0.8fr;
-  margin-top: clamp(1.4rem, 3.6vh, 2.8rem);
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 34px;
 }
 
 .inspectActions button {
-  min-height: 3.2rem;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  background: transparent;
-  color: rgb(244 242 235 / 0.58);
+  min-height: 43px;
+  padding: 0 15px;
+  border: 1px solid #292929;
+  color: #888;
+  background: #050505;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
   cursor: pointer;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.5rem;
-  letter-spacing: 0.11em;
   transition:
-    border-color 220ms ease,
-    background 220ms ease,
-    color 220ms ease;
-}
-
-.inspectActions button + button {
-  border-left: 0;
+    border-color 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease;
 }
 
 .inspectActions button:hover {
-  border-color: rgb(255 255 255 / 0.45);
-  background: rgb(255 255 255 / 0.06);
-  color: white;
+  border-color: #555;
+  color: #fff;
 }
 
 .inspectActions .flipButton {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0 0.9rem;
-  border-color: color-mix(in srgb, var(--active-accent) 45%, transparent);
-  color: #f7f4ed;
+  justify-content: center;
+  gap: 9px;
+  color: #080808;
+  background: #e8e8e8;
+}
+
+.inspectActions .flipButton:hover {
+  color: #000;
+  background: #fff;
 }
 
 .flipButton svg {
-  width: 0.86rem;
-  color: var(--active-accent);
+  width: 14px;
+  height: 14px;
 }
 
 .flipButton span {
   display: grid;
-  width: 1.35rem;
-  aspect-ratio: 1;
+  width: 20px;
+  height: 20px;
   margin-left: auto;
+  border: 1px solid rgb(0 0 0 / 18%);
   place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  border-radius: 0.2rem;
-  color: rgb(244 242 235 / 0.42);
-  font-size: 0.45rem;
+  font-size: 8px;
 }
 
 .inspectHint {
   display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin: 0.85rem 0 0;
-  color: rgb(244 242 235 / 0.25);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.43rem;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 0;
+  color: #4d4d4d;
+  font-size: 8px;
+  font-weight: 650;
   letter-spacing: 0.09em;
+  line-height: 1.6;
 }
 
 .inspectHint svg {
-  width: 0.75rem;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
 }
 
 .mobileInfoButton {
   display: none;
 }
 
-/* Motion ------------------------------------------------------------------ */
-
-@keyframes grain {
-  0% { transform: translate3d(-3%, -2%, 0); }
-  25% { transform: translate3d(2%, 3%, 0); }
-  50% { transform: translate3d(3%, -1%, 0); }
-  75% { transform: translate3d(-2%, 2%, 0); }
-  100% { transform: translate3d(1%, -3%, 0); }
-}
-
-@keyframes headerEnter {
-  from { opacity: 0; transform: translateY(-0.75rem); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes copyEnter {
-  from { opacity: 0; transform: translateY(1rem); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes cardArrive {
-  from { opacity: 0; transform: translate3d(var(--card-x), 3rem, -8rem) rotate(var(--card-rotate)) scale(calc(var(--card-scale) * 0.88)); }
-}
-
-@keyframes statusPulse {
-  0%, 100% { opacity: 0.45; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes inspectorEnter {
-  from { opacity: 0; clip-path: inset(5% 5% 5% 5%); }
-  to { opacity: 1; clip-path: inset(0); }
-}
-
-@keyframes stageEnter {
-  from { opacity: 0; transform: translateY(2rem) scale(0.93); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes detailsEnter {
-  from { opacity: 0; transform: translateX(1.5rem); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* Responsive -------------------------------------------------------------- */
-
-@media (max-width: 1024px) {
-  .header {
-    grid-template-columns: 1fr auto;
+@media (max-width: 980px) {
+  .railCard {
+    width: clamp(174px, 25vw, 226px);
   }
 
-  .headerMeta {
+  .inspectorLayout {
+    grid-template-columns: minmax(0, 1fr) 310px;
+  }
+
+  .interactiveCard {
+    width: clamp(270px, min(36vw, 54vh), 360px);
+  }
+
+  .cardDetails {
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    overflow-y: auto;
+  }
+
+  .header {
+    grid-template-columns: auto 1fr;
+    min-height: 62px;
+    padding: 0 18px;
+  }
+
+  .archiveLabel {
     display: none;
   }
 
@@ -1648,248 +1198,131 @@
     justify-self: end;
   }
 
-  .collectionIntro h1 {
-    font-size: clamp(2.3rem, 7vw, 4.5rem);
-  }
-
-  .railCard {
-    width: clamp(11.5rem, 24vw, 14.5rem);
-  }
-
-  .inspectorLayout {
-    grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
-  }
-
-  .interactiveCard {
-    width: clamp(17rem, min(36vw, 56vh), 23rem);
-  }
-
-  .cardDetails {
-    padding-right: 2rem;
-    padding-left: 2rem;
-  }
-
-  .cardDetails h2 {
-    font-size: clamp(2.5rem, 5vw, 4.2rem);
-  }
-}
-
-@media (max-width: 760px) {
-  .page {
-    min-height: 100svh;
-    overflow-y: auto;
-  }
-
-  .header {
-    position: relative;
-    grid-template-columns: 1fr auto;
-    min-height: 4.4rem;
-    padding: 0 1rem;
-  }
-
-  .brand > span:last-child,
-  .headerMeta {
-    display: none;
-  }
-
-  .brandMark {
-    width: 2rem;
-  }
-
-  .sportSwitcher {
-    height: 4.4rem;
-  }
-
   .sportSwitcher button {
-    min-width: 5.6rem;
-    padding: 0 0.75rem;
-    font-size: 0.52rem;
-    text-align: center;
-  }
-
-  .sportSwitcher button::after {
-    right: 0.75rem;
-    left: 0.75rem;
-  }
-
-  .sportSwitcher button > span {
-    display: none;
+    min-width: 70px;
+    padding: 7px 10px;
+    font-size: 8px;
   }
 
   .collection {
-    min-height: calc(100svh - 4.4rem);
-    grid-template-rows: auto minmax(22rem, 1fr) auto auto;
-    padding-top: 1.35rem;
-  }
-
-  .collectionIntro {
-    align-self: start;
-    padding: 0 1rem;
-  }
-
-  .collectionIntro p {
-    margin-bottom: 0.55rem;
-    font-size: 0.46rem;
-  }
-
-  .collectionIntro h1 {
-    display: block;
-    font-size: clamp(2.55rem, 13.8vw, 4.3rem);
-    line-height: 0.82;
-  }
-
-  .collectionIntro h1 span {
-    display: block;
-    margin-left: 18%;
-  }
-
-  .railViewport {
-    min-height: min(29rem, 55svh);
-    margin-top: -0.75rem;
-  }
-
-  .railViewport::before,
-  .railViewport::after {
-    width: 7vw;
+    grid-template-rows: minmax(360px, 1fr) auto auto;
+    min-height: calc(100svh - 108px);
+    padding-bottom: 46px;
   }
 
   .railCard {
-    width: clamp(12rem, 57vw, 15rem);
-  }
-
-  .rail::before {
-    bottom: 1%;
+    top: 47%;
+    width: clamp(172px, 52vw, 224px);
   }
 
   .activeCaption {
-    grid-template-columns: 3.25rem 1fr 3.2rem;
-    width: calc(100% - 2rem);
-    min-height: 3.8rem;
-    margin-top: -0.35rem;
-  }
-
-  .activeCaption > div {
-    padding-left: 0.8rem;
-  }
-
-  .activeCaption strong {
-    font-size: 0.78rem;
-  }
-
-  .activeCaption p {
-    max-width: 53vw;
-    overflow: hidden;
-    font-size: 0.42rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    width: calc(100% - 36px);
+    padding: 13px 0 14px;
   }
 
   .activeCaption > button {
-    justify-content: flex-end;
-    padding-left: 0;
-    font-size: 0;
+    display: none;
   }
 
-  .activeCaption > button svg {
-    width: 1rem;
+  .activeCaption strong {
+    font-size: 20px;
+  }
+
+  .activeCaption p {
+    font-size: 8px;
   }
 
   .railControls {
-    padding: 0.75rem 0 2.8rem;
+    padding-bottom: 10px;
   }
 
   .footer {
-    right: 1rem;
-    bottom: 0.75rem;
-    left: 1rem;
-    justify-content: center;
+    height: 46px;
+    padding: 0 18px;
   }
 
-  .footer p:first-child {
+  .footer p:last-child {
     display: none;
   }
 
   .inspector {
-    grid-template-rows: 4.4rem 1fr;
-    overflow: auto;
+    grid-template-rows: 62px minmax(0, 1fr);
   }
 
   .inspectorHeader {
-    grid-template-columns: 1fr auto;
-    padding: 0 1rem;
-  }
-
-  .inspectorHeader > p,
-  .backButton {
-    font-size: 0.48rem;
+    padding: 0 18px;
   }
 
   .inspectorHeader > p {
-    display: none;
+    font-size: 8px;
   }
 
   .inspectorLayout {
-    position: relative;
     display: block;
-    min-height: calc(100svh - 4.4rem);
+    position: relative;
+    min-height: 0;
   }
 
   .inspectCardStage {
-    min-height: calc(100svh - 4.4rem);
-    padding: 2.4rem 1.5rem 5.4rem;
+    width: 100%;
+    height: 100%;
+    padding-bottom: 54px;
+    perspective: 920px;
   }
 
   .interactiveCard {
-    width: min(calc(100vw - 4.4rem), 21rem, 54vh);
+    width: min(67vw, 335px, 53vh);
   }
 
   .cardGroundShadow {
-    bottom: 9%;
-    width: min(19rem, 75vw);
+    width: min(61vw, 300px);
+    transform:
+      translate(calc(-50% + var(--shadow-x, 0px)), calc(190px + var(--shadow-y, 24px)))
+      scale(var(--shadow-scale, 1));
   }
 
   .cardDetails {
-    position: fixed;
-    z-index: 15;
+    position: absolute;
     right: 0;
     bottom: 0;
     left: 0;
-    max-height: min(75svh, 38rem);
-    overflow: auto;
-    padding: 1.4rem 1.25rem max(5.3rem, calc(env(safe-area-inset-bottom) + 4.3rem));
-    border-top: 1px solid rgb(255 255 255 / 0.15);
+    z-index: 20;
+    max-height: min(70vh, 600px);
+    padding: 24px 22px 84px;
+    border-top: 1px solid #2b2b2b;
     border-left: 0;
-    background: rgb(10 11 11 / 0.97);
-    box-shadow: 0 -1.5rem 4rem rgb(0 0 0 / 0.55);
+    background: #050505;
+    box-shadow: 0 -24px 50px rgb(0 0 0 / 78%);
     opacity: 0;
-    pointer-events: none;
-    transform: translateY(105%);
+    transform: translateY(calc(100% + 8px));
     transition:
-      opacity 260ms ease,
-      transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
-    animation: none;
+      opacity 220ms ease,
+      transform 320ms cubic-bezier(0.22, 0.78, 0.2, 1);
+    pointer-events: none;
   }
 
   .cardDetailsOpen {
     opacity: 1;
-    pointer-events: auto;
     transform: translateY(0);
+    pointer-events: auto;
   }
 
-  .detailEyebrow {
-    margin-top: 1.25rem;
+  .detailIndex {
+    margin-bottom: 24px;
   }
 
   .cardDetails h2 {
-    font-size: clamp(2.6rem, 15vw, 4.2rem);
+    font-size: clamp(38px, 12vw, 58px);
   }
 
   .detailList {
-    margin-top: 1.4rem;
+    margin-top: 28px;
   }
 
   .inspectActions {
-    margin-top: 1.3rem;
+    margin-top: 24px;
   }
 
   .inspectHint {
@@ -1898,128 +1331,96 @@
 
   .mobileInfoButton {
     position: fixed;
-    z-index: 20;
-    right: 1rem;
-    bottom: max(1rem, env(safe-area-inset-bottom));
+    right: 18px;
+    bottom: 18px;
+    z-index: 130;
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
-    min-height: 2.8rem;
-    padding: 0 1rem;
-    border: 1px solid rgb(255 255 255 / 0.22);
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid #363636;
     border-radius: 999px;
-    background: rgb(9 10 10 / 0.82);
-    box-shadow: 0 0.6rem 2rem rgb(0 0 0 / 0.38);
-    backdrop-filter: blur(14px);
-    color: rgb(244 242 235 / 0.8);
+    color: #d8d8d8;
+    background: #090909;
+    box-shadow: 0 8px 30px rgb(0 0 0 / 72%);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
     cursor: pointer;
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 0.48rem;
-    letter-spacing: 0.1em;
   }
 
   .mobileInfoButton svg {
-    width: 0.8rem;
+    width: 13px;
+    height: 13px;
   }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 430px) {
+  .backLink {
+    font-size: 0;
+  }
+
+  .backLink svg {
+    width: 18px;
+    height: 18px;
+  }
+
   .sportSwitcher button {
-    min-width: 4.85rem;
-  }
-
-  .collectionIntro h1 {
-    font-size: 2.5rem;
-  }
-
-  .railViewport {
-    min-height: 24.5rem;
-  }
-
-  .railCard {
-    width: 11.7rem;
-  }
-
-  .interactiveCard {
-    width: min(calc(100vw - 4rem), 17rem, 51vh);
-  }
-}
-
-@media (orientation: landscape) and (max-height: 650px) {
-  .header {
-    min-height: 4rem;
-  }
-
-  .sportSwitcher {
-    height: 4rem;
+    min-width: 62px;
+    letter-spacing: 0.11em;
   }
 
   .collection {
-    min-height: calc(100svh - 6.4rem);
-    grid-template-rows: 4.5rem minmax(14rem, 1fr) 3.5rem 2.25rem;
-    padding-top: 0.5rem;
-  }
-
-  .collectionIntro p {
-    display: none;
-  }
-
-  .collectionIntro h1 {
-    font-size: clamp(2rem, 7vh, 3.2rem);
-  }
-
-  .railViewport {
-    min-height: 13.5rem;
+    grid-template-rows: minmax(330px, 1fr) auto auto;
   }
 
   .railCard {
-    width: min(23vh, 9.2rem);
-  }
-
-  .activeCaption {
-    min-height: 3.3rem;
-  }
-
-  .railControls {
-    padding-top: 0.3rem;
+    width: min(54vw, 202px);
   }
 
   .footer {
+    justify-content: center;
+    font-size: 7px;
+  }
+
+  .inspectorHeader {
+    grid-template-columns: 1fr auto;
+  }
+
+  .inspectorHeader > p {
     display: none;
   }
 
-  .inspector {
-    grid-template-rows: 4rem 1fr;
-  }
-
-  .inspectCardStage {
-    min-height: calc(100svh - 4rem);
-    padding: 1rem;
-  }
-
   .interactiveCard {
-    width: min(42vh, 14.5rem);
+    width: min(76vw, 320px, 52vh);
+  }
+
+  .inspectActions {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .roomGrain::before,
-  .liveDot,
-  .header,
-  .collectionIntro p,
-  .collectionIntro h1,
+  .backLink,
+  .backButton,
+  .sportSwitcher button,
   .railCard,
-  .inspector,
-  .inspectCardStage,
+  .activeCaption > button,
+  .railControls button,
+  .closeButton,
+  .inspectActions button,
   .cardDetails {
-    animation: none;
+    transition-duration: 0.001ms !important;
   }
 
-  .railCard,
-  .sportSwitcher button,
-  .sportSwitcher button::after,
-  .cardDetails,
-  .interactiveCard {
-    transition: none;
+  .foilDiffraction,
+  .foilEtching,
+  .foilGlare,
+  .clearCoat,
+  .backSatin,
+  .interactiveCard,
+  .cardGroundShadow {
+    will-change: auto;
   }
 }

@@ -1,5 +1,54 @@
 # Card gallery media attribution
 
+## Authentic card scans used by the `/cards` experience
+
+The interactive collector view uses cropped and perspective-corrected reference scans of real Topps and Panini cards. The local WebP derivatives are resized to a consistent 5:7 presentation ratio; no card artwork, printed signature, certification copy, logo, or player likeness was redrawn. Card designs and photography remain the property of their respective rights holders. These scans are included for a private, non-commercial interaction study and do not imply endorsement, authentication, or ownership of the physical cards.
+
+Where a matching front and back scan of the same physical copy was not available, the two faces come from different examples of the same card and are identified below.
+
+### `authentic/final/lebron-topps-chrome-{front,back}.webp`
+
+- Card: 2003-04 Topps Chrome LeBron James #111 Refractor rookie card.
+- Front reference: [PSA grading community post](https://www.reddit.com/r/psagrading/comments/1tuagrk/lebron_james_2003_topps_chrome_rc_refractor_psa/).
+- Back reference: [eBay item 257346515936](https://www.ebay.com/itm/257346515936); [direct scan](https://i.ebayimg.com/images/g/l7IAAeSwDI1phMwp/s-l1600.jpg).
+- Note: front and back are examples of the same card design, not the same physical copy.
+
+### `authentic/final/curry-prizm-{front,back}.webp`
+
+- Card: 2020-21 Panini Prizm Stephen Curry #159 Silver Prizm.
+- Reference listing: [Beckett Marketplace item 99787165](https://marketplace.beckett.com/item/21/2020-21-panini-prizm-prizms-silver-159-stephen-curry_99787165).
+- Original scans: [front](https://img.beckett.com/images/items/16777215/marketplace/99787165/front.jpg), [back](https://img.beckett.com/images/items/16777215/marketplace/99787165/back.jpg).
+
+### `authentic/final/wemby-mercury-{front,back}.webp`
+
+- Card: 2023 Topps Mercury Victor Wembanyama Gold Refractor rookie autograph /50, #WA-10.
+- Front and back reference: [Fanatics Collect auction WA206, lot 2295](https://www.fanaticscollect.com/weekly/00833f4e-cd52-11f0-87ab-0a58a9feac02/2023-topps-mercury-gold-refractor-victor-wembanyama-rookie-auto-50-wa-10).
+
+### `authentic/final/messi-prizm-{front,back}.webp`
+
+- Card: 2022 Panini Prizm FIFA World Cup Lionel Messi Signatures #S-LEO.
+- Front reference: [Sports Card Investor card page](https://www.sportscardinvestor.com/cards/lionel-messi-soccer/2022-prizm-world-cup-signatures-s-leo); [direct scan](https://i.ebayimg.com/images/g/i-oAAOSwVWJj9jkt/s-l1600.jpg).
+- Back reference: [PSA certification 76326328](https://www.psacard.com/cert/76326328/psa).
+- Note: front and back are examples of the same card design, not the same physical copy.
+
+### `authentic/final/ronaldo-prizm-{front,back}.webp`
+
+- Card: 2018 Panini Prizm FIFA World Cup Cristiano Ronaldo Signatures #S-CR7; the displayed back example is a Prizm parallel serial 18/25.
+- Front reference: [PSA auction record](https://www.psacard.com/auctionprices/soccer-cards/2018-panini-prizm-world-cup-signatures/cristiano-ronaldo/auction/4284245982114965342).
+- Back reference: [eBay item 267612352985](https://www.ebay.com/itm/267612352985); [direct scan](https://i.ebayimg.com/images/g/So4AAeSwFOBpuozb/s-l1600.jpg).
+- Note: front and back are examples of the same card design, not the same physical copy.
+
+### `authentic/final/mbappe-topps-chrome-{front,back}.webp`
+
+- Card: 2022-23 Topps Chrome PSG Kylian Mbappé Refractor on-card autograph, serial 64/99.
+- Front and back reference: [Boomerang Collectables listing](https://boomerangcollectables.com/products/2022-23-topps-chrome-psg-kylian-mbappe-refractor-on-card-auto-64-99).
+
+## Foil interaction reference
+
+The procedural foil layers and pointer-variable model were informed by [`@kongyo2/cards-css`](https://github.com/kongyo2/cards-css), an MIT-licensed open-source card-effects library. The project uses its own card-specific CSS and Arcball implementation rather than importing the package. No texture assets from the GPL-licensed `pokemon-cards-css` project are included.
+
+---
+
 The player photographs in this folder are real editorial sports photographs sourced from Wikimedia Commons and converted locally to WebP for web delivery (orientation normalized, maximum dimension 1600 px, lossy WebP compression). No generative imagery was used.
 
 Creative Commons licenses apply to the photographs individually. Player likenesses, team marks, league marks, competition marks, and brand names may also be subject to publicity, personality, or trademark rights. Inclusion here does not imply endorsement by any player, league, team, photographer, Topps, or Panini.
@@ -96,4 +145,3 @@ These logo files are unmodified PNG previews of the cited Wikimedia Commons file
 - Original source listed on Commons: `https://img.uefa.com/imgml/uefacom/ucl/logo_light.svg`.
 - Commons status: public-domain simple/text logo. Trademark restrictions may apply.
 - Local file: 120 px transparent PNG preview.
-

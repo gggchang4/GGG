@@ -19,7 +19,6 @@ import {
   FlipHorizontal2,
   Info,
   Rotate3D,
-  Sparkles,
   X,
 } from "lucide-react";
 import {
@@ -32,12 +31,6 @@ import { InteractiveCard } from "@/components/cards/InteractiveCard";
 import { SportsCardArtwork } from "@/components/cards/SportsCardArtwork";
 import styles from "@/components/cards/sports-cards.module.css";
 
-type GalleryTheme = CSSProperties & {
-  "--active-color": string;
-  "--active-accent": string;
-  "--active-secondary": string;
-};
-
 type RailCardStyle = CSSProperties & {
   "--card-x": string;
   "--card-distance": number;
@@ -45,6 +38,8 @@ type RailCardStyle = CSSProperties & {
   "--card-opacity": number;
   "--card-z": number;
   "--card-rotate": string;
+  "--foil-x": string;
+  "--foil-y": string;
 };
 
 const DRAG_THRESHOLD = 7;
@@ -54,7 +49,6 @@ function clampIndex(index: number, count: number) {
 }
 
 export function SportsCardsExperience() {
-  const rootRef = useRef<HTMLElement>(null);
   const inspectorRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const gestureRef = useRef({
@@ -77,7 +71,7 @@ export function SportsCardsExperience() {
   const [flipSignal, setFlipSignal] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [railStep, setRailStep] = useState(220);
+  const [railStep, setRailStep] = useState(236);
   const cards = useMemo(() => getCardsBySport(sport), [sport]);
   const activeIndex = selectedBySport[sport];
   const activeCard = cards[activeIndex] ?? cards[0];
@@ -93,13 +87,9 @@ export function SportsCardsExperience() {
   useEffect(() => {
     const updateRailStep = () => {
       const width = window.innerWidth;
-      if (width <= 640) {
-        setRailStep(Math.min(270, Math.max(190, width * 0.56)));
-      } else if (width <= 1024) {
-        setRailStep(Math.min(280, Math.max(220, width * 0.28)));
-      } else {
-        setRailStep(Math.min(270, Math.max(205, width * 0.17)));
-      }
+      if (width <= 640) setRailStep(Math.min(250, Math.max(184, width * 0.55)));
+      else if (width <= 1024) setRailStep(Math.min(264, Math.max(218, width * 0.27)));
+      else setRailStep(Math.min(258, Math.max(220, width * 0.165)));
     };
     updateRailStep();
     window.addEventListener("resize", updateRailStep);
@@ -226,9 +216,7 @@ export function SportsCardsExperience() {
     if (
       (dominant < 0 && activeIndex === 0) ||
       (dominant > 0 && activeIndex === cards.length - 1)
-    ) {
-      return;
-    }
+    ) return;
     event.preventDefault();
     const now = performance.now();
     if (now < wheelLockRef.current) return;
@@ -240,23 +228,13 @@ export function SportsCardsExperience() {
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
       event.preventDefault();
       changeIndex(activeIndex + (event.key === "ArrowRight" ? 1 : -1));
-      return;
-    }
-    if (event.key === "Home" || event.key === "End") {
+    } else if (event.key === "Home" || event.key === "End") {
       event.preventDefault();
       changeIndex(event.key === "Home" ? 0 : cards.length - 1);
-      return;
-    }
-    if (event.key === "Enter" || event.key === " ") {
+    } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       openInspect(activeCard);
     }
-  };
-
-  const galleryTheme: GalleryTheme = {
-    "--active-color": activeCard.primary,
-    "--active-accent": activeCard.accent,
-    "--active-secondary": activeCard.secondary,
   };
 
   const handleInspectorKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -279,23 +257,14 @@ export function SportsCardsExperience() {
   };
 
   return (
-    <main
-      ref={rootRef}
-      className={styles.page}
-      style={galleryTheme}
-      data-inspecting={inspectCard ? "true" : "false"}
-    >
-      <div className={styles.ambientGlow} aria-hidden="true" />
-      <div className={styles.roomGrain} aria-hidden="true" />
-
+    <main className={styles.page} data-inspecting={inspectCard ? "true" : "false"}>
       <header className={styles.header}>
-        <Link href="/" className={styles.brand} aria-label="Back to profile index">
-          <span className={styles.brandMark}>GGG</span>
-          <span>
-            CARD ARCHIVE
-            <small>DIGITAL COLLECTION</small>
-          </span>
+        <Link href="/" className={styles.backLink} aria-label="Back to profile index">
+          <ArrowLeft aria-hidden="true" />
+          INDEX
         </Link>
+
+        <p className={styles.archiveLabel}>PLAYER CARDS</p>
 
         <div className={styles.sportSwitcher} role="group" aria-label="Sport collection">
           {sports.map((item) => (
@@ -306,30 +275,13 @@ export function SportsCardsExperience() {
               aria-pressed={sport === item}
               onClick={() => changeSport(item)}
             >
-              <span>{item === "nba" ? "01" : "02"}</span>
               {item === "nba" ? "NBA" : "FOOTBALL"}
             </button>
           ))}
         </div>
-
-        <div className={styles.headerMeta}>
-          <p>
-            <span>{String(cards.length).padStart(2, "0")} CARDS</span>
-            <strong>CURATED SET</strong>
-          </p>
-          <span className={styles.liveDot} aria-hidden="true" />
-        </div>
       </header>
 
-      <section className={styles.collection} aria-labelledby="collection-title">
-        <div className={styles.collectionIntro}>
-          <p>PLAYER CARD ARCHIVE / VOL. 01</p>
-          <h1 id="collection-title">
-            HOLD THE
-            <span>HIGHLIGHT.</span>
-          </h1>
-        </div>
-
+      <section className={styles.collection} aria-label={`${sport} card collection`}>
         <div
           className={styles.railViewport}
           tabIndex={0}
@@ -355,9 +307,11 @@ export function SportsCardsExperience() {
                 "--card-x": `${visualOffset * railStep}px`,
                 "--card-distance": distance,
                 "--card-scale": Math.max(0.72, 1 - distance * 0.12),
-                "--card-opacity": Math.max(0.28, 1 - distance * 0.25),
+                "--card-opacity": Math.max(0.22, 1 - distance * 0.29),
                 "--card-z": 20 - Math.round(distance * 3),
-                "--card-rotate": `${Math.max(-13, Math.min(13, visualOffset * -5.5))}deg`,
+                "--card-rotate": `${Math.max(-11, Math.min(11, visualOffset * -4.25))}deg`,
+                "--foil-x": `${50 + Math.max(-1, Math.min(1, visualOffset)) * 25}%`,
+                "--foil-y": `${38 + distance * 8}%`,
               };
               const isActive = index === activeIndex;
 
@@ -377,7 +331,7 @@ export function SportsCardsExperience() {
                   <SportsCardArtwork
                     card={card}
                     priority={index === 0}
-                    sizes="(max-width: 640px) 62vw, (max-width: 1024px) 30vw, 250px"
+                    sizes="(max-width: 640px) 58vw, (max-width: 1024px) 30vw, 235px"
                   />
                 </button>
               );
@@ -391,12 +345,10 @@ export function SportsCardsExperience() {
           </span>
           <div>
             <strong>{activeCard.player}</strong>
-            <p>
-              {activeCard.year} · {activeCard.maker} {activeCard.series} · {activeCard.parallel}
-            </p>
+            <p>{activeCard.year} · {activeCard.maker} {activeCard.series} · {activeCard.parallel}</p>
           </div>
           <button type="button" onClick={(event) => openInspect(activeCard, event.currentTarget)}>
-            INSPECT CARD
+            VIEW CARD
             <ArrowLeft aria-hidden="true" />
           </button>
         </div>
@@ -434,16 +386,13 @@ export function SportsCardsExperience() {
       </section>
 
       <footer className={styles.footer}>
+        <p><Rotate3D aria-hidden="true" /> DRAG OR SCROLL TO BROWSE · SELECT TO INSPECT</p>
         <p>
-          <Rotate3D aria-hidden="true" />
-          DRAG TO BROWSE · CLICK TO INSPECT
+          TOPPS / PANINI ·{" "}
+          <a href="/media/cards/ATTRIBUTION.md" target="_blank" rel="noreferrer">
+            MEDIA CREDITS
+          </a>
         </p>
-          <p>
-            TOPPS / PANINI · DIGITAL EDITIONS ·{" "}
-            <a href="/media/cards/ATTRIBUTION.md" target="_blank" rel="noreferrer">
-              MEDIA CREDITS
-            </a>
-          </p>
       </footer>
 
       {inspectCard ? (
@@ -455,16 +404,11 @@ export function SportsCardsExperience() {
           aria-modal="true"
           onKeyDown={handleInspectorKeyDown}
         >
-          <div className={styles.inspectorBackdrop} aria-hidden="true" />
           <header className={styles.inspectorHeader}>
             <button type="button" className={styles.backButton} onClick={closeInspect}>
-              <ArrowLeft aria-hidden="true" />
-              BACK TO COLLECTION
+              <ArrowLeft aria-hidden="true" /> COLLECTION
             </button>
-            <p>
-              <Sparkles aria-hidden="true" />
-              {face.toUpperCase()} FACE · LIVE FOIL
-            </p>
+            <p>{face.toUpperCase()} · LIVE FOIL</p>
             <button
               type="button"
               className={styles.closeButton}
@@ -483,46 +427,20 @@ export function SportsCardsExperience() {
               onFaceChange={setFace}
             />
 
-            <aside
-              className={`${styles.cardDetails} ${showInfo ? styles.cardDetailsOpen : ""}`}
-            >
+            <aside className={`${styles.cardDetails} ${showInfo ? styles.cardDetailsOpen : ""}`}>
               <div className={styles.detailIndex}>
-                <span>{inspectCard.sport === "nba" ? "NBA" : "FIFA"}</span>
+                <span>{inspectCard.sport === "nba" ? "NBA" : "FOOTBALL"}</span>
                 <strong>#{inspectCard.cardNumber}</strong>
               </div>
-
-              <p className={styles.detailEyebrow}>
-                {inspectCard.year} {inspectCard.maker} · {inspectCard.rarity}
-              </p>
-              <h2>
-                <span>{inspectCard.givenName}</span>
-                {inspectCard.familyName}
-              </h2>
-              <p className={styles.detailTeam}>
-                {inspectCard.team} · {inspectCard.position} · #{inspectCard.number}
-              </p>
+              <p className={styles.detailEyebrow}>{inspectCard.year} · {inspectCard.maker}</p>
+              <h2><span>{inspectCard.givenName}</span>{inspectCard.familyName}</h2>
+              <p className={styles.detailTeam}>{inspectCard.team} · {inspectCard.position} · #{inspectCard.number}</p>
 
               <dl className={styles.detailList}>
-                <div>
-                  <dt>SPORT</dt>
-                  <dd>{inspectCard.sport === "nba" ? "BASKETBALL" : "FOOTBALL"}</dd>
-                </div>
-                <div>
-                  <dt>SERIES</dt>
-                  <dd>{inspectCard.series}</dd>
-                </div>
-                <div>
-                  <dt>PARALLEL</dt>
-                  <dd>{inspectCard.parallel}</dd>
-                </div>
-                <div>
-                  <dt>SERIAL</dt>
-                  <dd>{inspectCard.serial}</dd>
-                </div>
-                <div>
-                  <dt>NATION</dt>
-                  <dd>{inspectCard.nation}</dd>
-                </div>
+                <div><dt>SERIES</dt><dd>{inspectCard.series}</dd></div>
+                <div><dt>PARALLEL</dt><dd>{inspectCard.parallel}</dd></div>
+                <div><dt>EDITION</dt><dd>{inspectCard.serial}</dd></div>
+                <div><dt>AUTHENTIC AUTO</dt><dd>{inspectCard.autographed ? "YES" : "—"}</dd></div>
               </dl>
 
               <div className={styles.inspectActions}>
@@ -531,19 +449,11 @@ export function SportsCardsExperience() {
                   className={styles.flipButton}
                   onClick={() => setFlipSignal((current) => current + 1)}
                 >
-                  <FlipHorizontal2 aria-hidden="true" />
-                  FLIP CARD
-                  <span>F</span>
+                  <FlipHorizontal2 aria-hidden="true" /> FLIP CARD <span>F</span>
                 </button>
-                <button type="button" onClick={closeInspect}>
-                  RETURN
-                </button>
+                <button type="button" onClick={closeInspect}>RETURN</button>
               </div>
-
-              <p className={styles.inspectHint}>
-                <Rotate3D aria-hidden="true" />
-                DRAG ANYWHERE ON THE CARD · DOUBLE CLICK TO FLIP
-              </p>
+              <p className={styles.inspectHint}><Rotate3D aria-hidden="true" /> DRAG THE CARD FREELY · RELEASE TO SPIN · DOUBLE CLICK TO FLIP</p>
             </aside>
           </div>
 
@@ -553,8 +463,7 @@ export function SportsCardsExperience() {
             aria-expanded={showInfo}
             onClick={() => setShowInfo((current) => !current)}
           >
-            <Info aria-hidden="true" />
-            {showInfo ? "CLOSE INFO" : "CARD INFO"}
+            <Info aria-hidden="true" /> {showInfo ? "CLOSE INFO" : "CARD INFO"}
           </button>
         </section>
       ) : null}
