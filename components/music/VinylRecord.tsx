@@ -123,23 +123,29 @@ export function VinylRecord({
       return;
     }
 
-    const reducedMotion = window.matchMedia(
+    const motionPreference = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
-    ).matches;
-    const targetRate =
-      playing && !reducedMotion ? 1.8 / resolvedSpinDuration : 0;
-    const currentRate = spinTween.timeScale();
+    );
+    const syncSpinRate = () => {
+      const targetRate =
+        playing && !motionPreference.matches ? 1.8 / resolvedSpinDuration : 0;
+      const currentRate = spinTween.timeScale();
 
-    rateTweenRef.current?.kill();
-    rateTweenRef.current = gsap.to(spinTween, {
-      timeScale: targetRate,
-      duration:
-        targetRate === 0 ? 0.9 : targetRate > currentRate ? 0.7 : 0.48,
-      ease: targetRate === 0 ? "power3.out" : "power2.out",
-      overwrite: true,
-    });
+      rateTweenRef.current?.kill();
+      rateTweenRef.current = gsap.to(spinTween, {
+        timeScale: targetRate,
+        duration:
+          targetRate === 0 ? 0.9 : targetRate > currentRate ? 0.7 : 0.48,
+        ease: targetRate === 0 ? "power3.out" : "power2.out",
+        overwrite: true,
+      });
+    };
+
+    syncSpinRate();
+    motionPreference.addEventListener("change", syncSpinRate);
 
     return () => {
+      motionPreference.removeEventListener("change", syncSpinRate);
       rateTweenRef.current?.kill();
     };
   }, [controlledRotation, playing, resolvedSpinDuration]);
