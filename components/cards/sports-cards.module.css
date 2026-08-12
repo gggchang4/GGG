@@ -28,6 +28,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.archiveContent {
+  display: contents;
+}
+
 .header {
   position: relative;
   z-index: 20;
@@ -118,6 +122,7 @@
 .backLink:focus-visible,
 .backButton:focus-visible,
 .sportSwitcher button:focus-visible,
+.seriesTabs button:focus-visible,
 .railViewport:focus-visible,
 .railCard:focus-visible,
 .activeCaption button:focus-visible,
@@ -132,9 +137,105 @@
 
 .collection {
   display: grid;
-  grid-template-rows: minmax(320px, 1fr) auto auto;
+  grid-template-rows: auto minmax(320px, 1fr) auto auto;
   min-height: calc(100svh - 128px);
   background: #000;
+}
+
+.seriesBar {
+  position: relative;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 clamp(20px, 3.5vw, 56px);
+  overflow: hidden;
+  border-bottom: 1px solid #151515;
+  background: #000;
+}
+
+.seriesLabel,
+.seriesBar > p {
+  margin: 0;
+  color: #484848;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.seriesLabel {
+  padding-right: 22px;
+}
+
+.seriesBar > p {
+  padding-left: 22px;
+  text-align: right;
+}
+
+.seriesTabs {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.seriesTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.seriesTabs button {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 45px;
+  padding: 0 17px;
+  border: 0;
+  color: #5d5d5d;
+  background: transparent;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.seriesTabs button::after {
+  position: absolute;
+  right: 17px;
+  bottom: 0;
+  left: 17px;
+  height: 1px;
+  background: transparent;
+  content: "";
+}
+
+.seriesTabs button:hover {
+  color: #bcbcbc;
+}
+
+.seriesTabs small {
+  color: #3d3d3d;
+  font-size: 7px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.seriesTabs .seriesActive {
+  color: #ececec;
+}
+
+.seriesTabs .seriesActive::after {
+  background: #ececec;
+}
+
+.seriesTabs .seriesActive small {
+  color: #888;
 }
 
 .railViewport {
@@ -157,6 +258,19 @@
   inset: 0;
   perspective: 1400px;
   perspective-origin: 50% 46%;
+  animation: seriesReveal 280ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+@keyframes seriesReveal {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .railCard {
@@ -204,11 +318,11 @@
 }
 
 .railCard:not(.railCardActive) {
-  filter: saturate(0.68) brightness(0.7);
+  filter: saturate(0.88) brightness(0.79);
 }
 
 .railCard:not(.railCardActive):hover {
-  filter: saturate(0.85) brightness(0.88);
+  filter: saturate(0.96) brightness(0.9);
 }
 
 .railCardActive {
@@ -232,6 +346,17 @@
   margin: 0 auto;
   padding: 14px 0 18px;
   border-top: 1px solid #1c1c1c;
+}
+
+.selectionStatus {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .activeCaption > span {
@@ -408,6 +533,9 @@
 /* The artwork owns no motion variables. It only consumes values inherited from
    either the rail item or the quaternion-driven interactive card. */
 .cardArtwork {
+  --foil-strength: 0.7;
+  --glare-strength: 0.7;
+  --coat-strength: 0.72;
   position: relative;
   width: 100%;
   height: 100%;
@@ -456,7 +584,7 @@
     center;
   background-size: 100% 100%, 230% 230%, 100% 100%;
   mix-blend-mode: color-dodge;
-  opacity: clamp(0, var(--foil-opacity, 0.2), 0.82);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.58);
   filter:
     hue-rotate(var(--foil-hue, 0deg))
     saturate(1.5)
@@ -468,36 +596,36 @@
 .foilEtching {
   z-index: 3;
   mix-blend-mode: screen;
-  opacity: clamp(0, var(--foil-opacity, 0.2), 0.52);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.42);
   filter: hue-rotate(var(--foil-hue, 0deg));
   will-change: opacity, background-position, filter;
 }
 
 .foilGlare {
-  z-index: 4;
+  z-index: 5;
   background:
     radial-gradient(
-      ellipse 40% 30% at var(--glare-x, 52%) var(--glare-y, 45%),
-      rgb(255 255 255 / 92%) 0%,
-      rgb(255 255 255 / 48%) 9%,
-      rgb(210 225 255 / 16%) 29%,
-      transparent 62%
+      ellipse 28% 20% at var(--glare-x, 52%) var(--glare-y, 45%),
+      rgb(255 255 255 / 54%) 0%,
+      rgb(255 255 255 / 22%) 12%,
+      rgb(210 225 255 / 9%) 34%,
+      transparent 68%
     );
-  mix-blend-mode: color-dodge;
-  opacity: clamp(0, var(--glare-opacity, 0.18), 0.92);
-  transform: rotate(var(--glare-angle, 120deg)) scale(1.42);
+  mix-blend-mode: screen;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * var(--glare-strength)), 0.55);
+  transform: rotate(var(--glare-angle, 120deg)) scale(1.18);
   transform-origin: var(--glare-x, 50%) var(--glare-y, 50%);
   will-change: opacity, transform, background;
 }
 
 .clearCoat {
-  z-index: 5;
+  z-index: 6;
   overflow: hidden;
   background:
     radial-gradient(
       ellipse 62% 46% at var(--glare-x, 52%) var(--glare-y, 45%),
-      rgb(255 255 255 / 65%) 0%,
-      rgb(255 255 255 / 15%) 18%,
+      rgb(255 255 255 / 38%) 0%,
+      rgb(255 255 255 / 10%) 18%,
       transparent 56%
     ),
     linear-gradient(
@@ -509,7 +637,7 @@
       transparent 86%
     );
   mix-blend-mode: screen;
-  opacity: clamp(0.02, var(--coat-opacity, 0.16), 0.72);
+  opacity: clamp(0.02, calc(var(--coat-opacity, 0.16) * var(--coat-strength)), 0.46);
   will-change: opacity, background;
 }
 
@@ -523,6 +651,123 @@
     inset 0 0 28px rgb(255 255 255 / 8%);
   content: "";
   opacity: clamp(0, var(--fresnel-opacity, 0.12), 0.8);
+}
+
+/* The chrome ink lives on printed borders and backgrounds, not on skin, cloth,
+   type or autograph ink. These series profiles approximate the physical strike
+   zones while preserving the exact scanned artwork below. */
+.cardArtwork[data-foil-mask="chrome-frame"] {
+  --foil-strength: 0.78;
+  --glare-strength: 0.72;
+  --coat-strength: 0.68;
+}
+
+.cardArtwork[data-foil-mask="prizm-frame"] {
+  --foil-strength: 0.68;
+  --glare-strength: 0.64;
+  --coat-strength: 0.62;
+}
+
+.cardArtwork[data-foil-mask="chrome-auto"] {
+  --foil-strength: 0.62;
+  --glare-strength: 0.58;
+  --coat-strength: 0.64;
+}
+
+.cardArtwork[data-foil-mask="prizm-auto"] {
+  --foil-strength: 0.58;
+  --glare-strength: 0.56;
+  --coat-strength: 0.6;
+}
+
+.cardArtwork[data-foil-mask="prizm-center-auto"] {
+  --foil-strength: 0.54;
+  --glare-strength: 0.52;
+  --coat-strength: 0.58;
+}
+
+.cardArtwork[data-foil-mask="night-vision"] {
+  --foil-strength: 0.62;
+  --glare-strength: 0.56;
+  --coat-strength: 0.6;
+}
+
+.cardArtwork[data-foil-mask="gold-auto"] {
+  --foil-strength: 0.56;
+  --glare-strength: 0.62;
+  --coat-strength: 0.62;
+}
+
+.cardArtwork[data-foil-mask="chrome-frame"] .foilDiffraction,
+.cardArtwork[data-foil-mask="chrome-frame"] .foilEtching {
+  -webkit-mask-image: radial-gradient(
+    ellipse 36% 50% at 50% 44%,
+    rgb(0 0 0 / 9%) 0 48%,
+    rgb(0 0 0 / 25%) 68%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 36% 50% at 50% 44%,
+    rgb(0 0 0 / 9%) 0 48%,
+    rgb(0 0 0 / 25%) 68%,
+    #000 100%
+  );
+}
+
+.cardArtwork[data-foil-mask="prizm-frame"] .foilDiffraction,
+.cardArtwork[data-foil-mask="prizm-frame"] .foilEtching {
+  -webkit-mask-image: radial-gradient(
+    ellipse 31% 47% at 50% 43%,
+    rgb(0 0 0 / 5%) 0 46%,
+    rgb(0 0 0 / 22%) 65%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 31% 47% at 50% 43%,
+    rgb(0 0 0 / 5%) 0 46%,
+    rgb(0 0 0 / 22%) 65%,
+    #000 100%
+  );
+}
+
+.cardArtwork[data-foil-mask="chrome-auto"] .foilDiffraction,
+.cardArtwork[data-foil-mask="chrome-auto"] .foilEtching {
+  -webkit-mask-image: linear-gradient(#000 0 61%, transparent 66% 91%, #000 96%);
+  mask-image: linear-gradient(#000 0 61%, transparent 66% 91%, #000 96%);
+}
+
+.cardArtwork[data-foil-mask="prizm-auto"] .foilDiffraction,
+.cardArtwork[data-foil-mask="prizm-auto"] .foilEtching {
+  -webkit-mask-image: linear-gradient(#000 0 63%, transparent 68% 91%, #000 96%);
+  mask-image: linear-gradient(#000 0 63%, transparent 68% 91%, #000 96%);
+}
+
+.cardArtwork[data-foil-mask="prizm-center-auto"] .foilDiffraction,
+.cardArtwork[data-foil-mask="prizm-center-auto"] .foilEtching {
+  -webkit-mask-image: linear-gradient(#000 0 58%, transparent 64% 84%, #000 90%);
+  mask-image: linear-gradient(#000 0 58%, transparent 64% 84%, #000 90%);
+}
+
+.cardArtwork[data-foil-mask="night-vision"] .foilDiffraction,
+.cardArtwork[data-foil-mask="night-vision"] .foilEtching {
+  -webkit-mask-image: radial-gradient(
+    ellipse 28% 48% at 55% 45%,
+    rgb(0 0 0 / 8%) 0 52%,
+    rgb(0 0 0 / 36%) 72%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 28% 48% at 55% 45%,
+    rgb(0 0 0 / 8%) 0 52%,
+    rgb(0 0 0 / 36%) 72%,
+    #000 100%
+  );
+}
+
+.cardArtwork[data-foil-mask="gold-auto"] .foilDiffraction,
+.cardArtwork[data-foil-mask="gold-auto"] .foilEtching {
+  -webkit-mask-image: linear-gradient(#000 0 60%, transparent 65% 89%, #000 95%);
+  mask-image: linear-gradient(#000 0 60%, transparent 65% 89%, #000 95%);
 }
 
 /* Topps Chrome: a wide spectral refraction with fine radial chrome etching. */
@@ -566,6 +811,70 @@
       transparent 9px 17px
     );
   background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+}
+
+/* 1996–2008 Topps Chrome: tight linear diffraction in the plated border. */
+.cardArtwork[data-series="nba-topps-chrome-icons"] .foilEtching {
+  background:
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + 74deg),
+      transparent 0 1.5px,
+      rgb(255 255 255 / 18%) 1.75px,
+      transparent 2px 5.5px
+    ),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) - 18deg),
+      transparent 0 13px,
+      rgb(102 218 255 / 13%) 14px,
+      transparent 15px 29px
+    );
+  background-position:
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    var(--foil-x, 50%) var(--foil-y, 50%);
+}
+
+/* Topps Night Vision /225: green-cyan interference with a dark, tight grid;
+   intentionally no broad magenta/yellow rainbow used by standard Refractors. */
+.cardArtwork[data-foil="topps-night-vision"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      ellipse 42% 34% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(244 255 249 / 56%) 0%,
+      rgb(91 255 190 / 42%) 14%,
+      rgb(23 190 162 / 25%) 34%,
+      transparent 63%
+    ),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + 24deg),
+      rgb(67 244 167 / 18%) 0 5px,
+      rgb(6 72 63 / 7%) 6px 11px,
+      transparent 12px 19px
+    ),
+    linear-gradient(135deg, rgb(45 216 154 / 19%), rgb(8 59 53 / 7%) 52%, rgb(91 244 202 / 18%));
+  mix-blend-mode: screen;
+  filter:
+    hue-rotate(var(--foil-hue, 0deg))
+    saturate(1.18)
+    contrast(1.24);
+}
+
+.cardArtwork[data-foil="topps-night-vision"] .foilEtching {
+  background:
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) - 44deg),
+      transparent 0 6px,
+      rgb(130 255 207 / 15%) 7px,
+      transparent 8px 15px
+    ),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + 46deg),
+      transparent 0 10px,
+      rgb(20 126 101 / 14%) 11px,
+      transparent 12px 23px
+    );
+  background-position:
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    calc(100% - var(--foil-x, 50%)) calc(100% - var(--foil-y, 50%));
 }
 
 /* Panini Silver Prizm: cooler chrome, hard specular travel and narrow rainbows. */
@@ -616,6 +925,30 @@
   background-position:
     var(--foil-x, 50%) var(--foil-y, 50%),
     calc(100% - var(--foil-x, 50%)) calc(100% - var(--foil-y, 50%));
+}
+
+/* Panini Prizm Silver combines the printed diagonal geometry with a micro-dot
+   emboss. The moving layer only catches those raised silver areas. */
+.cardArtwork[data-series="nba-panini-prizm-silver"] .foilEtching {
+  background:
+    radial-gradient(circle, rgb(255 255 255 / 21%) 0 0.7px, transparent 0.85px),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) - 36deg),
+      transparent 0 10px,
+      rgb(110 214 255 / 17%) 11px,
+      transparent 12px 24px
+    ),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + 54deg),
+      transparent 0 18px,
+      rgb(255 142 222 / 10%) 19px,
+      transparent 20px 38px
+    );
+  background-position:
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    calc(100% - var(--foil-x, 50%)) calc(100% - var(--foil-y, 50%));
+  background-size: 8px 8px, auto, auto;
 }
 
 /* Topps Mercury blue: blue anodized chrome with cyan/magenta interference. */
@@ -741,11 +1074,11 @@
       rgb(255 255 255 / 12%) 0 0.35deg,
       transparent 0.45deg 6.4deg
     );
-  opacity: clamp(0, var(--foil-opacity, 0.2), 0.4);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.32);
 }
 
 .autographProtection {
-  z-index: 7;
+  z-index: 4;
   overflow: hidden;
   filter: contrast(1.025) saturate(0.98);
   transform: translateZ(0);
@@ -767,6 +1100,14 @@
 
 .cardArtwork[data-autograph="prizm-bottom"] .autographProtection {
   clip-path: polygon(5% 65%, 95% 65%, 95% 92%, 5% 92%);
+}
+
+.cardArtwork[data-autograph="neymar-sticker"] .autographProtection {
+  clip-path: polygon(12% 69%, 88% 69%, 88% 91%, 12% 91%);
+}
+
+.cardArtwork[data-autograph="mbappe-sticker"] .autographProtection {
+  clip-path: polygon(33% 65%, 74% 65%, 74% 83%, 33% 83%);
 }
 
 .cardArtwork[data-autograph="chrome-bottom"] .autographProtection {
@@ -872,7 +1213,7 @@
 }
 
 .interactiveCard {
-  --card-depth: 2.4px;
+  --card-depth: 1.8px;
   position: relative;
   z-index: 2;
   width: clamp(286px, min(31vw, 57vh), 430px);
@@ -987,6 +1328,21 @@
   border-left: 1px solid #202020;
   background: #030303;
   flex-direction: column;
+  scrollbar-color: #343434 transparent;
+  scrollbar-width: thin;
+}
+
+.cardDetails::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cardDetails::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cardDetails::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #343434;
 }
 
 .detailIndex {
@@ -1205,9 +1561,33 @@
   }
 
   .collection {
-    grid-template-rows: minmax(360px, 1fr) auto auto;
+    grid-template-rows: auto minmax(340px, 1fr) auto auto;
     min-height: calc(100svh - 108px);
     padding-bottom: 46px;
+  }
+
+  .seriesBar {
+    grid-template-columns: auto minmax(0, 1fr);
+    min-height: 42px;
+    padding: 0 18px;
+  }
+
+  .seriesBar > p {
+    display: none;
+  }
+
+  .seriesLabel {
+    padding-right: 10px;
+  }
+
+  .seriesTabs button {
+    min-height: 41px;
+    padding: 0 11px;
+  }
+
+  .seriesTabs button::after {
+    right: 11px;
+    left: 11px;
   }
 
   .railCard {
@@ -1372,7 +1752,26 @@
   }
 
   .collection {
-    grid-template-rows: minmax(330px, 1fr) auto auto;
+    grid-template-rows: auto minmax(315px, 1fr) auto auto;
+  }
+
+  .seriesBar {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 7px;
+  }
+
+  .seriesLabel {
+    display: none;
+  }
+
+  .seriesTabs button {
+    padding: 0 10px;
+    font-size: 7px;
+  }
+
+  .seriesTabs button::after {
+    right: 10px;
+    left: 10px;
   }
 
   .railCard {
@@ -1405,6 +1804,7 @@
   .backLink,
   .backButton,
   .sportSwitcher button,
+  .seriesTabs button,
   .railCard,
   .activeCaption > button,
   .railControls button,
@@ -1412,6 +1812,10 @@
   .inspectActions button,
   .cardDetails {
     transition-duration: 0.001ms !important;
+  }
+
+  .rail {
+    animation: none;
   }
 
   .foilDiffraction,

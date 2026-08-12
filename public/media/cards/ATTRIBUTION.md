@@ -19,6 +19,30 @@ Where a matching front and back scan of the same physical copy was not available
 - Reference listing: [Beckett Marketplace item 99787165](https://marketplace.beckett.com/item/21/2020-21-panini-prizm-prizms-silver-159-stephen-curry_99787165).
 - Original scans: [front](https://img.beckett.com/images/items/16777215/marketplace/99787165/front.jpg), [back](https://img.beckett.com/images/items/16777215/marketplace/99787165/back.jpg).
 
+### `authentic/final/kobe-topps-chrome-refractor-{front,back}.webp`
+
+- Card: 1996-97 Topps Chrome Kobe Bryant #138 Refractor rookie card; not serial numbered.
+- Front and back are from the same PSA 10 example, certification 08013412: [front scan](https://static.wixstatic.com/media/35fae5_3305270abef04a239e20abb5ada497ea~mv2.jpg), [back scan](https://static.wixstatic.com/media/35fae5_d208f5fce62f4af88d26d6be17dd5941~mv2.jpg).
+- Checklist references: [Beckett card record](https://www.beckett.com/basketball/1996-97/topps-chrome-refractors/138-kobe-bryant-3117232) and [The Smarter Collector set overview](https://www.thesmartercollector.com/player-profiles/kobe-bryant-basketball-cards-you-should-know-about).
+
+### `authentic/final/durant-topps-chrome-refractor-{front,back}.webp`
+
+- Card: 2007-08 Topps Chrome Kevin Durant #131 Refractor rookie card, numbered to 1499.
+- Front and back are from the same PSA 10 example, certification 42666521: [Fanatics Collect listing](https://www.fanaticscollect.com/buy-now/12bc6abe-fff4-4dfa-ae34-d06abe1a31a2/2007-topps-chrome-refractor-kevin-durant-rookie-1499-131-psa-10-gem-mint), [front scan](https://cdn-vault.fanaticscollect.com/2021/7/19/1/large/v199500_2021071813304843M_1.jpg), [back scan](https://cdn-vault.fanaticscollect.com/2021/7/19/1/large/v199500_2021071813305871M_2.jpg).
+- Checklist reference: [Topps Ripped](https://ripped.topps.com/how-to-collect-oklahoma-city-thunder/).
+
+### `authentic/final/giannis-prizm-silver-{front,back}.webp`
+
+- Card: 2013-14 Panini Prizm Giannis Antetokounmpo #290 Silver Prizm rookie card; not serial numbered.
+- Front and back are from the same PSA 10 example, certification 41336572: [Fanatics Collect listing](https://www.fanaticscollect.com/buy-now/393875c1-3227-4eee-8f1f-5f1d4fcdbded/2013-panini-prizm-silver-giannis-antetokounmpo-rookie-290-psa-10-gem-mint), [front scan](https://cdn-vault.fanaticscollect.com/2026/1/23/dt6/large/v2405474_20260123171246231M_1.jpg), [back scan](https://cdn-vault.fanaticscollect.com/2026/1/23/dt6/large/v2405474_20260123171246231M_2.jpg).
+- Checklist reference: [HobbyScan card record](https://www.hobbyscan.com/card/31897).
+
+### `authentic/final/luka-prizm-silver-{front,back}.webp`
+
+- Card: 2018-19 Panini Prizm Luka Dončić #280 Silver Prizm rookie card; not serial numbered.
+- Front and back are from the same PSA 10 example, certification 44035644: [Fanatics Collect listing](https://www.fanaticscollect.com/buy-now/db1c3173-8ba6-47fe-95e5-1c71cdeadf73/2018-panini-prizm-silver-luka-doncic-rookie-rc-280-psa-10-gem-mint), [front scan](https://cdn-vault.fanaticscollect.com/2021/3/31/4/large/v138702_2021033116334741R_83.jpg), [back scan](https://cdn-vault.fanaticscollect.com/2021/3/31/4/large/v138702_2021033116334870R_84.jpg).
+- Checklist reference: [Beckett card record](https://www.beckett.com/basketball/2018-19/panini-prizm-prizms-silver/280-luka-doncic-16094814).
+
 ### `authentic/final/wemby-mercury-{front,back}.webp`
 
 - Card: 2023 Topps Mercury Victor Wembanyama Gold Refractor rookie autograph /50, #WA-10.
@@ -42,6 +66,31 @@ Where a matching front and back scan of the same physical copy was not available
 
 - Card: 2022-23 Topps Chrome PSG Kylian Mbappé Refractor on-card autograph, serial 64/99.
 - Front and back reference: [Boomerang Collectables listing](https://boomerangcollectables.com/products/2022-23-topps-chrome-psg-kylian-mbappe-refractor-on-card-auto-64-99).
+
+### `authentic/final/neymar-prizm-2022-signatures-{front,back}.webp`
+
+- Card: 2022 Panini Prizm FIFA World Cup Neymar Jr. Signatures #S-NJR; base autograph, not serial numbered.
+- Front and back are from the same example: [Kronozio listing](https://kronozio.com/card/ff6b587a-697a-4d24-b933-131bf83cdab2/2022-Panini-Prizm-World-Cup-Neymar-Jr-3), [front scan](https://kronozio.blob.core.windows.net/images/card/ff6b587a697a4d24b933131bf83cdab2_front.jpg), [back scan](https://kronozio.blob.core.windows.net/images/card/ff6b587a697a4d24b933131bf83cdab2_back.jpg).
+- Checklist references: [Beckett set overview](https://www.beckett.com/news/2022-panini-prizm-world-cup-soccer-cards/) and [SportsCardsPro card record](https://www.sportscardspro.com/game/soccer-cards-2022-panini-prizm-world-cup-signatures/neymar-jr-s-njr). The seller listing's number `3` conflicts with the printed front/back and checklist number `S-NJR`; the gallery follows the card itself.
+
+### `authentic/final/mbappe-prizm-2022-international-ink-{front,back}.webp`
+
+- Card: 2022 Panini Prizm FIFA World Cup Kylian Mbappé International Ink #I-KM; base autograph, not serial numbered.
+- Front and back are from the same PSA 9 example, certification 70624578: [Bob Shop listing](https://www.bobshop.co.za/kylian-mbappe-autograph-graded-psa-9-2022-world-cup-soccer-trading-card/p/634193775), [front scan](https://img.bobshop.co.za/f_auto,q_auto:eco,d_notfound.png/user/4553084/0B1DB2E2-0938-4C71-844A-8E2E7D0392EF_pl_BIUoXB-.jpg), [back scan](https://img.bobshop.co.za/f_auto,q_auto:eco,c_fit,w_800,h_800,d_notfound.png/user/4553084/567171C2-2CA4-40D3-85BE-14238C8168BB_3z0kZSMte.jpg).
+- Set reference: [PSA specification](https://www.psacard.com/spec/psa/7764668). The back source is lower resolution and retains slight photographed-lighting variation.
+
+### `authentic/final/bellingham-topps-chrome-2021-night-vision-{front,back}.webp`
+
+- Card: 2021-22 Topps Chrome UEFA Champions League Jude Bellingham #58 Night Vision Refractor, serial 071/225.
+- Front and back are from the same example: [Kronozio listing](https://kronozio.com/card/d08f4120-9a8b-45f1-9b19-2f11310997fe/2021-Topps-Chrome-UEFA-Champions-League-Night-Vision-Refractor-Jude-Bellingham-58), [front scan](https://kronozio.blob.core.windows.net/images/card/d08f41209a8b45f19b192f11310997fe_front.jpg), [back scan](https://kronozio.blob.core.windows.net/images/card/d08f41209a8b45f19b192f11310997fe_back.jpg).
+- Checklist reference: [Beckett set overview](https://www.beckett.com/news/2021-22-topps-chrome-uefa-champions-league-soccer-cards/). The source was scanned inside a clear sleeve and retains very slight sleeve reflection and moiré.
+
+### `authentic/final/haaland-topps-chrome-bundesliga-2019-refractor-{front,back}.webp`
+
+- Card: 2019-20 Topps Chrome Bundesliga Erling Haaland #72 Refractor rookie card; not serial numbered.
+- References: [eBay product record](https://www.ebay.com/p/13056466914), [front scan](https://i.ebayimg.com/00/s/MTYwMFgxMTkw/z/N~8AAOSwxy5jKwij/$_57.JPG), [back scan](https://i.ebayimg.com/images/g/RngAAeSwT0xpLyVQ/s-l1600.jpg).
+- Checklist references: [Beckett set overview](https://www.beckett.com/news/2019-20-topps-chrome-bundesliga-soccer-cards/) and [SportsCardsPro card record](https://www.sportscardspro.com/game/soccer-cards-2019-topps-chrome-bundesliga/erling-haaland-refractor-72).
+- Note: front and back are examples of the same card design and parallel but cannot be verified as the same physical copy.
 
 ## Foil interaction reference
 

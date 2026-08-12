@@ -23,7 +23,10 @@ import {
 } from "lucide-react";
 import {
   getCardsBySport,
+  getSeriesById,
+  getSeriesBySport,
   sports,
+  type CardSeriesId,
   type CardSport,
   type SportsCard,
 } from "@/data/sportsCards";
@@ -43,6 +46,7 @@ type RailCardStyle = CSSProperties & {
 };
 
 const DRAG_THRESHOLD = 7;
+type SeriesSelection = CardSeriesId | "all";
 
 function clampIndex(index: number, count: number) {
   return Math.max(0, Math.min(count - 1, index));
@@ -54,17 +58,20 @@ export function SportsCardsExperience() {
   const gestureRef = useRef({
     pointerId: null as number | null,
     startX: 0,
+    startY: 0,
     lastX: 0,
     startedAt: 0,
     moved: false,
+    axis: "pending" as "pending" | "horizontal" | "vertical",
     targetIndex: 0,
   });
   const wheelLockRef = useRef(0);
   const [sport, setSport] = useState<CardSport>("nba");
-  const [selectedBySport, setSelectedBySport] = useState<Record<CardSport, number>>({
-    nba: 0,
-    football: 0,
+  const [seriesBySport, setSeriesBySport] = useState<Record<CardSport, SeriesSelection>>({
+    nba: "all",
+    football: "all",
   });
+  const [selectedByScope, setSelectedByScope] = useState<Record<string, string>>({});
   const [dragOffset, setDragOffset] = useState(0);
   const [inspectCard, setInspectCard] = useState<SportsCard | null>(null);
   const [face, setFace] = useState<"front" | "back">("front");
@@ -72,8 +79,19 @@ export function SportsCardsExperience() {
   const [showInfo, setShowInfo] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [railStep, setRailStep] = useState(236);
-  const cards = useMemo(() => getCardsBySport(sport), [sport]);
-  const activeIndex = selectedBySport[sport];
+  const activeSeriesId = seriesBySport[sport];
+  const scopeKey = `${sport}:${activeSeriesId}`;
+  const allSportCards = useMemo(() => getCardsBySport(sport), [sport]);
+  const seriesOptions = useMemo(() => getSeriesBySport(sport), [sport]);
+  const activeSeries = activeSeriesId === "all" ? null : getSeriesById(activeSeriesId);
+  const cards = useMemo(
+    () => getCardsBySport(sport, activeSeriesId),
+    [activeSeriesId, sport],
+  );
+  const activeIndex = Math.max(
+    0,
+    cards.findIndex((card) => card.id === selectedByScope[scopeKey]),
+  );
   const activeCard = cards[activeIndex] ?? cards[0];
 
   useEffect(() => {
@@ -129,15 +147,34 @@ export function SportsCardsExperience() {
   const changeIndex = useCallback(
     (nextIndex: number) => {
       const clamped = clampIndex(nextIndex, cards.length);
-      setSelectedBySport((current) => ({ ...current, [sport]: clamped }));
+      setSelectedByScope((current) => ({
+        ...current,
+        [scopeKey]: cards[clamped].id,
+      }));
       setDragOffset(0);
     },
-    [cards.length, sport],
+    [cards, scopeKey],
   );
 
   const changeSport = (nextSport: CardSport) => {
     if (nextSport === sport) return;
     setSport(nextSport);
+    setDragOffset(0);
+  };
+
+  const changeSeries = (nextSeries: SeriesSelection) => {
+    if (nextSeries === activeSeriesId) return;
+    const nextScope = `${sport}:${nextSeries}`;
+    const nextCards = getCardsBySport(sport, nextSeries);
+    setSelectedByScope((current) => {
+      if (current[nextScope]) return current;
+      const retainedCard = nextCards.find((card) => card.id === activeCard.id);
+      return {
+        ...current,
+        [nextScope]: (retainedCard ?? nextCards[0]).id,
+      };
+    });
+    setSeriesBySport((current) => ({ ...current, [sport]: nextSeries }));
     setDragOffset(0);
   };
 
@@ -152,30 +189,56 @@ export function SportsCardsExperience() {
     const gesture = gestureRef.current;
     if (event && gesture.pointerId !== event.pointerId) return;
 
-    const elapsed = Math.max(16, performance.now() - gesture.startedAt);
-    const velocity = (gesture.lastX - gesture.startX) / elapsed;
-    let step = Math.round(-dragOffset / railStep);
-    if (Math.abs(velocity) > 0.45) step += velocity < 0 ? 1 : -1;
-    step = Math.max(-2, Math.min(2, step));
+    if (gesture.axis === "vertical") {
+      setDragOffset(0);
+    } else {
+      const elapsed = Math.max(16, performance.now() - gesture.startedAt);
+      const velocity = (gesture.lastX - gesture.startX) / elapsed;
+      let step = Math.round(-dragOffset / railStep);
+      if (Math.abs(velocity) > 0.45) step += velocity < 0 ? 1 : -1;
+      step = Math.max(-2, Math.min(2, step));
 
-    if (gesture.moved && step !== 0) changeIndex(activeIndex + step);
-    else if (!gesture.moved) {
-      if (gesture.targetIndex !== activeIndex) changeIndex(gesture.targetIndex);
-      else openInspect(cards[gesture.targetIndex], event?.currentTarget);
-    } else setDragOffset(0);
-
-    if (event && event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
+      if (gesture.moved && step !== 0) changeIndex(activeIndex + step);
+      else if (!gesture.moved) {
+        if (gesture.targetIndex !== activeIndex) changeIndex(gesture.targetIndex);
+        else openInspect(cards[gesture.targetIndex], event?.currentTarget);
+      } else setDragOffset(0);
     }
+
+    const shouldReleaseCapture = Boolean(
+      event && event.currentTarget.hasPointerCapture(event.pointerId),
+    );
 
     gestureRef.current = {
       pointerId: null,
       startX: 0,
+      startY: 0,
       lastX: 0,
       startedAt: 0,
       moved: false,
+      axis: "pending",
       targetIndex: 0,
     };
+
+    if (event && shouldReleaseCapture) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const cancelRailGesture = (event?: PointerEvent<HTMLDivElement>) => {
+    if (event && gestureRef.current.pointerId !== event.pointerId) return;
+    gestureRef.current = {
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      lastX: 0,
+      startedAt: 0,
+      moved: false,
+      axis: "pending",
+      targetIndex: 0,
+    };
+    setDragOffset(0);
+    if (event) delete event.currentTarget.dataset.dragging;
   };
 
   const handleRailPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -183,9 +246,11 @@ export function SportsCardsExperience() {
     gestureRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
+      startY: event.clientY,
       lastX: event.clientX,
       startedAt: performance.now(),
       moved: false,
+      axis: "pending",
       targetIndex: Number(
         (event.target as HTMLElement).closest<HTMLElement>("[data-card-index]")
           ?.dataset.cardIndex ?? activeIndex,
@@ -198,15 +263,24 @@ export function SportsCardsExperience() {
   const handleRailPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const gesture = gestureRef.current;
     if (gesture.pointerId !== event.pointerId) return;
-    const delta = event.clientX - gesture.startX;
-    if (Math.abs(delta) > DRAG_THRESHOLD) gesture.moved = true;
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+    if (gesture.axis === "pending" && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > DRAG_THRESHOLD) {
+      gesture.axis = Math.abs(deltaX) > Math.abs(deltaY) + 2 ? "horizontal" : "vertical";
+      gesture.moved = true;
+    }
+    if (gesture.axis !== "horizontal") return;
     gesture.lastX = event.clientX;
-    setDragOffset(delta);
+    setDragOffset(deltaX);
   };
 
   const handleRailPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
     delete event.currentTarget.dataset.dragging;
     finishRailGesture(event);
+  };
+
+  const handleRailPointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+    cancelRailGesture(event);
   };
 
   const handleRailWheel = (event: WheelEvent<HTMLDivElement>) => {
@@ -258,7 +332,12 @@ export function SportsCardsExperience() {
 
   return (
     <main className={styles.page} data-inspecting={inspectCard ? "true" : "false"}>
-      <header className={styles.header}>
+      <div
+        className={styles.archiveContent}
+        aria-hidden={inspectCard ? true : undefined}
+        inert={inspectCard ? true : undefined}
+      >
+        <header className={styles.header}>
         <Link href="/" className={styles.backLink} aria-label="Back to profile index">
           <ArrowLeft aria-hidden="true" />
           INDEX
@@ -279,26 +358,59 @@ export function SportsCardsExperience() {
             </button>
           ))}
         </div>
-      </header>
+        </header>
 
-      <section className={styles.collection} aria-label={`${sport} card collection`}>
+        <section className={styles.collection} aria-label={`${sport} card collection`}>
+        <nav className={styles.seriesBar} aria-label={`${sport} card series`}>
+          <span className={styles.seriesLabel}>SERIES</span>
+          <div className={styles.seriesTabs} role="group" aria-label="Filter cards by series">
+            <button
+              type="button"
+              className={activeSeriesId === "all" ? styles.seriesActive : undefined}
+              aria-pressed={activeSeriesId === "all"}
+              onClick={() => changeSeries("all")}
+            >
+              <span>ALL</span>
+              <small>{String(allSportCards.length).padStart(2, "0")}</small>
+            </button>
+            {seriesOptions.map((series) => {
+              const count = allSportCards.filter((card) => card.seriesId === series.id).length;
+              return (
+                <button
+                  key={series.id}
+                  type="button"
+                  className={activeSeriesId === series.id ? styles.seriesActive : undefined}
+                  aria-pressed={activeSeriesId === series.id}
+                  onClick={() => changeSeries(series.id)}
+                >
+                  <span>{series.shortLabel}</span>
+                  <small>{String(count).padStart(2, "0")}</small>
+                </button>
+              );
+            })}
+          </div>
+          <p aria-live="polite">
+            {activeSeries ? `${activeSeries.era} · ${activeSeries.finish}` : "TOPPS / PANINI ARCHIVE"}
+          </p>
+        </nav>
+
         <div
           className={styles.railViewport}
           tabIndex={0}
           role="listbox"
-          aria-label={`${sport === "nba" ? "NBA" : "Football"} player cards`}
+          aria-label={`${sport === "nba" ? "NBA" : "Football"} ${activeSeries?.label ?? "all series"} player cards`}
           aria-activedescendant={`rail-card-${activeCard.id}`}
           onPointerDown={handleRailPointerDown}
           onPointerMove={handleRailPointerMove}
           onPointerUp={handleRailPointerEnd}
-          onPointerCancel={handleRailPointerEnd}
+          onPointerCancel={handleRailPointerCancel}
           onLostPointerCapture={() => {
-            if (gestureRef.current.pointerId !== null) finishRailGesture();
+            if (gestureRef.current.pointerId !== null) cancelRailGesture();
           }}
           onWheel={handleRailWheel}
           onKeyDown={handleRailKeyDown}
         >
-          <div className={styles.rail}>
+          <div key={scopeKey} className={styles.rail}>
             {cards.map((card, index) => {
               const offset = index - activeIndex;
               const visualOffset = offset + dragOffset / railStep;
@@ -332,6 +444,7 @@ export function SportsCardsExperience() {
                     card={card}
                     priority={index === 0}
                     sizes="(max-width: 640px) 58vw, (max-width: 1024px) 30vw, 235px"
+                    effects={Math.abs(index - activeIndex) <= 1}
                   />
                 </button>
               );
@@ -339,7 +452,11 @@ export function SportsCardsExperience() {
           </div>
         </div>
 
-        <div className={styles.activeCaption} aria-live="polite">
+        <p className={styles.selectionStatus} role="status" aria-live="polite">
+          {activeCard.player}, {activeIndex + 1} of {cards.length}, {activeSeries?.label ?? "all series"}
+        </p>
+
+        <div className={styles.activeCaption}>
           <span>
             {String(activeIndex + 1).padStart(2, "0")} / {String(cards.length).padStart(2, "0")}
           </span>
@@ -368,7 +485,7 @@ export function SportsCardsExperience() {
                 key={card.id}
                 type="button"
                 className={index === activeIndex ? styles.railDotActive : undefined}
-                aria-label={`Select ${card.player}`}
+                aria-label={`Select ${card.player}, ${card.series} ${card.parallel}`}
                 aria-current={index === activeIndex ? "true" : undefined}
                 onClick={() => changeIndex(index)}
               />
@@ -383,9 +500,9 @@ export function SportsCardsExperience() {
             <ChevronRight aria-hidden="true" />
           </button>
         </div>
-      </section>
+        </section>
 
-      <footer className={styles.footer}>
+        <footer className={styles.footer}>
         <p><Rotate3D aria-hidden="true" /> DRAG OR SCROLL TO BROWSE · SELECT TO INSPECT</p>
         <p>
           TOPPS / PANINI ·{" "}
@@ -393,13 +510,15 @@ export function SportsCardsExperience() {
             MEDIA CREDITS
           </a>
         </p>
-      </footer>
+        </footer>
+      </div>
 
       {inspectCard ? (
         <section
           ref={inspectorRef}
           className={styles.inspector}
-          aria-label={`Inspecting ${inspectCard.player} card`}
+          aria-labelledby="card-inspector-title"
+          aria-describedby="card-inspector-instructions"
           role="dialog"
           aria-modal="true"
           onKeyDown={handleInspectorKeyDown}
@@ -408,7 +527,7 @@ export function SportsCardsExperience() {
             <button type="button" className={styles.backButton} onClick={closeInspect}>
               <ArrowLeft aria-hidden="true" /> COLLECTION
             </button>
-            <p>{face.toUpperCase()} · LIVE FOIL</p>
+            <p id="card-inspector-title">{inspectCard.player} · {face.toUpperCase()} · LIVE FOIL</p>
             <button
               type="button"
               className={styles.closeButton}
@@ -437,6 +556,7 @@ export function SportsCardsExperience() {
               <p className={styles.detailTeam}>{inspectCard.team} · {inspectCard.position} · #{inspectCard.number}</p>
 
               <dl className={styles.detailList}>
+                <div><dt>COLLECTION</dt><dd>{getSeriesById(inspectCard.seriesId)?.label}</dd></div>
                 <div><dt>SERIES</dt><dd>{inspectCard.series}</dd></div>
                 <div><dt>PARALLEL</dt><dd>{inspectCard.parallel}</dd></div>
                 <div><dt>EDITION</dt><dd>{inspectCard.serial}</dd></div>
@@ -453,7 +573,7 @@ export function SportsCardsExperience() {
                 </button>
                 <button type="button" onClick={closeInspect}>RETURN</button>
               </div>
-              <p className={styles.inspectHint}><Rotate3D aria-hidden="true" /> DRAG THE CARD FREELY · RELEASE TO SPIN · DOUBLE CLICK TO FLIP</p>
+              <p id="card-inspector-instructions" className={styles.inspectHint}><Rotate3D aria-hidden="true" /> DRAG THE CARD FREELY · RELEASE TO SPIN · DOUBLE CLICK TO FLIP</p>
             </aside>
           </div>
 

@@ -8,6 +8,7 @@ type SportsCardArtworkProps = {
   face?: "front" | "back";
   priority?: boolean;
   sizes?: string;
+  effects?: boolean;
 };
 
 type CardTheme = CSSProperties & {
@@ -21,6 +22,7 @@ export function SportsCardArtwork({
   face = "front",
   priority = false,
   sizes = "(max-width: 640px) 62vw, 240px",
+  effects = true,
 }: SportsCardArtworkProps) {
   const theme: CardTheme = {
     "--card-primary": card.primary,
@@ -34,8 +36,10 @@ export function SportsCardArtwork({
       className={`${styles.cardArtwork} ${face === "back" ? styles.cardBackArtwork : ""}`}
       style={theme}
       data-foil={face === "front" ? card.foil : "paper"}
+      data-foil-mask={face === "front" ? card.foilMask : undefined}
       data-autograph={face === "front" && card.autographed ? card.autographMask : undefined}
       data-maker={card.maker.toLowerCase()}
+      data-series={card.seriesId}
     >
       <Image
         src={src}
@@ -47,7 +51,7 @@ export function SportsCardArtwork({
         draggable={false}
       />
 
-      {face === "front" ? (
+      {face === "front" && effects ? (
         <>
           <span className={styles.foilDiffraction} aria-hidden="true" />
           <span className={styles.foilEtching} aria-hidden="true" />
@@ -59,12 +63,12 @@ export function SportsCardArtwork({
             </span>
           ) : null}
         </>
-      ) : (
+      ) : face === "back" && effects ? (
         <>
           <span className={styles.backSatin} aria-hidden="true" />
           <span className={styles.clearCoat} aria-hidden="true" />
         </>
-      )}
+      ) : null}
     </div>
   );
 }
