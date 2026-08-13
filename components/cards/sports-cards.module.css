@@ -533,9 +533,9 @@
 /* The artwork owns no motion variables. It only consumes values inherited from
    either the rail item or the quaternion-driven interactive card. */
 .cardArtwork {
-  --foil-strength: 0.7;
-  --glare-strength: 0.7;
-  --coat-strength: 0.72;
+  --foil-strength: 0.62;
+  --glare-strength: 0.66;
+  --coat-strength: 0.62;
   position: relative;
   width: 100%;
   height: 100%;
@@ -584,7 +584,7 @@
     center;
   background-size: 100% 100%, 230% 230%, 100% 100%;
   mix-blend-mode: color-dodge;
-  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.58);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.46);
   filter:
     hue-rotate(var(--foil-hue, 0deg))
     saturate(1.5)
@@ -596,7 +596,7 @@
 .foilEtching {
   z-index: 3;
   mix-blend-mode: screen;
-  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.42);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.34);
   filter: hue-rotate(var(--foil-hue, 0deg));
   will-change: opacity, background-position, filter;
 }
@@ -612,7 +612,7 @@
       transparent 68%
     );
   mix-blend-mode: screen;
-  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * var(--glare-strength)), 0.55);
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * var(--glare-strength)), 0.5);
   transform: rotate(var(--glare-angle, 120deg)) scale(1.18);
   transform-origin: var(--glare-x, 50%) var(--glare-y, 50%);
   will-change: opacity, transform, background;
@@ -637,7 +637,7 @@
       transparent 86%
     );
   mix-blend-mode: screen;
-  opacity: clamp(0.02, calc(var(--coat-opacity, 0.16) * var(--coat-strength)), 0.46);
+  opacity: clamp(0.02, calc(var(--coat-opacity, 0.16) * var(--coat-strength)), 0.38);
   will-change: opacity, background;
 }
 
@@ -657,45 +657,45 @@
    type or autograph ink. These series profiles approximate the physical strike
    zones while preserving the exact scanned artwork below. */
 .cardArtwork[data-foil-mask="chrome-frame"] {
-  --foil-strength: 0.78;
-  --glare-strength: 0.72;
-  --coat-strength: 0.68;
+  --foil-strength: 0.72;
+  --glare-strength: 0.7;
+  --coat-strength: 0.62;
 }
 
 .cardArtwork[data-foil-mask="prizm-frame"] {
-  --foil-strength: 0.68;
-  --glare-strength: 0.64;
-  --coat-strength: 0.62;
+  --foil-strength: 0.58;
+  --glare-strength: 0.72;
+  --coat-strength: 0.6;
 }
 
 .cardArtwork[data-foil-mask="chrome-auto"] {
-  --foil-strength: 0.62;
-  --glare-strength: 0.58;
-  --coat-strength: 0.64;
-}
-
-.cardArtwork[data-foil-mask="prizm-auto"] {
   --foil-strength: 0.58;
-  --glare-strength: 0.56;
-  --coat-strength: 0.6;
-}
-
-.cardArtwork[data-foil-mask="prizm-center-auto"] {
-  --foil-strength: 0.54;
-  --glare-strength: 0.52;
+  --glare-strength: 0.64;
   --coat-strength: 0.58;
 }
 
+.cardArtwork[data-foil-mask="prizm-auto"] {
+  --foil-strength: 0.42;
+  --glare-strength: 0.5;
+  --coat-strength: 0.5;
+}
+
+.cardArtwork[data-foil-mask="prizm-center-auto"] {
+  --foil-strength: 0.4;
+  --glare-strength: 0.48;
+  --coat-strength: 0.48;
+}
+
 .cardArtwork[data-foil-mask="night-vision"] {
-  --foil-strength: 0.62;
-  --glare-strength: 0.56;
-  --coat-strength: 0.6;
+  --foil-strength: 0.64;
+  --glare-strength: 0.52;
+  --coat-strength: 0.54;
 }
 
 .cardArtwork[data-foil-mask="gold-auto"] {
-  --foil-strength: 0.56;
+  --foil-strength: 0.54;
   --glare-strength: 0.62;
-  --coat-strength: 0.62;
+  --coat-strength: 0.56;
 }
 
 .cardArtwork[data-foil-mask="chrome-frame"] .foilDiffraction,
@@ -770,185 +770,136 @@
   mask-image: linear-gradient(#000 0 60%, transparent 65% 89%, #000 95%);
 }
 
-/* Topps Chrome: a wide spectral refraction with fine radial chrome etching. */
+/* Standard Topps Refractor: one continuous spectral band and mirror sweep. */
 .cardArtwork[data-foil="topps-refractor"] .foilDiffraction {
   background-image:
-    radial-gradient(
-      circle at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 255 255 / 92%) 0 2%,
-      rgb(95 225 255 / 65%) 8%,
-      rgb(102 92 255 / 58%) 18%,
-      rgb(255 75 182 / 56%) 28%,
-      rgb(255 220 91 / 46%) 39%,
-      rgb(84 255 191 / 30%) 51%,
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + 90deg),
+      transparent 27%,
+      rgb(91 226 255 / 18%) 37%,
+      rgb(102 103 255 / 21%) 42%,
+      rgb(255 92 197 / 18%) 47%,
+      rgb(255 226 105 / 15%) 52%,
+      rgb(97 255 190 / 14%) 57%,
       transparent 69%
     ),
-    conic-gradient(
-      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
-      transparent 0deg,
-      rgb(80 226 255 / 42%) 34deg,
-      rgb(98 83 255 / 54%) 70deg,
-      rgb(255 61 190 / 47%) 112deg,
-      rgb(255 224 78 / 46%) 160deg,
-      rgb(84 255 180 / 38%) 211deg,
-      transparent 286deg,
-      rgb(255 255 255 / 26%) 360deg
-    ),
-    linear-gradient(135deg, rgb(255 255 255 / 10%), transparent 48%, rgb(255 255 255 / 8%));
-}
-
-.cardArtwork[data-foil="topps-refractor"] .foilEtching {
-  background:
-    repeating-conic-gradient(
-      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 255 255 / 15%) 0deg 0.28deg,
-      transparent 0.32deg 4.6deg
-    ),
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) + 16deg),
-      transparent 0 7px,
-      rgb(130 220 255 / 10%) 8px,
-      transparent 9px 17px
-    );
-  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
-}
-
-/* 1996–2008 Topps Chrome: tight linear diffraction in the plated border. */
-.cardArtwork[data-series="nba-topps-chrome-icons"] .foilEtching {
-  background:
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) + 74deg),
-      transparent 0 1.5px,
-      rgb(255 255 255 / 18%) 1.75px,
-      transparent 2px 5.5px
-    ),
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) - 18deg),
-      transparent 0 13px,
-      rgb(102 218 255 / 13%) 14px,
-      transparent 15px 29px
+    radial-gradient(
+      ellipse 34% 24% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 24%) 0%,
+      rgb(202 232 255 / 10%) 31%,
+      transparent 68%
     );
   background-position:
     var(--foil-x, 50%) var(--foil-y, 50%),
-    var(--foil-x, 50%) var(--foil-y, 50%);
-}
-
-/* Topps Night Vision /225: green-cyan interference with a dark, tight grid;
-   intentionally no broad magenta/yellow rainbow used by standard Refractors. */
-.cardArtwork[data-foil="topps-night-vision"] .foilDiffraction {
-  background-image:
-    radial-gradient(
-      ellipse 42% 34% at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(244 255 249 / 56%) 0%,
-      rgb(91 255 190 / 42%) 14%,
-      rgb(23 190 162 / 25%) 34%,
-      transparent 63%
-    ),
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) + 24deg),
-      rgb(67 244 167 / 18%) 0 5px,
-      rgb(6 72 63 / 7%) 6px 11px,
-      transparent 12px 19px
-    ),
-    linear-gradient(135deg, rgb(45 216 154 / 19%), rgb(8 59 53 / 7%) 52%, rgb(91 244 202 / 18%));
+    center;
+  background-size: 210% 210%, 100% 100%;
   mix-blend-mode: screen;
   filter:
     hue-rotate(var(--foil-hue, 0deg))
-    saturate(1.18)
-    contrast(1.24);
+    saturate(1.12)
+    contrast(1.12);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.4);
+}
+
+.cardArtwork[data-foil="topps-refractor"] .foilEtching {
+  background: linear-gradient(
+    calc(var(--foil-angle, 120deg) + 90deg),
+    transparent 43%,
+    rgb(219 240 255 / 10%) 46%,
+    rgb(255 255 255 / 44%) 49%,
+    rgb(255 255 255 / 17%) 52%,
+    transparent 57%
+  );
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 220% 220%;
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.45), 0.32);
+}
+
+/* Night Vision is a broad monochrome green interference finish. Large soft
+   waves move through the whole print; there is no RGB rainbow or micro-grid. */
+.cardArtwork[data-foil="topps-night-vision"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      ellipse 68% 36% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(231 255 241 / 30%) 0%,
+      rgb(86 235 164 / 22%) 24%,
+      rgb(14 132 112 / 11%) 47%,
+      transparent 72%
+    ),
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + 22deg),
+      transparent 18%,
+      rgb(36 188 132 / 7%) 34%,
+      rgb(158 255 207 / 18%) 48%,
+      rgb(22 128 108 / 8%) 63%,
+      transparent 82%
+    ),
+    radial-gradient(
+      ellipse 75% 58% at calc(100% - var(--foil-x, 50%)) calc(100% - var(--foil-y, 50%)),
+      rgb(116 255 189 / 11%),
+      transparent 66%
+    );
+  background-position:
+    center,
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    center;
+  background-size: 100% 100%, 180% 180%, 100% 100%;
+  mix-blend-mode: screen;
+  filter: saturate(1.08) contrast(1.12);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.36);
 }
 
 .cardArtwork[data-foil="topps-night-vision"] .foilEtching {
-  background:
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) - 44deg),
-      transparent 0 6px,
-      rgb(130 255 207 / 15%) 7px,
-      transparent 8px 15px
-    ),
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) + 46deg),
-      transparent 0 10px,
-      rgb(20 126 101 / 14%) 11px,
-      transparent 12px 23px
-    );
-  background-position:
-    var(--foil-x, 50%) var(--foil-y, 50%),
-    calc(100% - var(--foil-x, 50%)) calc(100% - var(--foil-y, 50%));
+  background: radial-gradient(
+    ellipse 28% 18% at var(--foil-x, 50%) var(--foil-y, 50%),
+    rgb(238 255 245 / 32%),
+    rgb(110 245 185 / 12%) 34%,
+    transparent 74%
+  );
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.34), 0.22);
 }
 
 /* Panini Silver Prizm: cooler chrome, hard specular travel and narrow rainbows. */
 .cardArtwork[data-foil="prizm-silver"] .foilDiffraction {
   background-image:
     radial-gradient(
-      ellipse 54% 42% at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 255 255 / 95%) 0%,
-      rgb(180 224 255 / 54%) 13%,
-      transparent 42%
+      ellipse 30% 23% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 54%) 0%,
+      rgb(192 226 255 / 21%) 24%,
+      transparent 58%
     ),
-    conic-gradient(
-      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 85 142 / 38%),
-      rgb(255 226 83 / 30%) 15%,
-      rgb(84 255 200 / 37%) 30%,
-      rgb(84 185 255 / 46%) 48%,
-      rgb(154 94 255 / 43%) 66%,
-      rgb(255 80 177 / 35%) 83%,
-      rgb(255 255 255 / 22%)
-    ),
-    repeating-linear-gradient(
-      118deg,
-      rgb(255 255 255 / 11%) 0 1px,
-      transparent 1px 5px
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + 90deg),
+      transparent 35%,
+      rgb(105 226 255 / 8%) 43%,
+      rgb(255 255 255 / 22%) 48%,
+      rgb(255 121 209 / 7%) 53%,
+      transparent 62%
     );
+  background-position:
+    center,
+    var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 100% 100%, 190% 190%;
   mix-blend-mode: screen;
-  filter:
-    hue-rotate(var(--foil-hue, 0deg))
-    saturate(1.15)
-    contrast(1.35);
+  filter: saturate(0.82) contrast(1.16);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.29);
 }
 
 .cardArtwork[data-foil="prizm-silver"] .foilEtching {
-  background:
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) - 34deg),
-      transparent 0 11px,
-      rgb(255 255 255 / 15%) 12px,
-      transparent 13px 24px
-    ),
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) + 52deg),
-      transparent 0 19px,
-      rgb(110 205 255 / 10%) 20px,
-      transparent 21px 39px
-    );
-  background-position:
-    var(--foil-x, 50%) var(--foil-y, 50%),
-    calc(100% - var(--foil-x, 50%)) calc(100% - var(--foil-y, 50%));
-}
-
-/* Panini Prizm Silver combines the printed diagonal geometry with a micro-dot
-   emboss. The moving layer only catches those raised silver areas. */
-.cardArtwork[data-series="nba-panini-prizm-silver"] .foilEtching {
-  background:
-    radial-gradient(circle, rgb(255 255 255 / 21%) 0 0.7px, transparent 0.85px),
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) - 36deg),
-      transparent 0 10px,
-      rgb(110 214 255 / 17%) 11px,
-      transparent 12px 24px
-    ),
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) + 54deg),
-      transparent 0 18px,
-      rgb(255 142 222 / 10%) 19px,
-      transparent 20px 38px
-    );
-  background-position:
-    var(--foil-x, 50%) var(--foil-y, 50%),
-    var(--foil-x, 50%) var(--foil-y, 50%),
-    calc(100% - var(--foil-x, 50%)) calc(100% - var(--foil-y, 50%));
-  background-size: 8px 8px, auto, auto;
+  background: linear-gradient(
+    calc(var(--foil-angle, 120deg) + 90deg),
+    transparent 44%,
+    rgb(210 232 247 / 12%) 47%,
+    rgb(255 255 255 / 48%) 50%,
+    rgb(205 229 247 / 10%) 53%,
+    transparent 57%
+  );
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 205% 205%;
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.54), 0.36);
 }
 
 /* Topps Mercury blue: blue anodized chrome with cyan/magenta interference. */
@@ -995,52 +946,37 @@
     );
 }
 
-/* Topps Mercury Gold: warm plated foil with fractured gold facets. */
+/* Mercury Gold uses a smooth amber/champagne plated sweep. The card-specific
+   alpha mask restricts it to the printed gold architecture and keeps the
+   player, black panels, nameplate and blue on-card ink untouched. */
 .cardArtwork[data-foil="topps-gold"] .foilDiffraction {
-  background-image:
-    radial-gradient(
-      ellipse 52% 42% at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 255 255 / 94%) 0%,
-      rgb(255 237 154 / 72%) 10%,
-      rgb(255 181 39 / 54%) 25%,
-      rgb(236 104 19 / 35%) 41%,
-      transparent 66%
-    ),
-    conic-gradient(
-      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 223 97 / 38%),
-      rgb(255 255 224 / 54%) 12%,
-      rgb(237 151 28 / 44%) 27%,
-      rgb(255 228 126 / 51%) 43%,
-      rgb(225 105 18 / 35%) 59%,
-      rgb(255 246 187 / 55%) 76%,
-      rgb(255 189 42 / 40%)
-    ),
-    linear-gradient(135deg, rgb(255 221 112 / 25%), rgb(135 65 8 / 12%) 52%, rgb(255 243 194 / 22%));
-  mix-blend-mode: color-dodge;
-  filter:
-    hue-rotate(var(--foil-hue, 0deg))
-    saturate(1.18)
-    contrast(1.3);
+  background-image: linear-gradient(
+    calc(var(--foil-angle, 120deg) + 90deg),
+    transparent 29%,
+    rgb(211 139 26 / 9%) 38%,
+    rgb(255 213 100 / 19%) 43%,
+    rgb(255 250 211 / 36%) 49%,
+    rgb(247 181 54 / 21%) 55%,
+    rgb(139 76 15 / 7%) 63%,
+    transparent 73%
+  );
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 205% 205%;
+  mix-blend-mode: screen;
+  filter: saturate(1.04) contrast(1.13);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.34);
 }
 
 .cardArtwork[data-foil="topps-gold"] .foilEtching {
-  background:
-    repeating-conic-gradient(
-      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 247 205 / 18%) 0deg 0.38deg,
-      transparent 0.45deg 5.8deg
-    ),
-    repeating-linear-gradient(
-      calc(var(--foil-angle, 120deg) + 31deg),
-      transparent 0 9px,
-      rgb(255 211 92 / 16%) 10px,
-      transparent 11px 23px
-    );
-  background-position:
-    var(--foil-x, 50%) var(--foil-y, 50%),
-    var(--foil-x, 50%) var(--foil-y, 50%);
-  mix-blend-mode: color-dodge;
+  background: radial-gradient(
+    ellipse 34% 23% at var(--foil-x, 50%) var(--foil-y, 50%),
+    rgb(255 253 222 / 38%),
+    rgb(255 208 92 / 13%) 31%,
+    transparent 68%
+  );
+  mix-blend-mode: screen;
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.4), 0.28);
 }
 
 /* Panini autograph stock uses the Silver Prizm recipe at a lower density so
@@ -1048,37 +984,51 @@
 .cardArtwork[data-foil="prizm-auto"] .foilDiffraction {
   background-image:
     radial-gradient(
-      ellipse 58% 45% at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 255 255 / 93%) 0%,
-      rgb(151 219 255 / 48%) 11%,
-      transparent 39%
+      ellipse 34% 25% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 36%) 0%,
+      rgb(180 217 239 / 14%) 25%,
+      transparent 61%
     ),
-    conic-gradient(
-      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 91 161 / 40%),
-      rgb(255 230 86 / 35%) 16%,
-      rgb(81 255 191 / 38%) 31%,
-      rgb(71 188 255 / 50%) 48%,
-      rgb(135 87 255 / 45%) 65%,
-      rgb(255 89 190 / 36%) 83%,
-      rgb(255 255 255 / 25%)
-    ),
-    repeating-linear-gradient(126deg, rgb(255 255 255 / 10%) 0 1px, transparent 1px 7px);
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + 90deg),
+      transparent 40%,
+      rgb(106 217 255 / 5%) 46%,
+      rgb(255 255 255 / 18%) 50%,
+      rgb(255 138 218 / 4%) 54%,
+      transparent 61%
+    );
+  background-position:
+    center,
+    var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 100% 100%, 205% 205%;
   mix-blend-mode: screen;
+  filter: saturate(0.55) contrast(1.1);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.23);
 }
 
 .cardArtwork[data-foil="prizm-auto"] .foilEtching {
-  background:
-    repeating-conic-gradient(
-      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
-      rgb(255 255 255 / 12%) 0 0.35deg,
-      transparent 0.45deg 6.4deg
-    );
-  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.32);
+  background: linear-gradient(
+    calc(var(--foil-angle, 120deg) + 90deg),
+    transparent 45%,
+    rgb(221 236 248 / 10%) 48%,
+    rgb(255 255 255 / 34%) 50%,
+    rgb(211 231 245 / 8%) 53%,
+    transparent 56%
+  );
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 220% 220%;
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.36), 0.24);
+}
+
+.cardArtwork[data-card="cristiano-ronaldo-prizm-auto"] {
+  --foil-strength: 0.53;
+  --glare-strength: 0.6;
+  --coat-strength: 0.56;
 }
 
 .autographProtection {
-  z-index: 4;
+  z-index: 7;
   overflow: hidden;
   filter: contrast(1.025) saturate(0.98);
   transform: translateZ(0);
@@ -1092,26 +1042,6 @@
   object-fit: cover !important;
   user-select: none;
   -webkit-user-drag: none;
-}
-
-.cardArtwork[data-autograph="mercury"] .autographProtection {
-  clip-path: polygon(5% 61%, 95% 61%, 95% 88.5%, 5% 88.5%);
-}
-
-.cardArtwork[data-autograph="prizm-bottom"] .autographProtection {
-  clip-path: polygon(5% 65%, 95% 65%, 95% 92%, 5% 92%);
-}
-
-.cardArtwork[data-autograph="neymar-sticker"] .autographProtection {
-  clip-path: polygon(12% 69%, 88% 69%, 88% 91%, 12% 91%);
-}
-
-.cardArtwork[data-autograph="mbappe-sticker"] .autographProtection {
-  clip-path: polygon(33% 65%, 74% 65%, 74% 83%, 33% 83%);
-}
-
-.cardArtwork[data-autograph="chrome-bottom"] .autographProtection {
-  clip-path: polygon(4% 62%, 96% 62%, 96% 93%, 4% 93%);
 }
 
 .cardBackArtwork {
@@ -1375,7 +1305,7 @@
 .cardDetails h2 {
   margin: 0;
   color: #f5f5f5;
-  font-size: clamp(38px, 4vw, 66px);
+  font-size: clamp(36px, 3.25vw, 60px);
   font-weight: 700;
   letter-spacing: -0.065em;
   line-height: 0.82;
@@ -1390,6 +1320,11 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   line-height: 1;
+}
+
+.cardDetails h2.longPlayerName {
+  font-size: clamp(30px, 2.6vw, 48px);
+  letter-spacing: -0.055em;
 }
 
 .detailTeam {

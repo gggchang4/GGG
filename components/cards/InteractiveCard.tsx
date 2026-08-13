@@ -45,6 +45,8 @@ type CardMotionState = {
   orientation: Quaternion;
   angularVelocity: Vector3;
   target: Quaternion | null;
+  returnToRest: boolean;
+  coastElapsed: number;
   lastArcPoint: Vector3;
   lastPointerTime: number;
   lightX: number;
@@ -57,13 +59,20 @@ const DEFAULT_LIGHT_Y = 0.42;
 const FACE_HYSTERESIS = 0.04;
 const ARC_RADIUS_FACTOR = 0.5;
 const MAX_ANGULAR_SPEED = 12;
+const MAX_RELEASE_ANGULAR_SPEED = 5.75;
 const MIN_ANGULAR_SPEED = 0.015;
 const INERTIA_DAMPING = 2.8;
+const RETURN_COAST_DURATION = 0.085;
+const RETURN_COAST_DAMPING = 6.5;
+const RETURN_COAST_MIN_SPEED = 0.18;
+const RETURN_LIGHT_DAMPING = 7.5;
 const VELOCITY_SMOOTHING = 24;
-const SPRING_STIFFNESS = 90;
-const SPRING_DAMPING = 2 * Math.sqrt(SPRING_STIFFNESS);
-const SPRING_POSITION_EPSILON = 0.0025;
-const SPRING_VELOCITY_EPSILON = 0.025;
+const SPRING_STIFFNESS = 72;
+const SPRING_DAMPING_RATIO = 0.86;
+const SPRING_DAMPING =
+  2 * Math.sqrt(SPRING_STIFFNESS) * SPRING_DAMPING_RATIO;
+const SPRING_POSITION_EPSILON = 0.002;
+const SPRING_VELOCITY_EPSILON = 0.02;
 const MAX_FRAME_DELTA = 1 / 30;
 const SPRING_STEP = 1 / 120;
 
@@ -91,6 +100,8 @@ function createMotionState(): CardMotionState {
     orientation: INITIAL_ORIENTATION.clone(),
     angularVelocity: new Vector3(),
     target: null,
+    returnToRest: false,
+    coastElapsed: 0,
     lastArcPoint: new Vector3(0, 0, 1),
     lastPointerTime: 0,
     lightX: DEFAULT_LIGHT_X,
@@ -320,12 +331,59 @@ export function InteractiveCard({
 
       let keepAnimating = false;
 
+      if (state.returnToRest) {
+        const lightBlend = 1 - Math.exp(-RETURN_LIGHT_DAMPING * frameDelta);
+        state.lightX += (DEFAULT_LIGHT_X - state.lightX) * lightBlend;
+        state.lightY += (DEFAULT_LIGHT_Y - state.lightY) * lightBlend;
+      }
+
       if (reducedMotion) {
-        if (state.target) {
+        if (state.returnToRest) {
+          state.orientation.copy(INITIAL_ORIENTATION);
+          state.lightX = DEFAULT_LIGHT_X;
+          state.lightY = DEFAULT_LIGHT_Y;
+        } else if (state.target) {
           state.orientation.copy(state.target);
-          state.target = null;
         }
+        state.target = null;
+        state.returnToRest = false;
+        state.coastElapsed = 0;
         state.angularVelocity.set(0, 0, 0);
+      } else if (state.returnToRest && !state.target) {
+        const speed = state.angularVelocity.length();
+        const coastRemaining = Math.max(
+          0,
+          RETURN_COAST_DURATION - state.coastElapsed,
+        );
+
+        if (speed > RETURN_COAST_MIN_SPEED && coastRemaining > 0) {
+          const coastDelta = Math.min(frameDelta, coastRemaining);
+          scratch.integrationAxis
+            .copy(state.angularVelocity)
+            .multiplyScalar(1 / speed);
+          scratch.integrationQuaternion.setFromAxisAngle(
+            scratch.integrationAxis,
+            speed * coastDelta,
+          );
+          state.orientation
+            .premultiply(scratch.integrationQuaternion)
+            .normalize();
+          state.angularVelocity.multiplyScalar(
+            Math.exp(-RETURN_COAST_DAMPING * coastDelta),
+          );
+          state.coastElapsed += coastDelta;
+        } else {
+          state.coastElapsed = RETURN_COAST_DURATION;
+        }
+
+        if (
+          state.coastElapsed >= RETURN_COAST_DURATION ||
+          state.angularVelocity.length() <= RETURN_COAST_MIN_SPEED
+        ) {
+          state.target = INITIAL_ORIENTATION.clone();
+        }
+
+        keepAnimating = true;
       } else if (state.target) {
         const substeps = Math.max(1, Math.ceil(frameDelta / SPRING_STEP));
         const delta = frameDelta / substeps;
@@ -412,7 +470,11 @@ export function InteractiveCard({
         ) {
           state.orientation.copy(state.target);
           state.target = null;
+          state.returnToRest = false;
+          state.coastElapsed = 0;
           state.angularVelocity.set(0, 0, 0);
+          state.lightX = DEFAULT_LIGHT_X;
+          state.lightY = DEFAULT_LIGHT_Y;
         } else {
           keepAnimating = true;
         }
@@ -463,6 +525,8 @@ export function InteractiveCard({
       WORLD_Y,
       direction * Math.PI,
     );
+    state.returnToRest = false;
+    state.coastElapsed = 0;
     state.target = baseOrientation.premultiply(flipQuaternion).normalize();
     state.angularVelocity.multiplyScalar(0.25);
 
@@ -480,6 +544,8 @@ export function InteractiveCard({
 
   const resetCard = useCallback(() => {
     const state = stateRef.current;
+    state.returnToRest = false;
+    state.coastElapsed = 0;
     state.target = INITIAL_ORIENTATION.clone();
     state.angularVelocity.set(0, 0, 0);
 
@@ -495,14 +561,18 @@ export function InteractiveCard({
   }, [reducedMotion, renderCard, startAnimation, stopAnimation]);
 
   const finishPointer = useCallback(
-    (event?: ReactPointerEvent<HTMLDivElement>) => {
+    (
+      event?: ReactPointerEvent<HTMLDivElement>,
+      cancelled = false,
+    ) => {
       if (event && pointerIdRef.current !== event.pointerId) return;
 
       const pointerId = pointerIdRef.current;
       const element = cardRef.current;
+      const state = stateRef.current;
       draggingRef.current = false;
       pointerIdRef.current = null;
-      stateRef.current.lastPointerTime = 0;
+      state.lastPointerTime = 0;
 
       if (element) {
         delete element.dataset.dragging;
@@ -515,18 +585,37 @@ export function InteractiveCard({
       }
 
       if (reducedMotion) {
-        stateRef.current.angularVelocity.set(0, 0, 0);
+        stopAnimation();
+        state.orientation.copy(INITIAL_ORIENTATION);
+        state.angularVelocity.set(0, 0, 0);
+        state.target = null;
+        state.returnToRest = false;
+        state.coastElapsed = 0;
+        state.lightX = DEFAULT_LIGHT_X;
+        state.lightY = DEFAULT_LIGHT_Y;
         renderCard();
-      } else if (
-        stateRef.current.angularVelocity.length() > MIN_ANGULAR_SPEED
-      ) {
-        startAnimation();
       } else {
-        stateRef.current.angularVelocity.set(0, 0, 0);
-        renderCard();
+        state.returnToRest = true;
+        state.coastElapsed = 0;
+        state.target = null;
+        state.angularVelocity.clampLength(
+          0,
+          MAX_RELEASE_ANGULAR_SPEED,
+        );
+
+        if (
+          cancelled ||
+          state.angularVelocity.length() <= RETURN_COAST_MIN_SPEED
+        ) {
+          if (cancelled) state.angularVelocity.set(0, 0, 0);
+          state.coastElapsed = RETURN_COAST_DURATION;
+          state.target = INITIAL_ORIENTATION.clone();
+        }
+
+        startAnimation();
       }
     },
-    [reducedMotion, renderCard, startAnimation],
+    [reducedMotion, renderCard, startAnimation, stopAnimation],
   );
 
   const queueKeyboardRotation = useCallback(
@@ -535,6 +624,8 @@ export function InteractiveCard({
       const baseOrientation = (state.target ?? state.orientation).clone();
       const deltaQuaternion =
         scratchRef.current.keyboardQuaternion.setFromAxisAngle(axis, angle);
+      state.returnToRest = false;
+      state.coastElapsed = 0;
       state.target = baseOrientation
         .premultiply(deltaQuaternion)
         .normalize();
@@ -574,6 +665,8 @@ export function InteractiveCard({
     state.orientation.copy(INITIAL_ORIENTATION);
     state.angularVelocity.set(0, 0, 0);
     state.target = null;
+    state.returnToRest = false;
+    state.coastElapsed = 0;
     state.lastArcPoint.set(0, 0, 1);
     state.lastPointerTime = 0;
     state.lightX = DEFAULT_LIGHT_X;
@@ -600,17 +693,21 @@ export function InteractiveCard({
 
     stopAnimation();
     const state = stateRef.current;
-    if (state.target) {
+    if (state.returnToRest) {
+      state.orientation.copy(INITIAL_ORIENTATION);
+    } else if (state.target) {
       state.orientation.copy(state.target);
-      state.target = null;
     }
+    state.target = null;
+    state.returnToRest = false;
+    state.coastElapsed = 0;
     state.angularVelocity.set(0, 0, 0);
     renderCard();
   }, [reducedMotion, renderCard, stopAnimation]);
 
   useEffect(() => {
     const cancel = () => {
-      if (draggingRef.current) finishPointer();
+      if (draggingRef.current) finishPointer(undefined, true);
     };
 
     window.addEventListener("blur", cancel);
@@ -627,6 +724,8 @@ export function InteractiveCard({
 
     const state = stateRef.current;
     state.target = null;
+    state.returnToRest = false;
+    state.coastElapsed = 0;
     state.angularVelocity.set(0, 0, 0);
     state.lastPointerTime = event.timeStamp;
     projectPointerToArcball(
@@ -784,14 +883,14 @@ export function InteractiveCard({
         style={transformStyle}
         tabIndex={0}
         role="group"
-        aria-label={`${card.player} card. Drag to rotate freely. Press F or Space to flip. Use arrow keys to rotate.`}
+        aria-label={`${card.player} card. Drag to inspect; release to return the card to its resting position. Press F or Space to flip. Use arrow keys to rotate.`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={finishPointer}
-        onPointerCancel={finishPointer}
+        onPointerUp={(event) => finishPointer(event)}
+        onPointerCancel={(event) => finishPointer(event, true)}
         onPointerLeave={handlePointerLeave}
         onLostPointerCapture={() => {
-          if (draggingRef.current) finishPointer();
+          if (draggingRef.current) finishPointer(undefined, true);
         }}
         onKeyDown={handleKeyDown}
         onDoubleClick={flipCard}

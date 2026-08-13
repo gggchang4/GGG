@@ -17,6 +17,21 @@ type CardTheme = CSSProperties & {
   "--card-accent": string;
 };
 
+function createAlphaMaskStyle(src?: string): CSSProperties | undefined {
+  if (!src) return undefined;
+
+  return {
+    WebkitMaskImage: `url("${src}")`,
+    maskImage: `url("${src}")`,
+    WebkitMaskPosition: "center",
+    maskPosition: "center",
+    WebkitMaskRepeat: "no-repeat",
+    maskRepeat: "no-repeat",
+    WebkitMaskSize: "100% 100%",
+    maskSize: "100% 100%",
+  };
+}
+
 export function SportsCardArtwork({
   card,
   face = "front",
@@ -30,6 +45,8 @@ export function SportsCardArtwork({
     "--card-accent": card.accent,
   };
   const src = face === "front" ? card.frontImage : card.backImage;
+  const foilMaskStyle = face === "front" ? createAlphaMaskStyle(card.foilMaskImage) : undefined;
+  const autographMaskStyle = face === "front" ? createAlphaMaskStyle(card.autographMaskImage) : undefined;
 
   return (
     <div
@@ -38,6 +55,7 @@ export function SportsCardArtwork({
       data-foil={face === "front" ? card.foil : "paper"}
       data-foil-mask={face === "front" ? card.foilMask : undefined}
       data-autograph={face === "front" && card.autographed ? card.autographMask : undefined}
+      data-card={card.id}
       data-maker={card.maker.toLowerCase()}
       data-series={card.seriesId}
     >
@@ -53,12 +71,12 @@ export function SportsCardArtwork({
 
       {face === "front" && effects ? (
         <>
-          <span className={styles.foilDiffraction} aria-hidden="true" />
-          <span className={styles.foilEtching} aria-hidden="true" />
+          <span className={styles.foilDiffraction} style={foilMaskStyle} aria-hidden="true" />
+          <span className={styles.foilEtching} style={foilMaskStyle} aria-hidden="true" />
           <span className={styles.foilGlare} aria-hidden="true" />
           <span className={styles.clearCoat} aria-hidden="true" />
-          {card.autographed ? (
-            <span className={styles.autographProtection} aria-hidden="true">
+          {card.autographed && autographMaskStyle ? (
+            <span className={styles.autographProtection} style={autographMaskStyle} aria-hidden="true">
               <Image src={src} alt="" fill sizes={sizes} draggable={false} />
             </span>
           ) : null}

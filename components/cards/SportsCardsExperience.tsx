@@ -552,7 +552,10 @@ export function SportsCardsExperience() {
                 <strong>#{inspectCard.cardNumber}</strong>
               </div>
               <p className={styles.detailEyebrow}>{inspectCard.year} · {inspectCard.maker}</p>
-              <h2><span>{inspectCard.givenName}</span>{inspectCard.familyName}</h2>
+              <h2 className={inspectCard.familyName.length > 10 ? styles.longPlayerName : undefined}>
+                <span>{inspectCard.givenName}</span>
+                {inspectCard.familyName}
+              </h2>
               <p className={styles.detailTeam}>{inspectCard.team} · {inspectCard.position} · #{inspectCard.number}</p>
 
               <dl className={styles.detailList}>
@@ -573,7 +576,7 @@ export function SportsCardsExperience() {
                 </button>
                 <button type="button" onClick={closeInspect}>RETURN</button>
               </div>
-              <p id="card-inspector-instructions" className={styles.inspectHint}><Rotate3D aria-hidden="true" /> DRAG THE CARD FREELY · RELEASE TO SPIN · DOUBLE CLICK TO FLIP</p>
+              <p id="card-inspector-instructions" className={styles.inspectHint}><Rotate3D aria-hidden="true" /> DRAG TO INSPECT · RELEASE TO SETTLE · DOUBLE CLICK TO FLIP</p>
             </aside>
           </div>
 
