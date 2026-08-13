@@ -12,7 +12,12 @@
     "dev:logs": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/project.ps1 logs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit --incremental false",
+    "cards:build": "node scripts/cards/build-prizm-archive.mjs",
+    "cards:masks": "node scripts/cards/build-archive-masks.mjs",
+    "cards:optics": "node scripts/cards/bind-optical-profiles.mjs",
+    "cards:validate": "node scripts/cards/validate-prizm-archive.mjs"
   },
   "keywords": [],
   "author": "",

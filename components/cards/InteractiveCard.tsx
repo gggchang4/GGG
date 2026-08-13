@@ -31,6 +31,7 @@ type CardTransform = CSSProperties & {
   "--foil-y": string;
   "--foil-angle": string;
   "--foil-hue": string;
+  "--foil-incidence": string;
   "--foil-opacity": string;
   "--coat-opacity": string;
   "--fresnel-opacity": string;
@@ -124,6 +125,10 @@ export function InteractiveCard({
   reducedMotion,
   onFaceChange,
 }: InteractiveCardProps) {
+  const opticalAngle = (card.optics?.angle ?? 0) * DEG_TO_RAD;
+  const opticalDrift = card.optics?.drift ?? 1;
+  const opticalGloss = card.optics?.gloss ?? 0.62;
+  const opticalSpectral = card.optics?.spectral ?? 0.62;
   const cardRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
@@ -238,6 +243,13 @@ export function InteractiveCard({
     const glareX = 50 + clamp(halfX / halfZ, -1.15, 1.15) * 46;
     const glareY = 50 - clamp(halfY / halfZ, -1.15, 1.15) * 46;
     const glareAngle = (Math.atan2(-halfY, halfX) * 180) / Math.PI + 90;
+    const opticalCos = Math.cos(opticalAngle);
+    const opticalSin = Math.sin(opticalAngle);
+    const opticalHalfX = (halfX * opticalCos - halfY * opticalSin) * opticalDrift;
+    const opticalHalfY = (halfX * opticalSin + halfY * opticalCos) * opticalDrift;
+    const foilX = 50 + clamp(opticalHalfX / halfZ, -1.2, 1.2) * 46;
+    const foilY = 50 - clamp(opticalHalfY / halfZ, -1.2, 1.2) * 46;
+    const foilAngle = (Math.atan2(-opticalHalfY, opticalHalfX) * 180) / Math.PI + 90;
     const normalDotView = clamp(
       scratch.surfaceNormal.dot(VIEW_DIRECTION),
       0,
@@ -254,10 +266,10 @@ export function InteractiveCard({
       1,
     );
     const fresnel = Math.pow(1 - normalDotView, 5);
-    const specular = Math.pow(normalDotHalf, 24);
+    const specular = Math.pow(normalDotHalf, 14 + opticalGloss * 22);
     const incidence = Math.acos(normalDotLight);
     const foilHue =
-      ((glareAngle + (incidence * 190) / Math.PI) % 360 + 360) % 360;
+      ((foilAngle + (incidence * (146 + opticalSpectral * 94)) / Math.PI) % 360 + 360) % 360;
     const foilOpacity = clamp(
       0.1 + specular * 0.48 + fresnel * 0.18,
       0.08,
@@ -280,10 +292,11 @@ export function InteractiveCard({
     element.style.setProperty("--glare-y", `${glareY.toFixed(2)}%`);
     element.style.setProperty("--glare-angle", `${glareAngle.toFixed(2)}deg`);
     element.style.setProperty("--glare-opacity", glareOpacity.toFixed(4));
-    element.style.setProperty("--foil-x", `${glareX.toFixed(2)}%`);
-    element.style.setProperty("--foil-y", `${glareY.toFixed(2)}%`);
-    element.style.setProperty("--foil-angle", `${glareAngle.toFixed(2)}deg`);
+    element.style.setProperty("--foil-x", `${foilX.toFixed(2)}%`);
+    element.style.setProperty("--foil-y", `${foilY.toFixed(2)}%`);
+    element.style.setProperty("--foil-angle", `${foilAngle.toFixed(2)}deg`);
     element.style.setProperty("--foil-hue", `${foilHue.toFixed(2)}deg`);
+    element.style.setProperty("--foil-incidence", `${((incidence * 180) / Math.PI).toFixed(2)}deg`);
     element.style.setProperty("--foil-opacity", foilOpacity.toFixed(4));
     element.style.setProperty("--coat-opacity", coatOpacity.toFixed(4));
     element.style.setProperty("--fresnel-opacity", fresnel.toFixed(4));
@@ -305,7 +318,7 @@ export function InteractiveCard({
       setVisibleFace(face);
       onFaceChangeRef.current(face);
     }
-  }, []);
+  }, [opticalAngle, opticalDrift, opticalGloss, opticalSpectral]);
 
   const stopAnimation = useCallback(() => {
     if (frameRef.current !== null) {
@@ -865,6 +878,7 @@ export function InteractiveCard({
     "--foil-y": "48%",
     "--foil-angle": "118deg",
     "--foil-hue": "0deg",
+    "--foil-incidence": "24deg",
     "--foil-opacity": "0.24",
     "--coat-opacity": "0.2",
     "--fresnel-opacity": "0",

@@ -92,6 +92,19 @@ Where a matching front and back scan of the same physical copy was not available
 - Checklist references: [Beckett set overview](https://www.beckett.com/news/2019-20-topps-chrome-bundesliga-soccer-cards/) and [SportsCardsPro card record](https://www.sportscardspro.com/game/soccer-cards-2019-topps-chrome-bundesliga/erling-haaland-refractor-72).
 - Note: front and back are examples of the same card design and parallel but cannot be verified as the same physical copy.
 
+## 300-card Prizm digital archive
+
+The expanded archive contains 100 local card images for each of three sets: 2023–24 Panini Prizm Basketball, 2023 Panini Prizm Football (NFL), and 2022 Panini Prizm FIFA World Cup. Product labels and public image references were recorded from the corresponding SportsCardsPro collection and card pages; player, card-number, and team or national-team metadata was cross-checked against cached Trading Card Database checklists during the original build.
+
+- [2023–24 Panini Prizm Basketball collection](https://www.sportscardspro.com/console/basketball-cards-2023-panini-prizm)
+- [2023 Panini Prizm Football collection](https://www.sportscardspro.com/console/football-cards-2023-panini-prizm)
+- [2022 Panini Prizm FIFA World Cup collection](https://www.sportscardspro.com/console/soccer-cards-2022-panini-prizm-world-cup)
+- [Generated archive coverage and validation report](./ARCHIVE.md)
+
+Every manifest entry retains its exact SportsCardsPro card page, original PriceCharting image-CDN URL, source record label, local image path, local material-mask path, and deterministic optical fingerprint. The audit ledger additionally records SHA-256 hashes for every local image and mask. Local card derivatives are normalized to 700×980 WebP for this private, non-commercial interaction study; card artwork, photography, player likenesses, league and team marks, and Panini designs remain the property of their respective rights holders.
+
+No official back scan was collected for these 300 digital archive entries. Their manifest records explicitly use `backMode: "digital-archive"`, and the interface renders a neutral archive back instead of displaying the front image as a false back scan.
+
 ## Foil interaction reference
 
 The procedural foil layers and pointer-variable model were informed by [`@kongyo2/cards-css`](https://github.com/kongyo2/cards-css), an MIT-licensed open-source card-effects library. The project uses its own card-specific CSS and Arcball implementation rather than importing the package. No texture assets from the GPL-licensed `pokemon-cards-css` project are included.

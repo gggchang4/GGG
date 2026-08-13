@@ -11,11 +11,7 @@ type SportsCardArtworkProps = {
   effects?: boolean;
 };
 
-type CardTheme = CSSProperties & {
-  "--card-primary": string;
-  "--card-secondary": string;
-  "--card-accent": string;
-};
+type CardTheme = CSSProperties & Record<`--${string}`, string | number>;
 
 function createAlphaMaskStyle(src?: string): CSSProperties | undefined {
   if (!src) return undefined;
@@ -39,12 +35,34 @@ export function SportsCardArtwork({
   sizes = "(max-width: 640px) 62vw, 240px",
   effects = true,
 }: SportsCardArtworkProps) {
+  const finishSeed = card.finishSeed ?? 17;
+  const optics = card.optics;
   const theme: CardTheme = {
     "--card-primary": card.primary,
     "--card-secondary": card.secondary,
     "--card-accent": card.accent,
+    "--finish-seed": finishSeed,
+    "--finish-hue": `${optics?.hue ?? finishSeed % 360}deg`,
+    "--finish-secondary-hue": `${optics?.secondaryHue ?? (finishSeed + 148) % 360}deg`,
+    "--finish-phase": `${optics?.phase ?? finishSeed % 360}deg`,
+    "--finish-angle": `${optics?.angle ?? (finishSeed >>> 4) % 180}deg`,
+    "--finish-scale-x": `${optics?.scaleX ?? 82 + (finishSeed % 47)}px`,
+    "--finish-scale-y": `${optics?.scaleY ?? 96 + ((finishSeed >>> 3) % 53)}px`,
+    "--finish-micro-scale": `${optics?.microScale ?? 18 + ((finishSeed >>> 7) % 19)}px`,
+    "--finish-offset-x": `${optics?.offsetX ?? (finishSeed >>> 9) % 100}%`,
+    "--finish-offset-y": `${optics?.offsetY ?? (finishSeed >>> 15) % 100}%`,
+    "--finish-intensity": optics?.intensity ?? 0.62,
+    "--finish-spectral": optics?.spectral ?? 0.62,
+    "--finish-contrast": optics?.contrast ?? 1.16,
+    "--finish-gloss": optics?.gloss ?? 0.68,
+    "--finish-drift": optics?.drift ?? 1,
+    "--finish-blend": optics?.blend ?? "color-dodge",
+    "--finish-etch-blend": optics?.etchBlend ?? "screen",
   };
   const src = face === "front" ? card.frontImage : card.backImage;
+  const usesArchiveBack =
+    face === "back" &&
+    (card.backMode === "digital-archive" || Boolean(card.sourcePage && card.backImage === card.frontImage));
   const foilMaskStyle = face === "front" ? createAlphaMaskStyle(card.foilMaskImage) : undefined;
   const autographMaskStyle = face === "front" ? createAlphaMaskStyle(card.autographMaskImage) : undefined;
 
@@ -53,26 +71,43 @@ export function SportsCardArtwork({
       className={`${styles.cardArtwork} ${face === "back" ? styles.cardBackArtwork : ""}`}
       style={theme}
       data-foil={face === "front" ? card.foil : "paper"}
+      data-optical-profile={face === "front" ? optics?.profile : undefined}
+      data-pattern={face === "front" ? optics?.pattern : undefined}
+      data-trajectory={face === "front" ? optics?.trajectory : undefined}
       data-foil-mask={face === "front" ? card.foilMask : undefined}
       data-autograph={face === "front" && card.autographed ? card.autographMask : undefined}
       data-card={card.id}
       data-maker={card.maker.toLowerCase()}
       data-series={card.seriesId}
+      data-sport={card.sport}
     >
-      <Image
-        src={src}
-        alt={face === "front" ? `${card.player} ${card.year} ${card.series} ${card.parallel}` : `${card.player} card back`}
-        fill
-        priority={priority}
-        sizes={sizes}
-        className={styles.scanImage}
-        draggable={false}
-      />
+      {usesArchiveBack ? (
+        <div className={styles.digitalArchiveBack} aria-label={`${card.player} digital archive card back`}>
+          <span>{card.maker}</span>
+          <strong>PRIZM</strong>
+          <p>{card.player}</p>
+          <small>{card.year} · #{card.cardNumber} · {card.parallel}</small>
+          <i>{card.sport === "football" ? "WORLD CUP" : card.sport.toUpperCase()}</i>
+        </div>
+      ) : (
+        <Image
+          src={src}
+          alt={face === "front" ? `${card.player} ${card.year} ${card.series} ${card.parallel}` : `${card.player} card back`}
+          fill
+          priority={priority}
+          loading="eager"
+          fetchPriority={priority ? "high" : undefined}
+          sizes={sizes}
+          className={styles.scanImage}
+          draggable={false}
+        />
+      )}
 
       {face === "front" && effects ? (
         <>
           <span className={styles.foilDiffraction} style={foilMaskStyle} aria-hidden="true" />
           <span className={styles.foilEtching} style={foilMaskStyle} aria-hidden="true" />
+          <span className={styles.foilMicrotexture} style={foilMaskStyle} aria-hidden="true" />
           <span className={styles.foilGlare} aria-hidden="true" />
           <span className={styles.clearCoat} aria-hidden="true" />
           {card.autographed && autographMaskStyle ? (

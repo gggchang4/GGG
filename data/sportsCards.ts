@@ -1,11 +1,16 @@
-export type CardSport = "nba" | "football";
+import archiveManifest from "@/data/sportsCardArchive.generated.json";
+
+export type CardSport = "nba" | "nfl" | "football";
 
 export type CardSeriesId =
   | "nba-topps-chrome-icons"
   | "nba-panini-prizm-silver"
   | "nba-topps-mercury"
+  | "nba-panini-prizm-2023-24"
+  | "nfl-panini-prizm-2023"
   | "football-prizm-world-cup-autos"
-  | "football-topps-chrome-modern";
+  | "football-topps-chrome-modern"
+  | "football-panini-prizm-world-cup-2022";
 
 export type FoilMask =
   | "chrome-frame"
@@ -14,7 +19,8 @@ export type FoilMask =
   | "prizm-auto"
   | "prizm-center-auto"
   | "night-vision"
-  | "gold-auto";
+  | "gold-auto"
+  | "archive-prizm";
 
 export type FoilPreset =
   | "topps-refractor"
@@ -22,7 +28,93 @@ export type FoilPreset =
   | "prizm-silver"
   | "mercury-blue"
   | "prizm-auto"
-  | "topps-night-vision";
+  | "topps-night-vision"
+  | "prizm-base"
+  | "prizm-color"
+  | "prizm-wave"
+  | "prizm-ice"
+  | "prizm-mojo"
+  | "prizm-disco"
+  | "prizm-sparkle"
+  | "prizm-tricolor"
+  | "prizm-snakeskin"
+  | "prizm-checker"
+  | "prizm-shimmer"
+  | "prizm-pulsar"
+  | "prizm-hyper"
+  | "prizm-seismic"
+  | "prizm-camo"
+  | "prizm-gold"
+  | "prizm-gold-vinyl"
+  | "prizm-black-finite"
+  | `prizm-${string}`;
+
+export type OpticalPattern =
+  | "base"
+  | "silver"
+  | "pandora"
+  | "color"
+  | "ice"
+  | "mojo"
+  | "disco"
+  | "fast-break"
+  | "sparkle"
+  | "glitter"
+  | "tricolor"
+  | "wave"
+  | "multi-wave"
+  | "snakeskin"
+  | "zebra"
+  | "elephant"
+  | "tiger"
+  | "checker"
+  | "shimmer"
+  | "pulsar"
+  | "hyper"
+  | "seismic"
+  | "camo"
+  | "scope"
+  | "lazer"
+  | "power"
+  | "gold"
+  | "gold-vinyl"
+  | "black"
+  | "black-gold"
+  | "black-finite"
+  | "sakura"
+  | "breakaway"
+  | "exclusive";
+
+export type OpticalTrajectory =
+  | "linear"
+  | "counter"
+  | "diagonal"
+  | "orbit"
+  | "horizontal"
+  | "vertical";
+
+export type CardOpticalProfile = {
+  profile: `prizm-${string}`;
+  pattern: OpticalPattern;
+  trajectory: OpticalTrajectory;
+  blend: string;
+  etchBlend: string;
+  fingerprint: string;
+  hue: number;
+  secondaryHue: number;
+  phase: number;
+  angle: number;
+  scaleX: number;
+  scaleY: number;
+  microScale: number;
+  offsetX: number;
+  offsetY: number;
+  intensity: number;
+  spectral: number;
+  contrast: number;
+  gloss: number;
+  drift: number;
+};
 
 export type SportsCard = {
   id: string;
@@ -44,7 +136,7 @@ export type SportsCard = {
   rarity: string;
   frontImage: string;
   backImage: string;
-  foilMaskImage: string;
+  foilMaskImage?: string;
   autographMaskImage?: string;
   primary: string;
   secondary: string;
@@ -53,6 +145,13 @@ export type SportsCard = {
   foilMask: FoilMask;
   autographed: boolean;
   autographMask?: string;
+  finishSeed?: number;
+  optics?: CardOpticalProfile;
+  backMode?: "scan" | "digital-archive";
+  sourcePage?: string;
+  sourceImage?: string;
+  sourceCollection?: string;
+  sourceRecord?: string;
   stats: readonly [string, string, string];
 };
 
@@ -95,6 +194,24 @@ export const cardSeries: readonly CardSeries[] = [
     finish: "GOLD REFRACTOR",
   },
   {
+    id: "nba-panini-prizm-2023-24",
+    sport: "nba",
+    label: "2023–24 PANINI PRIZM PARALLELS",
+    shortLabel: "2023–24 PRIZM",
+    maker: "Panini",
+    era: "2023–24",
+    finish: "20 DIGITAL OPTICHROME PROFILES",
+  },
+  {
+    id: "nfl-panini-prizm-2023",
+    sport: "nfl",
+    label: "2023 PANINI PRIZM NFL",
+    shortLabel: "2023 PRIZM NFL",
+    maker: "Panini",
+    era: "2023",
+    finish: "OPTICHROME PARALLELS",
+  },
+  {
     id: "football-prizm-world-cup-autos",
     sport: "football",
     label: "PRIZM WORLD CUP AUTOS",
@@ -112,9 +229,18 @@ export const cardSeries: readonly CardSeries[] = [
     era: "2019–2023",
     finish: "REFRACTOR",
   },
+  {
+    id: "football-panini-prizm-world-cup-2022",
+    sport: "football",
+    label: "2022 PANINI PRIZM WORLD CUP",
+    shortLabel: "2022 WORLD CUP",
+    maker: "Panini",
+    era: "2022",
+    finish: "WORLD CUP PRIZM PARALLELS",
+  },
 ] as const;
 
-export const sportsCards: readonly SportsCard[] = [
+const authenticSportsCards: readonly SportsCard[] = [
   {
     id: "lebron-james-topps-chrome",
     sport: "nba",
@@ -535,7 +661,14 @@ export const sportsCards: readonly SportsCard[] = [
   },
 ] as const;
 
-export const sports = ["nba", "football"] as const;
+const generatedSportsCards = archiveManifest as unknown as SportsCard[];
+
+export const sportsCards: readonly SportsCard[] = [
+  ...authenticSportsCards,
+  ...generatedSportsCards,
+];
+
+export const sports = ["nba", "nfl", "football"] as const;
 
 export function getSeriesBySport(sport: CardSport) {
   return cardSeries.filter((series) => series.sport === sport);
