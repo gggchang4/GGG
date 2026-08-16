@@ -55,14 +55,17 @@ export function SportsCardArtwork({
     "--finish-spectral": optics?.spectral ?? 0.62,
     "--finish-contrast": optics?.contrast ?? 1.16,
     "--finish-gloss": optics?.gloss ?? 0.68,
+    "--finish-roughness": optics?.roughness ?? 0.34,
+    "--finish-relief": optics?.relief ?? 0.56,
+    "--finish-fresnel": optics?.fresnel ?? 0.72,
+    "--finish-sparkle": optics?.sparkle ?? 0.42,
+    "--finish-dispersion": optics?.dispersion ?? 0.5,
+    "--finish-anisotropy": optics?.anisotropy ?? 0.4,
     "--finish-drift": optics?.drift ?? 1,
     "--finish-blend": optics?.blend ?? "color-dodge",
     "--finish-etch-blend": optics?.etchBlend ?? "screen",
   };
   const src = face === "front" ? card.frontImage : card.backImage;
-  const usesArchiveBack =
-    face === "back" &&
-    (card.backMode === "digital-archive" || Boolean(card.sourcePage && card.backImage === card.frontImage));
   const foilMaskStyle = face === "front" ? createAlphaMaskStyle(card.foilMaskImage) : undefined;
   const autographMaskStyle = face === "front" ? createAlphaMaskStyle(card.autographMaskImage) : undefined;
 
@@ -80,34 +83,27 @@ export function SportsCardArtwork({
       data-maker={card.maker.toLowerCase()}
       data-series={card.seriesId}
       data-sport={card.sport}
+      data-scan={card.scanProvenance ?? "archive-scan"}
     >
-      {usesArchiveBack ? (
-        <div className={styles.digitalArchiveBack} aria-label={`${card.player} digital archive card back`}>
-          <span>{card.maker}</span>
-          <strong>PRIZM</strong>
-          <p>{card.player}</p>
-          <small>{card.year} · #{card.cardNumber} · {card.parallel}</small>
-          <i>{card.sport === "football" ? "WORLD CUP" : card.sport.toUpperCase()}</i>
-        </div>
-      ) : (
-        <Image
-          src={src}
-          alt={face === "front" ? `${card.player} ${card.year} ${card.series} ${card.parallel}` : `${card.player} card back`}
-          fill
-          priority={priority}
-          loading="eager"
-          fetchPriority={priority ? "high" : undefined}
-          sizes={sizes}
-          className={styles.scanImage}
-          draggable={false}
-        />
-      )}
+      <Image
+        src={src}
+        alt={face === "front" ? `${card.player} ${card.year} ${card.series} ${card.parallel}` : `${card.player} physical card back`}
+        fill
+        priority={priority}
+        loading="eager"
+        fetchPriority={priority ? "high" : undefined}
+        sizes={sizes}
+        className={styles.scanImage}
+        draggable={false}
+      />
 
       {face === "front" && effects ? (
         <>
           <span className={styles.foilDiffraction} style={foilMaskStyle} aria-hidden="true" />
           <span className={styles.foilEtching} style={foilMaskStyle} aria-hidden="true" />
+          <span className={styles.foilRelief} style={foilMaskStyle} aria-hidden="true" />
           <span className={styles.foilMicrotexture} style={foilMaskStyle} aria-hidden="true" />
+          <span className={styles.foilSparkle} style={foilMaskStyle} aria-hidden="true" />
           <span className={styles.foilGlare} aria-hidden="true" />
           <span className={styles.clearCoat} aria-hidden="true" />
           {card.autographed && autographMaskStyle ? (

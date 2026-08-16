@@ -14,10 +14,12 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit --incremental false",
-    "cards:build": "node scripts/cards/build-prizm-archive.mjs",
+    "cards:build": "node scripts/cards/build-special-archive.mjs",
+    "cards:prune-base": "node scripts/cards/prune-base-archive.mjs",
     "cards:masks": "node scripts/cards/build-archive-masks.mjs",
     "cards:optics": "node scripts/cards/bind-optical-profiles.mjs",
-    "cards:validate": "node scripts/cards/validate-prizm-archive.mjs"
+    "cards:validate": "node scripts/cards/validate-prizm-archive.mjs",
+    "cards:rebuild": "npm run cards:build && npm run cards:validate"
   },
   "keywords": [],
   "author": "",

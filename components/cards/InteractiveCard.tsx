@@ -36,6 +36,13 @@ type CardTransform = CSSProperties & {
   "--coat-opacity": string;
   "--fresnel-opacity": string;
   "--specular-strength": string;
+  "--broad-specular": string;
+  "--view-grazing": string;
+  "--sparkle-opacity": string;
+  "--spectral-shift": string;
+  "--relief-x": string;
+  "--relief-y": string;
+  "--light-azimuth": string;
   "--shadow-x": string;
   "--shadow-y": string;
   "--shadow-scale": string;
@@ -127,8 +134,11 @@ export function InteractiveCard({
 }: InteractiveCardProps) {
   const opticalAngle = (card.optics?.angle ?? 0) * DEG_TO_RAD;
   const opticalDrift = card.optics?.drift ?? 1;
-  const opticalGloss = card.optics?.gloss ?? 0.62;
   const opticalSpectral = card.optics?.spectral ?? 0.62;
+  const opticalRoughness = card.optics?.roughness ?? 0.34;
+  const opticalFresnel = card.optics?.fresnel ?? 0.72;
+  const opticalSparkle = card.optics?.sparkle ?? 0.42;
+  const opticalDispersion = card.optics?.dispersion ?? 0.5;
   const cardRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
@@ -265,22 +275,29 @@ export function InteractiveCard({
       0,
       1,
     );
-    const fresnel = Math.pow(1 - normalDotView, 5);
-    const specular = Math.pow(normalDotHalf, 14 + opticalGloss * 22);
+    const grazing = 1 - normalDotView;
+    const fresnel = clamp(Math.pow(grazing, 4.2) * opticalFresnel, 0, 1);
+    const specularExponent = 9 + (1 - opticalRoughness) * 48;
+    const specular = Math.pow(normalDotHalf, specularExponent);
+    const broadSpecular = Math.pow(normalDotHalf, 2.6 + opticalRoughness * 5.2);
+    const sparkleSpecular = Math.pow(normalDotHalf, 34 + opticalRoughness * 24) * opticalSparkle;
     const incidence = Math.acos(normalDotLight);
     const foilHue =
-      ((foilAngle + (incidence * (146 + opticalSpectral * 94)) / Math.PI) % 360 + 360) % 360;
+      ((foilAngle + (incidence * (128 + opticalSpectral * 82 + opticalDispersion * 76)) / Math.PI) % 360 + 360) % 360;
     const foilOpacity = clamp(
-      0.1 + specular * 0.48 + fresnel * 0.18,
-      0.08,
-      0.72,
+      0.055 + broadSpecular * 0.2 + specular * 0.44 + fresnel * 0.16,
+      0.04,
+      0.78,
     );
     const glareOpacity = clamp(
-      0.03 + specular * 0.76 + fresnel * 0.12,
-      0.03,
+      0.018 + broadSpecular * 0.12 + specular * 0.72 + fresnel * 0.14,
+      0.018,
       0.9,
     );
-    const coatOpacity = clamp(0.12 + specular * 0.24 + fresnel * 0.3, 0.1, 0.62);
+    const coatOpacity = clamp(0.075 + broadSpecular * 0.11 + specular * 0.24 + fresnel * 0.34, 0.06, 0.66);
+    const lightAzimuth = (Math.atan2(state.lightY, state.lightX) * 180) / Math.PI;
+    const reliefX = clamp(halfX * (0.7 + grazing), -1, 1) * 2.2;
+    const reliefY = clamp(-halfY * (0.7 + grazing), -1, 1) * 2.2;
     const frontness = Math.abs(scratch.frontNormal.z);
     const shadowX = clamp(-scratch.frontNormal.x * 26, -22, 22);
     const shadowY = clamp(24 + scratch.frontNormal.y * 12, 12, 36);
@@ -301,6 +318,13 @@ export function InteractiveCard({
     element.style.setProperty("--coat-opacity", coatOpacity.toFixed(4));
     element.style.setProperty("--fresnel-opacity", fresnel.toFixed(4));
     element.style.setProperty("--specular-strength", specular.toFixed(4));
+    element.style.setProperty("--broad-specular", broadSpecular.toFixed(4));
+    element.style.setProperty("--view-grazing", grazing.toFixed(4));
+    element.style.setProperty("--sparkle-opacity", clamp(sparkleSpecular + fresnel * opticalSparkle * 0.16, 0, 0.9).toFixed(4));
+    element.style.setProperty("--spectral-shift", `${(foilHue * opticalDispersion).toFixed(2)}deg`);
+    element.style.setProperty("--relief-x", `${reliefX.toFixed(3)}px`);
+    element.style.setProperty("--relief-y", `${reliefY.toFixed(3)}px`);
+    element.style.setProperty("--light-azimuth", `${lightAzimuth.toFixed(2)}deg`);
     element.style.setProperty("--shadow-x", `${shadowX.toFixed(2)}px`);
     element.style.setProperty("--shadow-y", `${shadowY.toFixed(2)}px`);
     element.style.setProperty("--shadow-scale", shadowScale.toFixed(4));
@@ -318,7 +342,15 @@ export function InteractiveCard({
       setVisibleFace(face);
       onFaceChangeRef.current(face);
     }
-  }, [opticalAngle, opticalDrift, opticalGloss, opticalSpectral]);
+  }, [
+    opticalAngle,
+    opticalDispersion,
+    opticalDrift,
+    opticalFresnel,
+    opticalRoughness,
+    opticalSparkle,
+    opticalSpectral,
+  ]);
 
   const stopAnimation = useCallback(() => {
     if (frameRef.current !== null) {
@@ -883,6 +915,13 @@ export function InteractiveCard({
     "--coat-opacity": "0.2",
     "--fresnel-opacity": "0",
     "--specular-strength": "0.35",
+    "--broad-specular": "0.42",
+    "--view-grazing": "0.04",
+    "--sparkle-opacity": "0.08",
+    "--spectral-shift": "0deg",
+    "--relief-x": "0px",
+    "--relief-y": "0px",
+    "--light-azimuth": "128deg",
     "--shadow-x": "-1px",
     "--shadow-y": "24px",
     "--shadow-scale": "1",

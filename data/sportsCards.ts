@@ -113,6 +113,12 @@ export type CardOpticalProfile = {
   spectral: number;
   contrast: number;
   gloss: number;
+  roughness: number;
+  relief: number;
+  fresnel: number;
+  sparkle: number;
+  dispersion: number;
+  anisotropy: number;
   drift: number;
 };
 
@@ -147,11 +153,21 @@ export type SportsCard = {
   autographMask?: string;
   finishSeed?: number;
   optics?: CardOpticalProfile;
-  backMode?: "scan" | "digital-archive";
+  backMode?: "scan";
+  scanProvenance?: "paired-physical-specimen";
+  specimenId?: string;
   sourcePage?: string;
+  backSourcePage?: string;
   sourceImage?: string;
+  backSourceImage?: string;
+  sourceTitle?: string;
   sourceCollection?: string;
   sourceRecord?: string;
+  contentHashes?: {
+    front: string;
+    back: string;
+    mask: string;
+  };
   stats: readonly [string, string, string];
 };
 
@@ -200,7 +216,7 @@ export const cardSeries: readonly CardSeries[] = [
     shortLabel: "2023–24 PRIZM",
     maker: "Panini",
     era: "2023–24",
-    finish: "20 DIGITAL OPTICHROME PROFILES",
+    finish: "PAIRED PHYSICAL SCANS",
   },
   {
     id: "nfl-panini-prizm-2023",
@@ -209,7 +225,7 @@ export const cardSeries: readonly CardSeries[] = [
     shortLabel: "2023 PRIZM NFL",
     maker: "Panini",
     era: "2023",
-    finish: "OPTICHROME PARALLELS",
+    finish: "PAIRED PHYSICAL SCANS",
   },
   {
     id: "football-prizm-world-cup-autos",
@@ -236,7 +252,7 @@ export const cardSeries: readonly CardSeries[] = [
     shortLabel: "2022 WORLD CUP",
     maker: "Panini",
     era: "2022",
-    finish: "WORLD CUP PRIZM PARALLELS",
+    finish: "PAIRED PHYSICAL SCANS",
   },
 ] as const;
 

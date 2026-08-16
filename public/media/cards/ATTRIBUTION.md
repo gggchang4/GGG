@@ -92,22 +92,24 @@ Where a matching front and back scan of the same physical copy was not available
 - Checklist references: [Beckett set overview](https://www.beckett.com/news/2019-20-topps-chrome-bundesliga-soccer-cards/) and [SportsCardsPro card record](https://www.sportscardspro.com/game/soccer-cards-2019-topps-chrome-bundesliga/erling-haaland-refractor-72).
 - Note: front and back are examples of the same card design and parallel but cannot be verified as the same physical copy.
 
-## 300-card Prizm digital archive
+## 63-card special-card physical archive
 
-The expanded archive contains 100 local card images for each of three sets: 2023–24 Panini Prizm Basketball, 2023 Panini Prizm Football (NFL), and 2022 Panini Prizm FIFA World Cup. Product labels and public image references were recorded from the corresponding SportsCardsPro collection and card pages; player, card-number, and team or national-team metadata was cross-checked against cached Trading Card Database checklists during the original build.
+The active archive was reduced from 314 mixed records to 63 special cards: 21 NBA, 21 NFL, and 21 football. Base/common Prizm records are forbidden by the build validator. The cleanup removed 82 base records and their 164 front/mask files; the exact deletion ledger is stored in `data/sportsCardArchive.prune.generated.json`.
 
-- [2023–24 Panini Prizm Basketball collection](https://www.sportscardspro.com/console/basketball-cards-2023-panini-prizm)
-- [2023 Panini Prizm Football collection](https://www.sportscardspro.com/console/football-cards-2023-panini-prizm)
-- [2022 Panini Prizm FIFA World Cup collection](https://www.sportscardspro.com/console/soccer-cards-2022-panini-prizm-world-cup)
+The 49 newly curated entries come from public [Fanatics Collect](https://www.fanaticscollect.com/) product records that expose both sides of one physical specimen. The build script retains the product page, exact front URL, exact back URL, specimen identifier, local paths, three SHA-256 hashes, and deterministic optical fingerprint for every entry. The remaining 14 cards are the original hand-curated physical front/back archive documented above.
+
 - [Generated archive coverage and validation report](./ARCHIVE.md)
+- Detailed machine-readable ledger: `data/sportsCardArchive.audit.generated.json`
+- Curated source registry: `scripts/cards/curated-special-cards.mjs`
+- Reproducible paired-scan builder: `scripts/cards/build-special-archive.mjs`
 
-Every manifest entry retains its exact SportsCardsPro card page, original PriceCharting image-CDN URL, source record label, local image path, local material-mask path, and deterministic optical fingerprint. The audit ledger additionally records SHA-256 hashes for every local image and mask. Local card derivatives are normalized to 700×980 WebP for this private, non-commercial interaction study; card artwork, photography, player likenesses, league and team marks, and Panini designs remain the property of their respective rights holders.
+Paired source scans may show a grading slab or holder. The builder crops the holder and normalizes only the card area to 700×980 WebP; it does not redraw printed artwork, signatures, serial numbering, player likenesses, or the reverse design. Front and back hashes must differ, all front hashes must be unique, all back hashes must be unique, and every generated record must declare `backMode: "scan"` plus `scanProvenance: "paired-physical-specimen"`. Digital backs and front-as-back fallbacks fail validation.
 
-No official back scan was collected for these 300 digital archive entries. Their manifest records explicitly use `backMode: "digital-archive"`, and the interface renders a neutral archive back instead of displaying the front image as a false back scan.
+Card, checklist, and parallel naming were cross-checked against [Panini Prizm checklist coverage at Beckett](https://www.beckett.com/news/2023-panini-prizm-football-cards/), [PSA card catalog and certification records](https://www.psacard.com/publicapi/documentation), and the source listing itself. Local derivatives are included for a private, non-commercial interaction study; all card artwork, photography, player likenesses, league/team marks, and manufacturer designs remain the property of their respective rights holders.
 
 ## Foil interaction reference
 
-The procedural foil layers and pointer-variable model were informed by [`@kongyo2/cards-css`](https://github.com/kongyo2/cards-css), an MIT-licensed open-source card-effects library. The project uses its own card-specific CSS and Arcball implementation rather than importing the package. No texture assets from the GPL-licensed `pokemon-cards-css` project are included.
+The procedural foil layers and pointer-variable model were informed by [`@kongyo2/cards-css`](https://github.com/kongyo2/cards-css) and the material taxonomy demonstrated by [`simeydotme/pokemon-cards-css`](https://github.com/simeydotme/pokemon-cards-css). The project uses an independently written card-specific CSS stack and quaternion Arcball implementation; it imports no code or texture assets from either reference project.
 
 ---
 

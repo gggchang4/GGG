@@ -240,6 +240,7 @@ function resolvePattern(parallel) {
   if (/WAVE/.test(label)) return "wave";
   if (/ICE/.test(label)) return "ice";
   if (/MOJO/.test(label)) return "mojo";
+  if (/NO HUDDLE/.test(label)) return "fast-break";
   if (/FAST BREAK/.test(label)) return "fast-break";
   if (/DISCO/.test(label)) return "disco";
   if (/GLITTER/.test(label)) return "glitter";
@@ -312,6 +313,17 @@ export function buildOpticalProfile({ id, parallel, sport, seriesId, finishSeed 
   const spectral = between(random, recipe.spectral);
   const contrast = between(random, recipe.contrast);
   const gloss = between(random, recipe.gloss);
+  const roughness = clamp(0.92 - gloss * 0.78 + random() * 0.09, 0.12, 0.68);
+  const relief = clamp(0.28 + contrast * 0.22 + random() * 0.22, 0.38, 0.82);
+  const fresnel = clamp(0.42 + gloss * 0.38 + random() * 0.12, 0.5, 0.94);
+  const sparkle = clamp(intensity * spectral * (0.62 + random() * 0.32), 0.08, 0.88);
+  const dispersion = clamp(spectral * (0.68 + random() * 0.28), 0.06, 0.92);
+  const anisotropy = clamp(
+    (recipe.trajectory === "horizontal" || recipe.trajectory === "vertical" ? 0.58 : 0.26)
+      + random() * 0.24,
+    0.2,
+    0.86,
+  );
   const drift = 0.72 + random() * 0.66;
   const fingerprint = [
     profile,
@@ -343,7 +355,12 @@ export function buildOpticalProfile({ id, parallel, sport, seriesId, finishSeed 
     spectral: round(clamp(spectral, 0.05, 1)),
     contrast: round(clamp(contrast, 1, 1.5)),
     gloss: round(clamp(gloss, 0.3, 1)),
+    roughness: round(roughness),
+    relief: round(relief),
+    fresnel: round(fresnel),
+    sparkle: round(sparkle),
+    dispersion: round(dispersion),
+    anisotropy: round(anisotropy),
     drift: round(drift),
   };
 }
-

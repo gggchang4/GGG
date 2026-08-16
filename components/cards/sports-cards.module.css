@@ -287,6 +287,13 @@
   --coat-opacity: 0.16;
   --fresnel-opacity: 0.12;
   --specular-strength: 0.3;
+  --broad-specular: 0.36;
+  --view-grazing: 0.05;
+  --sparkle-opacity: 0.07;
+  --spectral-shift: 0deg;
+  --relief-x: 0px;
+  --relief-y: 0px;
+  --light-azimuth: 128deg;
   position: absolute;
   top: 48%;
   left: 50%;
@@ -560,6 +567,8 @@
   --finish-track-y: calc(var(--foil-y, 50%) + var(--finish-offset-y, 0%));
   --finish-counter-x: calc(100% - var(--foil-x, 50%) + var(--finish-offset-x, 0%));
   --finish-counter-y: calc(100% - var(--foil-y, 50%) + var(--finish-offset-y, 0%));
+  --finish-relief-x: calc(var(--finish-track-x) + var(--relief-x, 0px));
+  --finish-relief-y: calc(var(--finish-track-y) + var(--relief-y, 0px));
   position: relative;
   width: 100%;
   height: 100%;
@@ -610,76 +619,11 @@
   -webkit-user-drag: none;
 }
 
-.digitalArchiveBack {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: grid;
-  padding: 11% 10%;
-  border: 8px solid #17191b;
-  color: #d9dcdf;
-  background:
-    linear-gradient(145deg, transparent 0 46%, rgb(255 255 255 / 4%) 47% 48%, transparent 49%),
-    repeating-linear-gradient(135deg, #111315 0 1px, #090a0b 1px 5px);
-  grid-template-rows: auto 1fr auto auto;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.digitalArchiveBack::before,
-.digitalArchiveBack::after {
-  position: absolute;
-  inset: 4.5%;
-  border: 1px solid rgb(255 255 255 / 16%);
-  content: "";
-}
-
-.digitalArchiveBack::after {
-  inset: 7%;
-  border-color: rgb(255 255 255 / 7%);
-}
-
-.digitalArchiveBack span,
-.digitalArchiveBack small,
-.digitalArchiveBack i {
-  position: relative;
-  z-index: 1;
-  color: #71767b;
-  font-size: clamp(5px, 2.25cqw, 10px);
-  font-style: normal;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-}
-
-.digitalArchiveBack strong {
-  position: relative;
-  z-index: 1;
-  align-self: center;
-  color: #e9ebec;
-  font-size: clamp(24px, 18cqw, 78px);
-  font-style: italic;
-  letter-spacing: -0.08em;
-  line-height: 0.8;
-  text-shadow: 0 1px 0 #fff, 0 -1px 0 #3d4246;
-}
-
-.digitalArchiveBack p {
-  position: relative;
-  z-index: 1;
-  margin: 0 0 5%;
-  color: #c3c6c8;
-  font-size: clamp(8px, 4.3cqw, 18px);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
-
-.digitalArchiveBack i {
-  margin-top: 5%;
-}
-
 .foilDiffraction,
 .foilEtching,
+.foilRelief,
 .foilMicrotexture,
+.foilSparkle,
 .foilGlare,
 .clearCoat,
 .backSatin,
@@ -723,8 +667,40 @@
   will-change: opacity, background-position, filter;
 }
 
-.foilMicrotexture {
+.foilRelief {
   z-index: 4;
+  background-image:
+    repeating-linear-gradient(
+      calc(var(--finish-angle, 112deg) + var(--light-azimuth, 128deg)),
+      rgb(255 255 255 / 16%) 0 0.65px,
+      transparent 0.85px calc(var(--finish-micro-scale, 18px) * 0.46),
+      rgb(0 0 0 / 22%) calc(var(--finish-micro-scale, 18px) * 0.5),
+      transparent calc(var(--finish-micro-scale, 18px) * 0.56) var(--finish-micro-scale, 18px)
+    ),
+    radial-gradient(
+      ellipse 36% 27% at var(--finish-relief-x) var(--finish-relief-y),
+      rgb(255 255 255 / 34%),
+      transparent 70%
+    );
+  background-position:
+    var(--finish-counter-x) var(--finish-counter-y),
+    center;
+  background-size:
+    var(--finish-scale-x, 90px) var(--finish-scale-y, 110px),
+    100% 100%;
+  mix-blend-mode: soft-light;
+  opacity: clamp(
+    0.01,
+    calc((0.06 + var(--broad-specular, 0.35) * 0.2 + var(--view-grazing, 0.04) * 0.1) * var(--finish-relief, 0.56)),
+    0.34
+  );
+  filter: contrast(calc(1 + var(--finish-relief, 0.56) * 0.45));
+  transform: translate(var(--relief-x, 0px), var(--relief-y, 0px));
+  will-change: opacity, transform, background-position;
+}
+
+.foilMicrotexture {
+  z-index: 5;
   background-position: var(--foil-x, 50%) var(--foil-y, 50%);
   mix-blend-mode: var(--finish-etch-blend, screen);
   opacity: clamp(
@@ -736,8 +712,30 @@
   will-change: opacity, background-position;
 }
 
+.foilSparkle {
+  z-index: 6;
+  background-image:
+    radial-gradient(circle, rgb(255 255 255 / 96%) 0 0.7px, hsl(var(--finish-hue) 100% 82% / 68%) 0.9px, transparent 2.4px),
+    radial-gradient(circle, hsl(var(--finish-secondary-hue) 100% 82% / 82%) 0 0.55px, transparent 2px),
+    radial-gradient(ellipse 22% 16% at var(--finish-track-x) var(--finish-track-y), rgb(255 255 255 / 58%), transparent 72%);
+  background-position:
+    var(--finish-track-x) var(--finish-track-y),
+    var(--finish-counter-x) var(--finish-counter-y),
+    center;
+  background-size:
+    calc(var(--finish-scale-x, 90px) * 0.47) calc(var(--finish-scale-y, 110px) * 0.43),
+    calc(var(--finish-scale-y, 110px) * 0.31) calc(var(--finish-scale-x, 90px) * 0.39),
+    100% 100%;
+  mix-blend-mode: color-dodge;
+  opacity: clamp(0, calc(var(--sparkle-opacity, 0.06) * var(--finish-sparkle, 0.42)), 0.54);
+  filter:
+    hue-rotate(var(--spectral-shift, 0deg))
+    saturate(calc(1 + var(--finish-dispersion, 0.5)));
+  will-change: opacity, background-position, filter;
+}
+
 .foilGlare {
-  z-index: 5;
+  z-index: 7;
   background:
     radial-gradient(
       ellipse 28% 20% at var(--glare-x, 52%) var(--glare-y, 45%),
@@ -758,7 +756,7 @@
 }
 
 .clearCoat {
-  z-index: 6;
+  z-index: 8;
   overflow: hidden;
   background:
     radial-gradient(
@@ -777,10 +775,11 @@
     );
   mix-blend-mode: screen;
   opacity: clamp(
-    0.02,
-    calc(var(--coat-opacity, 0.16) * var(--coat-strength) * var(--finish-gloss, 1)),
-    0.38
+    0.012,
+    calc(var(--coat-opacity, 0.16) * var(--coat-strength) * (0.55 + var(--finish-gloss, 1) * 0.45)),
+    0.42
   );
+  filter: blur(calc(var(--finish-roughness, 0.34) * 0.18px));
   will-change: opacity, background;
 }
 
@@ -793,7 +792,7 @@
     inset 0 0 7px rgb(255 255 255 / 32%),
     inset 0 0 28px rgb(255 255 255 / 8%);
   content: "";
-  opacity: clamp(0, var(--fresnel-opacity, 0.12), 0.8);
+  opacity: clamp(0, calc(var(--fresnel-opacity, 0.12) * var(--finish-fresnel, 0.72)), 0.82);
 }
 
 /* The chrome ink lives on printed borders and backgrounds, not on skin, cloth,
@@ -1209,7 +1208,9 @@
 }
 
 .cardArtwork[data-pattern] .foilEtching,
-.cardArtwork[data-pattern] .foilMicrotexture {
+.cardArtwork[data-pattern] .foilRelief,
+.cardArtwork[data-pattern] .foilMicrotexture,
+.cardArtwork[data-pattern] .foilSparkle {
   background-position:
     var(--finish-track-x) var(--finish-track-y),
     var(--finish-counter-x) var(--finish-counter-y);
@@ -1248,6 +1249,65 @@
     calc(var(--foil-opacity, 0.2) * var(--finish-intensity, 0.62) * 0.5),
     0.26
   );
+}
+
+/* The relief and sparse point-specular passes model plate depth and microflake
+   separately from the colour diffraction recipe above. */
+.cardArtwork[data-pattern="silver"] .foilSparkle,
+.cardArtwork[data-pattern="color"] .foilSparkle {
+  opacity: clamp(0, calc(var(--sparkle-opacity, 0.06) * var(--finish-sparkle, 0.42) * 0.44), 0.18);
+}
+
+.cardArtwork[data-pattern="ice"] .foilRelief,
+.cardArtwork[data-pattern="power"] .foilRelief {
+  background-image:
+    conic-gradient(from calc(var(--finish-phase) + var(--light-azimuth)) at 50% 50%, #fff4, transparent 10% 23%, #0005 25% 37%, transparent 40% 57%, #fff3 60% 68%, transparent 72%),
+    radial-gradient(circle at var(--finish-relief-x) var(--finish-relief-y), #fff5, transparent 64%);
+  background-size: var(--finish-scale-x) var(--finish-scale-y), 100% 100%;
+}
+
+.cardArtwork[data-pattern="mojo"] .foilRelief,
+.cardArtwork[data-pattern="pulsar"] .foilRelief,
+.cardArtwork[data-pattern="scope"] .foilRelief,
+.cardArtwork[data-pattern="gold-vinyl"] .foilRelief {
+  background-image:
+    repeating-radial-gradient(circle, #fff3 0 0.7px, transparent 1px 5px, #0004 5.7px, transparent 6.5px 12px),
+    radial-gradient(circle at var(--finish-relief-x) var(--finish-relief-y), #fff6, transparent 62%);
+  background-size: var(--finish-scale-x) var(--finish-scale-y), 100% 100%;
+}
+
+.cardArtwork[data-pattern="disco"] .foilSparkle,
+.cardArtwork[data-pattern="fast-break"] .foilSparkle,
+.cardArtwork[data-pattern="glitter"] .foilSparkle,
+.cardArtwork[data-pattern="sparkle"] .foilSparkle {
+  background-size:
+    calc(var(--finish-scale-x) * 0.26) calc(var(--finish-scale-y) * 0.26),
+    calc(var(--finish-scale-y) * 0.2) calc(var(--finish-scale-x) * 0.24),
+    100% 100%;
+  opacity: clamp(0, calc(var(--sparkle-opacity, 0.06) * var(--finish-sparkle, 0.42) * 1.45), 0.62);
+}
+
+.cardArtwork[data-pattern="wave"] .foilRelief,
+.cardArtwork[data-pattern="multi-wave"] .foilRelief,
+.cardArtwork[data-pattern="shimmer"] .foilRelief,
+.cardArtwork[data-pattern="lazer"] .foilRelief {
+  background-image:
+    repeating-linear-gradient(
+      calc(var(--finish-angle) + var(--light-azimuth)),
+      #fff4 0 0.6px,
+      transparent 1px calc(var(--finish-micro-scale) * 0.7),
+      #0004 calc(var(--finish-micro-scale) * 0.76),
+      transparent calc(var(--finish-micro-scale) * 0.82) var(--finish-micro-scale)
+    ),
+    radial-gradient(ellipse 44% 20% at var(--finish-relief-x) var(--finish-relief-y), #fff5, transparent 72%);
+}
+
+.cardArtwork[data-pattern="snakeskin"] .foilSparkle,
+.cardArtwork[data-pattern="zebra"] .foilSparkle,
+.cardArtwork[data-pattern="elephant"] .foilSparkle,
+.cardArtwork[data-pattern="tiger"] .foilSparkle,
+.cardArtwork[data-pattern="camo"] .foilSparkle {
+  opacity: clamp(0, calc(var(--sparkle-opacity, 0.06) * var(--finish-sparkle, 0.42) * 0.24), 0.12);
 }
 
 /* Base Prizm: broad, restrained Optichrome sweep with sparse plate lines. */
@@ -1797,7 +1857,7 @@
 }
 
 .autographProtection {
-  z-index: 7;
+  z-index: 9;
   overflow: hidden;
   filter: contrast(1.025) saturate(0.98);
   transform: translateZ(0);
@@ -1820,15 +1880,21 @@
 .backSatin {
   z-index: 2;
   background:
+    repeating-linear-gradient(
+      calc(var(--glare-angle, 120deg) + 17deg),
+      transparent 0 3px,
+      rgb(255 255 255 / 2.5%) 3.5px,
+      transparent 4px 9px
+    ),
     linear-gradient(
       var(--glare-angle, 120deg),
       transparent 23%,
-      rgb(255 255 255 / 16%) 48%,
-      rgb(255 255 255 / 6%) 56%,
+      rgb(255 255 255 / 12%) 48%,
+      rgb(255 255 255 / 4%) 56%,
       transparent 78%
     );
   mix-blend-mode: soft-light;
-  opacity: clamp(0.02, var(--coat-opacity, 0.14), 0.3);
+  opacity: clamp(0.015, calc(var(--coat-opacity, 0.14) * 0.72), 0.22);
 }
 
 .inspector {
@@ -2030,7 +2096,7 @@
   height: 54px;
   border-radius: 50%;
   background: rgb(0 0 0 / 96%);
-  box-shadow: 0 0 32px rgb(255 255 255 / 6%);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 96%);
   opacity: var(--shadow-opacity, 0.62);
   filter: blur(16px);
   transform:

@@ -1,0 +1,664 @@
+{
+  "generatedAt": "2026-08-16T13:59:49.812Z",
+  "policy": "Deleted only files whose tracked metadata classified them as BASE PRIZM.",
+  "baseRecords": 82,
+  "deletedFiles": 164,
+  "removed": [
+    {
+      "id": "nba-victor-wembanyama-136",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/001-victor-wembanyama-136.webp",
+        "public/media/cards/archive-masks/nba/001-victor-wembanyama-136.png"
+      ]
+    },
+    {
+      "id": "nba-brandon-miller-152",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/021-brandon-miller-152.webp",
+        "public/media/cards/archive-masks/nba/021-brandon-miller-152.png"
+      ]
+    },
+    {
+      "id": "nba-amen-thompson-150",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/022-amen-thompson-150.webp",
+        "public/media/cards/archive-masks/nba/022-amen-thompson-150.png"
+      ]
+    },
+    {
+      "id": "nba-maxwell-lewis-143",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/041-maxwell-lewis-143.webp",
+        "public/media/cards/archive-masks/nba/041-maxwell-lewis-143.png"
+      ]
+    },
+    {
+      "id": "nba-chet-holmgren-115",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/044-chet-holmgren-115.webp",
+        "public/media/cards/archive-masks/nba/044-chet-holmgren-115.png"
+      ]
+    },
+    {
+      "id": "nba-ja-morant-96",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/052-ja-morant-96.webp",
+        "public/media/cards/archive-masks/nba/052-ja-morant-96.png"
+      ]
+    },
+    {
+      "id": "nba-gg-jackson-ii-179",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/058-gg-jackson-ii-179.webp",
+        "public/media/cards/archive-masks/nba/058-gg-jackson-ii-179.png"
+      ]
+    },
+    {
+      "id": "nba-emoni-bates-169",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/080-emoni-bates-169.webp",
+        "public/media/cards/archive-masks/nba/080-emoni-bates-169.png"
+      ]
+    },
+    {
+      "id": "nba-manu-ginobili-190",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/082-manu-ginobili-190.webp",
+        "public/media/cards/archive-masks/nba/082-manu-ginobili-190.png"
+      ]
+    },
+    {
+      "id": "nba-jayson-tatum-2",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/083-jayson-tatum-2.webp",
+        "public/media/cards/archive-masks/nba/083-jayson-tatum-2.png"
+      ]
+    },
+    {
+      "id": "nba-bogdan-bogdanovic-23",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/084-bogdan-bogdanovic-23.webp",
+        "public/media/cards/archive-masks/nba/084-bogdan-bogdanovic-23.png"
+      ]
+    },
+    {
+      "id": "nba-marcus-smart-62",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/086-marcus-smart-62.webp",
+        "public/media/cards/archive-masks/nba/086-marcus-smart-62.png"
+      ]
+    },
+    {
+      "id": "nba-jalen-wilson-128",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/089-jalen-wilson-128.webp",
+        "public/media/cards/archive-masks/nba/089-jalen-wilson-128.png"
+      ]
+    },
+    {
+      "id": "nba-dereck-lively-ii-163",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/097-dereck-lively-ii-163.webp",
+        "public/media/cards/archive-masks/nba/097-dereck-lively-ii-163.png"
+      ]
+    },
+    {
+      "id": "nba-toumani-camara-164",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/098-toumani-camara-164.webp",
+        "public/media/cards/archive-masks/nba/098-toumani-camara-164.png"
+      ]
+    },
+    {
+      "id": "nba-ausar-thompson-178",
+      "sport": "nba",
+      "deleted": [
+        "public/media/cards/archive/nba/099-ausar-thompson-178.webp",
+        "public/media/cards/archive-masks/nba/099-ausar-thompson-178.png"
+      ]
+    },
+    {
+      "id": "nfl-c-j-stroud-339",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/002-c-j-stroud-339.webp",
+        "public/media/cards/archive-masks/nfl/002-c-j-stroud-339.png"
+      ]
+    },
+    {
+      "id": "nfl-puka-nacua-357",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/005-puka-nacua-357.webp",
+        "public/media/cards/archive-masks/nfl/005-puka-nacua-357.png"
+      ]
+    },
+    {
+      "id": "nfl-anton-harrison-347",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/008-anton-harrison-347.webp",
+        "public/media/cards/archive-masks/nfl/008-anton-harrison-347.png"
+      ]
+    },
+    {
+      "id": "nfl-jaxon-smith-njigba-390",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/018-jaxon-smith-njigba-390.webp",
+        "public/media/cards/archive-masks/nfl/018-jaxon-smith-njigba-390.png"
+      ]
+    },
+    {
+      "id": "nfl-kirk-cousins-197",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/019-kirk-cousins-197.webp",
+        "public/media/cards/archive-masks/nfl/019-kirk-cousins-197.png"
+      ]
+    },
+    {
+      "id": "nfl-isaiah-foskey-373",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/020-isaiah-foskey-373.webp",
+        "public/media/cards/archive-masks/nfl/020-isaiah-foskey-373.png"
+      ]
+    },
+    {
+      "id": "nfl-tyrique-stevenson-316",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/022-tyrique-stevenson-316.webp",
+        "public/media/cards/archive-masks/nfl/022-tyrique-stevenson-316.png"
+      ]
+    },
+    {
+      "id": "nfl-desjuan-johnson-356",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/024-desjuan-johnson-356.webp",
+        "public/media/cards/archive-masks/nfl/024-desjuan-johnson-356.png"
+      ]
+    },
+    {
+      "id": "nfl-bryan-bresee-372",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/029-bryan-bresee-372.webp",
+        "public/media/cards/archive-masks/nfl/029-bryan-bresee-372.png"
+      ]
+    },
+    {
+      "id": "nfl-jerome-bettis-251",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/030-jerome-bettis-251.webp",
+        "public/media/cards/archive-masks/nfl/030-jerome-bettis-251.png"
+      ]
+    },
+    {
+      "id": "nfl-hendon-hooker-329",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/031-hendon-hooker-329.webp",
+        "public/media/cards/archive-masks/nfl/031-hendon-hooker-329.png"
+      ]
+    },
+    {
+      "id": "nfl-jake-ferguson-75",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/036-jake-ferguson-75.webp",
+        "public/media/cards/archive-masks/nfl/036-jake-ferguson-75.png"
+      ]
+    },
+    {
+      "id": "nfl-felix-anudike-uzomah-349",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/037-felix-anudike-uzomah-349.webp",
+        "public/media/cards/archive-masks/nfl/037-felix-anudike-uzomah-349.png"
+      ]
+    },
+    {
+      "id": "nfl-broderick-jones-385",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/038-broderick-jones-385.webp",
+        "public/media/cards/archive-masks/nfl/038-broderick-jones-385.png"
+      ]
+    },
+    {
+      "id": "nfl-mazi-smith-326",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/041-mazi-smith-326.webp",
+        "public/media/cards/archive-masks/nfl/041-mazi-smith-326.png"
+      ]
+    },
+    {
+      "id": "nfl-jahmyr-gibbs-331",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/042-jahmyr-gibbs-331.webp",
+        "public/media/cards/archive-masks/nfl/042-jahmyr-gibbs-331.png"
+      ]
+    },
+    {
+      "id": "nfl-bj-ojulari-301",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/045-bj-ojulari-301.webp",
+        "public/media/cards/archive-masks/nfl/045-bj-ojulari-301.png"
+      ]
+    },
+    {
+      "id": "nfl-justin-shorter-310",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/046-justin-shorter-310.webp",
+        "public/media/cards/archive-masks/nfl/046-justin-shorter-310.png"
+      ]
+    },
+    {
+      "id": "nfl-bryce-young-311",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/047-bryce-young-311.webp",
+        "public/media/cards/archive-masks/nfl/047-bryce-young-311.png"
+      ]
+    },
+    {
+      "id": "nfl-derick-hall-388",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/049-derick-hall-388.webp",
+        "public/media/cards/archive-masks/nfl/049-derick-hall-388.png"
+      ]
+    },
+    {
+      "id": "nfl-chris-rodriguez-jr-398",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/050-chris-rodriguez-jr-398.webp",
+        "public/media/cards/archive-masks/nfl/050-chris-rodriguez-jr-398.png"
+      ]
+    },
+    {
+      "id": "nfl-jayden-reed-334",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/055-jayden-reed-334.webp",
+        "public/media/cards/archive-masks/nfl/055-jayden-reed-334.png"
+      ]
+    },
+    {
+      "id": "nfl-luke-musgrave-337",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/056-luke-musgrave-337.webp",
+        "public/media/cards/archive-masks/nfl/056-luke-musgrave-337.png"
+      ]
+    },
+    {
+      "id": "nfl-dj-turner-319",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/059-dj-turner-319.webp",
+        "public/media/cards/archive-masks/nfl/059-dj-turner-319.png"
+      ]
+    },
+    {
+      "id": "nfl-charlie-jones-317",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/064-charlie-jones-317.webp",
+        "public/media/cards/archive-masks/nfl/064-charlie-jones-317.png"
+      ]
+    },
+    {
+      "id": "nfl-sean-clifford-338",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/066-sean-clifford-338.webp",
+        "public/media/cards/archive-masks/nfl/066-sean-clifford-338.png"
+      ]
+    },
+    {
+      "id": "nfl-kenny-mcintosh-391",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/068-kenny-mcintosh-391.webp",
+        "public/media/cards/archive-masks/nfl/068-kenny-mcintosh-391.png"
+      ]
+    },
+    {
+      "id": "nfl-kendre-miller-375",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/071-kendre-miller-375.webp",
+        "public/media/cards/archive-masks/nfl/071-kendre-miller-375.png"
+      ]
+    },
+    {
+      "id": "nfl-yaya-diaby-394",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/072-yaya-diaby-394.webp",
+        "public/media/cards/archive-masks/nfl/072-yaya-diaby-394.png"
+      ]
+    },
+    {
+      "id": "nfl-dylan-horton-340",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/073-dylan-horton-340.webp",
+        "public/media/cards/archive-masks/nfl/073-dylan-horton-340.png"
+      ]
+    },
+    {
+      "id": "nfl-stefon-diggs-35",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/074-stefon-diggs-35.webp",
+        "public/media/cards/archive-masks/nfl/074-stefon-diggs-35.png"
+      ]
+    },
+    {
+      "id": "nfl-trevor-lawrence-139",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/075-trevor-lawrence-139.webp",
+        "public/media/cards/archive-masks/nfl/075-trevor-lawrence-139.png"
+      ]
+    },
+    {
+      "id": "nfl-drew-bledsoe-203",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/076-drew-bledsoe-203.webp",
+        "public/media/cards/archive-masks/nfl/076-drew-bledsoe-203.png"
+      ]
+    },
+    {
+      "id": "nfl-cedric-tillman-321",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/080-cedric-tillman-321.webp",
+        "public/media/cards/archive-masks/nfl/080-cedric-tillman-321.png"
+      ]
+    },
+    {
+      "id": "nfl-luke-schoonmaker-325",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/084-luke-schoonmaker-325.webp",
+        "public/media/cards/archive-masks/nfl/084-luke-schoonmaker-325.png"
+      ]
+    },
+    {
+      "id": "nfl-kayshon-boutte-370",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/087-kayshon-boutte-370.webp",
+        "public/media/cards/archive-masks/nfl/087-kayshon-boutte-370.png"
+      ]
+    },
+    {
+      "id": "nfl-ivan-pace-jr-366",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/093-ivan-pace-jr-366.webp",
+        "public/media/cards/archive-masks/nfl/093-ivan-pace-jr-366.png"
+      ]
+    },
+    {
+      "id": "nfl-deuce-vaughn-324",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/095-deuce-vaughn-324.webp",
+        "public/media/cards/archive-masks/nfl/095-deuce-vaughn-324.png"
+      ]
+    },
+    {
+      "id": "nfl-byron-young-355",
+      "sport": "nfl",
+      "deleted": [
+        "public/media/cards/archive/nfl/098-byron-young-355.webp",
+        "public/media/cards/archive-masks/nfl/098-byron-young-355.png"
+      ]
+    },
+    {
+      "id": "football-lionel-messi-7",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/002-lionel-messi-7.webp",
+        "public/media/cards/archive-masks/football/002-lionel-messi-7.png"
+      ]
+    },
+    {
+      "id": "football-mikkel-damsgaard-73",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/011-mikkel-damsgaard-73.webp",
+        "public/media/cards/archive-masks/football/011-mikkel-damsgaard-73.png"
+      ]
+    },
+    {
+      "id": "football-cody-gakpo-153",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/017-cody-gakpo-153.webp",
+        "public/media/cards/archive-masks/football/017-cody-gakpo-153.png"
+      ]
+    },
+    {
+      "id": "football-angel-di-maria-1",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/018-angel-di-maria-1.webp",
+        "public/media/cards/archive-masks/football/018-angel-di-maria-1.png"
+      ]
+    },
+    {
+      "id": "football-jeremy-doku-18",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/019-jeremy-doku-18.webp",
+        "public/media/cards/archive-masks/football/019-jeremy-doku-18.png"
+      ]
+    },
+    {
+      "id": "football-luis-suarez-280",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/020-luis-suarez-280.webp",
+        "public/media/cards/archive-masks/football/020-luis-suarez-280.png"
+      ]
+    },
+    {
+      "id": "football-harry-kane-86",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/021-harry-kane-86.webp",
+        "public/media/cards/archive-masks/football/021-harry-kane-86.png"
+      ]
+    },
+    {
+      "id": "football-piero-hincapie-83",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/024-piero-hincapie-83.webp",
+        "public/media/cards/archive-masks/football/024-piero-hincapie-83.png"
+      ]
+    },
+    {
+      "id": "football-christian-pulisic-201",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/030-christian-pulisic-201.webp",
+        "public/media/cards/archive-masks/football/030-christian-pulisic-201.png"
+      ]
+    },
+    {
+      "id": "football-vinicius-jr-36",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/037-vinicius-jr-36.webp",
+        "public/media/cards/archive-masks/football/037-vinicius-jr-36.png"
+      ]
+    },
+    {
+      "id": "football-luka-modric-61",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/038-luka-modric-61.webp",
+        "public/media/cards/archive-masks/football/038-luka-modric-61.png"
+      ]
+    },
+    {
+      "id": "football-gonzalo-montiel-3",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/043-gonzalo-montiel-3.webp",
+        "public/media/cards/archive-masks/football/043-gonzalo-montiel-3.png"
+      ]
+    },
+    {
+      "id": "football-jonathan-david-49",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/059-jonathan-david-49.webp",
+        "public/media/cards/archive-masks/football/059-jonathan-david-49.png"
+      ]
+    },
+    {
+      "id": "football-bukayo-saka-84",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/060-bukayo-saka-84.webp",
+        "public/media/cards/archive-masks/football/060-bukayo-saka-84.png"
+      ]
+    },
+    {
+      "id": "football-karim-benzema-99",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/061-karim-benzema-99.webp",
+        "public/media/cards/archive-masks/football/061-karim-benzema-99.png"
+      ]
+    },
+    {
+      "id": "football-maya-yoshida-129",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/063-maya-yoshida-129.webp",
+        "public/media/cards/archive-masks/football/063-maya-yoshida-129.png"
+      ]
+    },
+    {
+      "id": "football-shuichi-gonda-131",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/064-shuichi-gonda-131.webp",
+        "public/media/cards/archive-masks/football/064-shuichi-gonda-131.png"
+      ]
+    },
+    {
+      "id": "football-salem-al-dawsari-215",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/066-salem-al-dawsari-215.webp",
+        "public/media/cards/archive-masks/football/066-salem-al-dawsari-215.png"
+      ]
+    },
+    {
+      "id": "football-jude-bellingham-90",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/071-jude-bellingham-90.webp",
+        "public/media/cards/archive-masks/football/071-jude-bellingham-90.png"
+      ]
+    },
+    {
+      "id": "football-phil-foden-93",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/073-phil-foden-93.webp",
+        "public/media/cards/archive-masks/football/073-phil-foden-93.png"
+      ]
+    },
+    {
+      "id": "football-lautaro-martinez-5",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/084-lautaro-martinez-5.webp",
+        "public/media/cards/archive-masks/football/084-lautaro-martinez-5.png"
+      ]
+    },
+    {
+      "id": "football-antony-26",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/087-antony-26.webp",
+        "public/media/cards/archive-masks/football/087-antony-26.png"
+      ]
+    },
+    {
+      "id": "football-enner-valencia-77",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/089-enner-valencia-77.webp",
+        "public/media/cards/archive-masks/football/089-enner-valencia-77.png"
+      ]
+    },
+    {
+      "id": "football-edson-alvarez-144",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/092-edson-alvarez-144.webp",
+        "public/media/cards/archive-masks/football/092-edson-alvarez-144.png"
+      ]
+    },
+    {
+      "id": "football-marcelo-flores-146",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/093-marcelo-flores-146.webp",
+        "public/media/cards/archive-masks/football/093-marcelo-flores-146.png"
+      ]
+    },
+    {
+      "id": "football-nuno-mendes-180",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/098-nuno-mendes-180.webp",
+        "public/media/cards/archive-masks/football/098-nuno-mendes-180.png"
+      ]
+    },
+    {
+      "id": "football-brenden-aaronson-200",
+      "sport": "football",
+      "deleted": [
+        "public/media/cards/archive/football/099-brenden-aaronson-200.webp",
+        "public/media/cards/archive-masks/football/099-brenden-aaronson-200.png"
+      ]
+    }
+  ]
+}

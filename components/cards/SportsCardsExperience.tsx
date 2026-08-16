@@ -370,7 +370,7 @@ export function SportsCardsExperience() {
           INDEX
         </Link>
 
-        <p className={styles.archiveLabel}>PLAYER CARDS</p>
+        <p className={styles.archiveLabel}>SPECIAL CARD ARCHIVE</p>
 
         <div className={styles.sportSwitcher} role="group" aria-label="Sport collection">
           {sports.map((item) => (
@@ -416,7 +416,7 @@ export function SportsCardsExperience() {
             })}
           </div>
           <p aria-live="polite">
-            {activeSeries ? `${activeSeries.era} · ${activeSeries.finish}` : "TOPPS / PANINI ARCHIVE"}
+            {activeSeries ? `${activeSeries.era} · ${activeSeries.finish}` : "PHYSICAL FRONT / BACK ARCHIVE"}
           </p>
         </nav>
 
@@ -530,7 +530,7 @@ export function SportsCardsExperience() {
         <footer className={styles.footer}>
           <p><Rotate3D aria-hidden="true" /> DRAG OR SCROLL · SELECT TO INSPECT</p>
           <p>
-            {completeCollection.length} CARDS · TOPPS / PANINI ·{" "}
+            {completeCollection.length} SPECIAL CARDS · PHYSICAL FRONT / BACK ·{" "}
             <a href="/media/cards/ATTRIBUTION.md" target="_blank" rel="noreferrer">
               MEDIA &amp; SOURCES
           </a>
@@ -593,10 +593,10 @@ export function SportsCardsExperience() {
                 <div><dt>SET</dt><dd>{inspectCard.series}</dd></div>
                 <div><dt>PARALLEL</dt><dd>{inspectCard.parallel}</dd></div>
                 <div><dt>EDITION</dt><dd>{inspectCard.serial}</dd></div>
-                <div><dt>CARD BACK</dt><dd>{inspectCard.backMode === "digital-archive" ? "DIGITAL ARCHIVE" : "SCAN"}</dd></div>
+                <div><dt>SCAN PAIR</dt><dd>{inspectCard.scanProvenance === "paired-physical-specimen" ? "SAME SPECIMEN" : "ARCHIVE FRONT / BACK"}</dd></div>
                 <div><dt>AUTOGRAPH</dt><dd>{inspectCard.autographed ? "YES" : "—"}</dd></div>
                 {inspectCard.sourcePage ? (
-                  <div><dt>SOURCE</dt><dd><a href={inspectCard.sourcePage} target="_blank" rel="noreferrer">VIEW RECORD</a></dd></div>
+                  <div><dt>SOURCE</dt><dd><a href={inspectCard.sourcePage} target="_blank" rel="noreferrer">VIEW SCAN PAIR</a></dd></div>
                 ) : null}
               </dl>
 
