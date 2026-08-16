@@ -1,0 +1,701 @@
+import archiveManifest from "@/data/sportsCardArchive.generated.json";
+
+export type CardSport = "nba" | "nfl" | "football";
+
+export type CardSeriesId =
+  | "nba-topps-chrome-icons"
+  | "nba-panini-prizm-silver"
+  | "nba-topps-mercury"
+  | "nba-panini-prizm-2023-24"
+  | "nfl-panini-prizm-2023"
+  | "football-prizm-world-cup-autos"
+  | "football-topps-chrome-modern"
+  | "football-panini-prizm-world-cup-2022";
+
+export type FoilMask =
+  | "chrome-frame"
+  | "chrome-auto"
+  | "prizm-frame"
+  | "prizm-auto"
+  | "prizm-center-auto"
+  | "night-vision"
+  | "gold-auto"
+  | "archive-prizm";
+
+export type FoilPreset =
+  | "topps-refractor"
+  | "topps-gold"
+  | "prizm-silver"
+  | "mercury-blue"
+  | "prizm-auto"
+  | "topps-night-vision"
+  | "prizm-base"
+  | "prizm-color"
+  | "prizm-wave"
+  | "prizm-ice"
+  | "prizm-mojo"
+  | "prizm-disco"
+  | "prizm-sparkle"
+  | "prizm-tricolor"
+  | "prizm-snakeskin"
+  | "prizm-checker"
+  | "prizm-shimmer"
+  | "prizm-pulsar"
+  | "prizm-hyper"
+  | "prizm-seismic"
+  | "prizm-camo"
+  | "prizm-gold"
+  | "prizm-gold-vinyl"
+  | "prizm-black-finite"
+  | `prizm-${string}`;
+
+export type OpticalPattern =
+  | "base"
+  | "silver"
+  | "pandora"
+  | "color"
+  | "ice"
+  | "mojo"
+  | "disco"
+  | "fast-break"
+  | "sparkle"
+  | "glitter"
+  | "tricolor"
+  | "wave"
+  | "multi-wave"
+  | "snakeskin"
+  | "zebra"
+  | "elephant"
+  | "tiger"
+  | "checker"
+  | "shimmer"
+  | "pulsar"
+  | "hyper"
+  | "seismic"
+  | "camo"
+  | "scope"
+  | "lazer"
+  | "power"
+  | "gold"
+  | "gold-vinyl"
+  | "black"
+  | "black-gold"
+  | "black-finite"
+  | "sakura"
+  | "breakaway"
+  | "exclusive";
+
+export type OpticalTrajectory =
+  | "linear"
+  | "counter"
+  | "diagonal"
+  | "orbit"
+  | "horizontal"
+  | "vertical";
+
+export type CardOpticalProfile = {
+  profile: `prizm-${string}`;
+  pattern: OpticalPattern;
+  trajectory: OpticalTrajectory;
+  blend: string;
+  etchBlend: string;
+  fingerprint: string;
+  hue: number;
+  secondaryHue: number;
+  phase: number;
+  angle: number;
+  scaleX: number;
+  scaleY: number;
+  microScale: number;
+  offsetX: number;
+  offsetY: number;
+  intensity: number;
+  spectral: number;
+  contrast: number;
+  gloss: number;
+  roughness: number;
+  relief: number;
+  fresnel: number;
+  sparkle: number;
+  dispersion: number;
+  anisotropy: number;
+  drift: number;
+};
+
+export type SportsCard = {
+  id: string;
+  sport: CardSport;
+  seriesId: CardSeriesId;
+  player: string;
+  givenName: string;
+  familyName: string;
+  team: string;
+  position: string;
+  number: string;
+  nation: string;
+  year: string;
+  maker: "Panini" | "Topps";
+  series: string;
+  parallel: string;
+  cardNumber: string;
+  serial: string;
+  rarity: string;
+  frontImage: string;
+  backImage: string;
+  foilMaskImage?: string;
+  autographMaskImage?: string;
+  primary: string;
+  secondary: string;
+  accent: string;
+  foil: FoilPreset;
+  foilMask: FoilMask;
+  autographed: boolean;
+  autographMask?: string;
+  finishSeed?: number;
+  optics?: CardOpticalProfile;
+  backMode?: "scan";
+  scanProvenance?: "paired-physical-specimen";
+  specimenId?: string;
+  sourcePage?: string;
+  backSourcePage?: string;
+  sourceImage?: string;
+  backSourceImage?: string;
+  sourceTitle?: string;
+  sourceCollection?: string;
+  sourceRecord?: string;
+  contentHashes?: {
+    front: string;
+    back: string;
+    mask: string;
+  };
+  stats: readonly [string, string, string];
+};
+
+export type CardSeries = {
+  id: CardSeriesId;
+  sport: CardSport;
+  label: string;
+  shortLabel: string;
+  maker: "Panini" | "Topps";
+  era: string;
+  finish: string;
+};
+
+export const cardSeries: readonly CardSeries[] = [
+  {
+    id: "nba-topps-chrome-icons",
+    sport: "nba",
+    label: "TOPPS CHROME ICONS",
+    shortLabel: "CHROME ICONS",
+    maker: "Topps",
+    era: "1996–2008",
+    finish: "REFRACTOR",
+  },
+  {
+    id: "nba-panini-prizm-silver",
+    sport: "nba",
+    label: "PANINI PRIZM SILVER",
+    shortLabel: "PRIZM SILVER",
+    maker: "Panini",
+    era: "2013–2021",
+    finish: "SILVER PRIZM",
+  },
+  {
+    id: "nba-topps-mercury",
+    sport: "nba",
+    label: "TOPPS MERCURY",
+    shortLabel: "MERCURY",
+    maker: "Topps",
+    era: "2023–24",
+    finish: "GOLD REFRACTOR",
+  },
+  {
+    id: "nba-panini-prizm-2023-24",
+    sport: "nba",
+    label: "2023–24 PANINI PRIZM PARALLELS",
+    shortLabel: "2023–24 PRIZM",
+    maker: "Panini",
+    era: "2023–24",
+    finish: "PAIRED PHYSICAL SCANS",
+  },
+  {
+    id: "nfl-panini-prizm-2023",
+    sport: "nfl",
+    label: "2023 PANINI PRIZM NFL",
+    shortLabel: "2023 PRIZM NFL",
+    maker: "Panini",
+    era: "2023",
+    finish: "PAIRED PHYSICAL SCANS",
+  },
+  {
+    id: "football-prizm-world-cup-autos",
+    sport: "football",
+    label: "PRIZM WORLD CUP AUTOS",
+    shortLabel: "WORLD CUP AUTOS",
+    maker: "Panini",
+    era: "2018–2022",
+    finish: "SIGNATURES PRIZM",
+  },
+  {
+    id: "football-topps-chrome-modern",
+    sport: "football",
+    label: "TOPPS CHROME FOOTBALL",
+    shortLabel: "TOPPS CHROME",
+    maker: "Topps",
+    era: "2019–2023",
+    finish: "REFRACTOR",
+  },
+  {
+    id: "football-panini-prizm-world-cup-2022",
+    sport: "football",
+    label: "2022 PANINI PRIZM WORLD CUP",
+    shortLabel: "2022 WORLD CUP",
+    maker: "Panini",
+    era: "2022",
+    finish: "PAIRED PHYSICAL SCANS",
+  },
+] as const;
+
+const authenticSportsCards: readonly SportsCard[] = [
+  {
+    id: "lebron-james-topps-chrome",
+    sport: "nba",
+    seriesId: "nba-topps-chrome-icons",
+    player: "LeBron James",
+    givenName: "LEBRON",
+    familyName: "JAMES",
+    team: "Cleveland Cavaliers",
+    position: "F",
+    number: "23",
+    nation: "USA",
+    year: "2003–04",
+    maker: "Topps",
+    series: "CHROME",
+    parallel: "REFRACTOR",
+    cardNumber: "111",
+    serial: "ROOKIE CARD",
+    rarity: "REFRACTOR RC",
+    frontImage: "/media/cards/authentic/final/lebron-topps-chrome-front.webp",
+    backImage: "/media/cards/authentic/final/lebron-topps-chrome-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/lebron-james-topps-chrome-foil.png",
+    primary: "#7b1735",
+    secondary: "#c6c8cb",
+    accent: "#7cd8ff",
+    foil: "topps-refractor",
+    foilMask: "chrome-frame",
+    autographed: false,
+    stats: ["2003 ROOKIE", "#1 DRAFT PICK", "TOPPS #111"],
+  },
+  {
+    id: "kobe-bryant-topps-chrome-refractor",
+    sport: "nba",
+    seriesId: "nba-topps-chrome-icons",
+    player: "Kobe Bryant",
+    givenName: "KOBE",
+    familyName: "BRYANT",
+    team: "Los Angeles Lakers",
+    position: "G-F",
+    number: "8",
+    nation: "USA",
+    year: "1996–97",
+    maker: "Topps",
+    series: "CHROME",
+    parallel: "REFRACTOR",
+    cardNumber: "138",
+    serial: "ROOKIE CARD",
+    rarity: "REFRACTOR RC",
+    frontImage: "/media/cards/authentic/final/kobe-topps-chrome-refractor-front.webp",
+    backImage: "/media/cards/authentic/final/kobe-topps-chrome-refractor-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/kobe-bryant-topps-chrome-refractor-foil.png",
+    primary: "#3c176e",
+    secondary: "#d6d7d9",
+    accent: "#f0bd42",
+    foil: "topps-refractor",
+    foilMask: "chrome-frame",
+    autographed: false,
+    stats: ["ROOKIE CARD", "REFRACTOR", "TOPPS #138"],
+  },
+  {
+    id: "kevin-durant-topps-chrome-refractor",
+    sport: "nba",
+    seriesId: "nba-topps-chrome-icons",
+    player: "Kevin Durant",
+    givenName: "KEVIN",
+    familyName: "DURANT",
+    team: "Seattle SuperSonics",
+    position: "F",
+    number: "35",
+    nation: "USA",
+    year: "2007–08",
+    maker: "Topps",
+    series: "CHROME",
+    parallel: "REFRACTOR /1499",
+    cardNumber: "131",
+    serial: "REFRACTOR / 1499",
+    rarity: "REFRACTOR RC",
+    frontImage: "/media/cards/authentic/final/durant-topps-chrome-refractor-front.webp",
+    backImage: "/media/cards/authentic/final/durant-topps-chrome-refractor-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/kevin-durant-topps-chrome-refractor-foil.png",
+    primary: "#176b45",
+    secondary: "#d9e5e8",
+    accent: "#d6a33b",
+    foil: "topps-refractor",
+    foilMask: "chrome-frame",
+    autographed: false,
+    stats: ["ROOKIE CARD", "REFRACTOR /1499", "TOPPS #131"],
+  },
+  {
+    id: "stephen-curry-prizm-silver",
+    sport: "nba",
+    seriesId: "nba-panini-prizm-silver",
+    player: "Stephen Curry",
+    givenName: "STEPHEN",
+    familyName: "CURRY",
+    team: "Golden State Warriors",
+    position: "G",
+    number: "30",
+    nation: "USA",
+    year: "2020–21",
+    maker: "Panini",
+    series: "PRIZM",
+    parallel: "SILVER PRIZM",
+    cardNumber: "159",
+    serial: "SILVER",
+    rarity: "PRIZM",
+    frontImage: "/media/cards/authentic/final/curry-prizm-front.webp",
+    backImage: "/media/cards/authentic/final/curry-prizm-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/stephen-curry-prizm-silver-foil.png",
+    primary: "#095bb3",
+    secondary: "#d9dde1",
+    accent: "#ffca36",
+    foil: "prizm-silver",
+    foilMask: "prizm-frame",
+    autographed: false,
+    stats: ["2× MVP", "4× CHAMPION", "ALL-TIME 3PT"],
+  },
+  {
+    id: "giannis-antetokounmpo-prizm-silver",
+    sport: "nba",
+    seriesId: "nba-panini-prizm-silver",
+    player: "Giannis Antetokounmpo",
+    givenName: "GIANNIS",
+    familyName: "ANTETOKOUNMPO",
+    team: "Milwaukee Bucks",
+    position: "F",
+    number: "34",
+    nation: "GRE",
+    year: "2013–14",
+    maker: "Panini",
+    series: "PRIZM",
+    parallel: "SILVER PRIZM",
+    cardNumber: "290",
+    serial: "ROOKIE CARD",
+    rarity: "SILVER PRIZM RC",
+    frontImage: "/media/cards/authentic/final/giannis-prizm-silver-front.webp",
+    backImage: "/media/cards/authentic/final/giannis-prizm-silver-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/giannis-antetokounmpo-prizm-silver-foil.png",
+    primary: "#174c32",
+    secondary: "#e7e9e8",
+    accent: "#ef4135",
+    foil: "prizm-silver",
+    foilMask: "prizm-frame",
+    autographed: false,
+    stats: ["ROOKIE CARD", "SILVER PRIZM", "PANINI #290"],
+  },
+  {
+    id: "luka-doncic-prizm-silver",
+    sport: "nba",
+    seriesId: "nba-panini-prizm-silver",
+    player: "Luka Dončić",
+    givenName: "LUKA",
+    familyName: "DONČIĆ",
+    team: "Dallas Mavericks",
+    position: "G-F",
+    number: "77",
+    nation: "SLO",
+    year: "2018–19",
+    maker: "Panini",
+    series: "PRIZM",
+    parallel: "SILVER PRIZM",
+    cardNumber: "280",
+    serial: "ROOKIE CARD",
+    rarity: "SILVER PRIZM RC",
+    frontImage: "/media/cards/authentic/final/luka-prizm-silver-front.webp",
+    backImage: "/media/cards/authentic/final/luka-prizm-silver-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/luka-doncic-prizm-silver-foil.png",
+    primary: "#133b72",
+    secondary: "#d8dcdf",
+    accent: "#66c4e8",
+    foil: "prizm-silver",
+    foilMask: "prizm-frame",
+    autographed: false,
+    stats: ["ROOKIE CARD", "SILVER PRIZM", "PANINI #280"],
+  },
+  {
+    id: "victor-wembanyama-mercury-auto",
+    sport: "nba",
+    seriesId: "nba-topps-mercury",
+    player: "Victor Wembanyama",
+    givenName: "VICTOR",
+    familyName: "WEMBANYAMA",
+    team: "San Antonio Spurs",
+    position: "C-F",
+    number: "1",
+    nation: "FRA",
+    year: "2023–24",
+    maker: "Topps",
+    series: "MERCURY",
+    parallel: "GOLD REFRACTOR AUTO",
+    cardNumber: "WA-10",
+    serial: "45 / 50",
+    rarity: "ROOKIE AUTO",
+    frontImage: "/media/cards/authentic/final/wemby-mercury-front.webp",
+    backImage: "/media/cards/authentic/final/wemby-mercury-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/victor-wembanyama-mercury-auto-foil.png",
+    autographMaskImage: "/media/cards/authentic/masks/victor-wembanyama-mercury-auto-autograph.png",
+    primary: "#987020",
+    secondary: "#f3df9d",
+    accent: "#fff1a7",
+    foil: "topps-gold",
+    foilMask: "gold-auto",
+    autographed: true,
+    autographMask: "mercury",
+    stats: ["ROOKIE AUTO", "GOLD /50", "TOPPS CERTIFIED"],
+  },
+  {
+    id: "lionel-messi-prizm-auto",
+    sport: "football",
+    seriesId: "football-prizm-world-cup-autos",
+    player: "Lionel Messi",
+    givenName: "LIONEL",
+    familyName: "MESSI",
+    team: "Argentina",
+    position: "RW",
+    number: "10",
+    nation: "ARG",
+    year: "2022",
+    maker: "Panini",
+    series: "PRIZM WORLD CUP",
+    parallel: "SIGNATURES",
+    cardNumber: "S-LEO",
+    serial: "AUTHENTIC AUTO",
+    rarity: "SIGNATURES",
+    frontImage: "/media/cards/authentic/final/messi-prizm-front.webp",
+    backImage: "/media/cards/authentic/final/messi-prizm-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/lionel-messi-prizm-auto-foil.png",
+    autographMaskImage: "/media/cards/authentic/masks/lionel-messi-prizm-auto-autograph.png",
+    primary: "#5ebde8",
+    secondary: "#d9dee2",
+    accent: "#4fe7ff",
+    foil: "prizm-auto",
+    foilMask: "prizm-auto",
+    autographed: true,
+    autographMask: "prizm-bottom",
+    stats: ["WORLD CHAMPION", "8× BALLON D'OR", "PANINI AUTO"],
+  },
+  {
+    id: "cristiano-ronaldo-prizm-auto",
+    sport: "football",
+    seriesId: "football-prizm-world-cup-autos",
+    player: "Cristiano Ronaldo",
+    givenName: "CRISTIANO",
+    familyName: "RONALDO",
+    team: "Portugal",
+    position: "ST",
+    number: "7",
+    nation: "POR",
+    year: "2018",
+    maker: "Panini",
+    series: "PRIZM WORLD CUP",
+    parallel: "SIGNATURES PRIZM /25",
+    cardNumber: "S-CR7",
+    serial: "18 / 25",
+    rarity: "SIGNATURES",
+    frontImage: "/media/cards/authentic/final/ronaldo-prizm-front.webp",
+    backImage: "/media/cards/authentic/final/ronaldo-prizm-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/cristiano-ronaldo-prizm-auto-foil.png",
+    autographMaskImage: "/media/cards/authentic/masks/cristiano-ronaldo-prizm-auto-autograph.png",
+    primary: "#8f1325",
+    secondary: "#d9dadd",
+    accent: "#ffcc58",
+    foil: "prizm-auto",
+    foilMask: "prizm-auto",
+    autographed: true,
+    autographMask: "prizm-bottom",
+    stats: ["5× BALLON D'OR", "EURO CHAMPION", "PANINI AUTO"],
+  },
+  {
+    id: "neymar-prizm-world-cup-signatures",
+    sport: "football",
+    seriesId: "football-prizm-world-cup-autos",
+    player: "Neymar Jr.",
+    givenName: "NEYMAR",
+    familyName: "JR.",
+    team: "Brazil",
+    position: "LW",
+    number: "10",
+    nation: "BRA",
+    year: "2022",
+    maker: "Panini",
+    series: "PRIZM WORLD CUP",
+    parallel: "SIGNATURES",
+    cardNumber: "S-NJR",
+    serial: "AUTHENTIC AUTO",
+    rarity: "SIGNATURES",
+    frontImage: "/media/cards/authentic/final/neymar-prizm-2022-signatures-front.webp",
+    backImage: "/media/cards/authentic/final/neymar-prizm-2022-signatures-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/neymar-prizm-world-cup-signatures-foil.png",
+    autographMaskImage: "/media/cards/authentic/masks/neymar-prizm-world-cup-signatures-autograph.png",
+    primary: "#153f31",
+    secondary: "#d5d7d6",
+    accent: "#d6bd45",
+    foil: "prizm-auto",
+    foilMask: "prizm-auto",
+    autographed: true,
+    autographMask: "neymar-sticker",
+    stats: ["BRAZIL #10", "SIGNATURES", "PANINI CERTIFIED"],
+  },
+  {
+    id: "kylian-mbappe-prizm-international-ink",
+    sport: "football",
+    seriesId: "football-prizm-world-cup-autos",
+    player: "Kylian Mbappé",
+    givenName: "KYLIAN",
+    familyName: "MBAPPÉ",
+    team: "France",
+    position: "F",
+    number: "10",
+    nation: "FRA",
+    year: "2022",
+    maker: "Panini",
+    series: "PRIZM WORLD CUP",
+    parallel: "INTERNATIONAL INK",
+    cardNumber: "I-KM",
+    serial: "AUTHENTIC AUTO",
+    rarity: "INTERNATIONAL INK",
+    frontImage: "/media/cards/authentic/final/mbappe-prizm-2022-international-ink-front.webp",
+    backImage: "/media/cards/authentic/final/mbappe-prizm-2022-international-ink-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/kylian-mbappe-prizm-international-ink-foil.png",
+    autographMaskImage: "/media/cards/authentic/masks/kylian-mbappe-prizm-international-ink-autograph.png",
+    primary: "#101f4e",
+    secondary: "#cdd2d8",
+    accent: "#5e70f2",
+    foil: "prizm-auto",
+    foilMask: "prizm-center-auto",
+    autographed: true,
+    autographMask: "mbappe-sticker",
+    stats: ["FRANCE #10", "INTERNATIONAL INK", "PANINI CERTIFIED"],
+  },
+  {
+    id: "kylian-mbappe-topps-chrome-auto",
+    sport: "football",
+    seriesId: "football-topps-chrome-modern",
+    player: "Kylian Mbappé",
+    givenName: "KYLIAN",
+    familyName: "MBAPPÉ",
+    team: "Paris Saint-Germain",
+    position: "F",
+    number: "7",
+    nation: "FRA",
+    year: "2022–23",
+    maker: "Topps",
+    series: "CHROME PSG",
+    parallel: "REFRACTOR AUTO",
+    cardNumber: "AU-KM",
+    serial: "64 / 99",
+    rarity: "ON-CARD AUTO",
+    frontImage: "/media/cards/authentic/final/mbappe-topps-chrome-front.webp",
+    backImage: "/media/cards/authentic/final/mbappe-topps-chrome-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/kylian-mbappe-topps-chrome-auto-foil.png",
+    autographMaskImage: "/media/cards/authentic/masks/kylian-mbappe-topps-chrome-auto-autograph.png",
+    primary: "#0c2f75",
+    secondary: "#d1d5db",
+    accent: "#70d9ff",
+    foil: "topps-refractor",
+    foilMask: "chrome-auto",
+    autographed: true,
+    autographMask: "chrome-bottom",
+    stats: ["ON-CARD AUTO", "REFRACTOR /99", "TOPPS CHROME"],
+  },
+  {
+    id: "jude-bellingham-topps-chrome-night-vision",
+    sport: "football",
+    seriesId: "football-topps-chrome-modern",
+    player: "Jude Bellingham",
+    givenName: "JUDE",
+    familyName: "BELLINGHAM",
+    team: "Borussia Dortmund",
+    position: "MF",
+    number: "22",
+    nation: "ENG",
+    year: "2021–22",
+    maker: "Topps",
+    series: "CHROME UCL",
+    parallel: "NIGHT VISION /225",
+    cardNumber: "58",
+    serial: "071 / 225",
+    rarity: "NIGHT VISION",
+    frontImage: "/media/cards/authentic/final/bellingham-topps-chrome-2021-night-vision-front.webp",
+    backImage: "/media/cards/authentic/final/bellingham-topps-chrome-2021-night-vision-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/jude-bellingham-topps-chrome-night-vision-foil.png",
+    primary: "#124d3c",
+    secondary: "#c7d5cf",
+    accent: "#55e3b2",
+    foil: "topps-night-vision",
+    foilMask: "night-vision",
+    autographed: false,
+    stats: ["NIGHT VISION", "071 / 225", "TOPPS #58"],
+  },
+  {
+    id: "erling-haaland-topps-chrome-bundesliga-refractor",
+    sport: "football",
+    seriesId: "football-topps-chrome-modern",
+    player: "Erling Haaland",
+    givenName: "ERLING",
+    familyName: "HAALAND",
+    team: "Borussia Dortmund",
+    position: "F",
+    number: "17",
+    nation: "NOR",
+    year: "2019–20",
+    maker: "Topps",
+    series: "CHROME BUNDESLIGA",
+    parallel: "REFRACTOR",
+    cardNumber: "72",
+    serial: "ROOKIE CARD",
+    rarity: "REFRACTOR RC",
+    frontImage: "/media/cards/authentic/final/haaland-topps-chrome-bundesliga-2019-refractor-front.webp",
+    backImage: "/media/cards/authentic/final/haaland-topps-chrome-bundesliga-2019-refractor-back.webp",
+    foilMaskImage: "/media/cards/authentic/masks/erling-haaland-topps-chrome-bundesliga-refractor-foil.png",
+    primary: "#efc71a",
+    secondary: "#d8dade",
+    accent: "#6fd6ff",
+    foil: "topps-refractor",
+    foilMask: "chrome-frame",
+    autographed: false,
+    stats: ["ROOKIE CARD", "REFRACTOR", "TOPPS #72"],
+  },
+] as const;
+
+const generatedSportsCards = archiveManifest as unknown as SportsCard[];
+
+export const sportsCards: readonly SportsCard[] = [
+  ...authenticSportsCards,
+  ...generatedSportsCards,
+];
+
+export const sports = ["nba", "nfl", "football"] as const;
+
+export function getSeriesBySport(sport: CardSport) {
+  return cardSeries.filter((series) => series.sport === sport);
+}
+
+export function getSeriesById(seriesId: CardSeriesId) {
+  return cardSeries.find((series) => series.id === seriesId);
+}
+
+export function getCardsBySport(sport: CardSport, seriesId?: CardSeriesId | "all") {
+  return sportsCards.filter(
+    (card) => card.sport === sport && (!seriesId || seriesId === "all" || card.seriesId === seriesId),
+  );
+}

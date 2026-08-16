@@ -14,6 +14,7 @@ import {
 import gsap from "gsap";
 import { DiscNavigation } from "@/components/home/DiscNavigation";
 import { HomeNowPlayingVinyl } from "@/components/home/HomeNowPlayingVinyl";
+import { HomePlayerCardsEntry } from "@/components/home/HomePlayerCardsEntry";
 import { StaticGlassLens } from "@/components/home/StaticGlassLens";
 import { WaterSurface } from "@/components/home/WaterSurface";
 import { stylesConfig } from "@/data/stylesConfig";
@@ -389,6 +390,7 @@ export function HomeExperience() {
         </div>
       </section>
 
+      <HomePlayerCardsEntry />
       <HomeNowPlayingVinyl />
     </main>
   );

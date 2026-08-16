@@ -1,0 +1,2654 @@
+.page {
+  --gallery-white: #f3f1ec;
+  min-height: 100svh;
+  overflow: hidden;
+  color: #f5f5f5;
+  background: #000;
+  isolation: isolate;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+:global(html):has(.page),
+:global(body):has(.page) {
+  background: #000;
+  overscroll-behavior: none;
+}
+
+.page,
+.page * {
+  box-sizing: border-box;
+}
+
+.page button,
+.page a {
+  color: inherit;
+  font: inherit;
+}
+
+.page button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.archiveContent {
+  display: contents;
+}
+
+.header {
+  position: relative;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 72px;
+  padding: 0 clamp(20px, 3.5vw, 56px);
+  border-bottom: 1px solid #1b1b1b;
+  background: #000;
+}
+
+.backLink,
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  width: max-content;
+  padding: 8px 0;
+  border: 0;
+  color: #aaa;
+  background: transparent;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.backLink svg,
+.backButton svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.5;
+}
+
+.backLink:hover,
+.backButton:hover {
+  color: #fff;
+}
+
+.archiveLabel {
+  margin: 0;
+  color: #d8d8d8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-align: center;
+}
+
+.sportSwitcher {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 28px);
+}
+
+.sportSwitcher button {
+  min-width: 0;
+  padding: 11px 0 9px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  color: #6f6f6f;
+  background: transparent;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.sportSwitcher button:hover {
+  color: #d9d9d9;
+}
+
+.sportSwitcher .sportActive {
+  border-bottom-color: #ededed;
+  color: #ededed;
+  background: transparent;
+}
+
+.backLink:focus-visible,
+.backButton:focus-visible,
+.sportSwitcher button:focus-visible,
+.seriesTabs button:focus-visible,
+.railViewport:focus-visible,
+.railCard:focus-visible,
+.activeCaption button:focus-visible,
+.railControls button:focus-visible,
+.closeButton:focus-visible,
+.inspectActions button:focus-visible,
+.mobileInfoButton:focus-visible,
+.interactiveCard:focus-visible {
+  outline: 1px solid #fff;
+  outline-offset: 4px;
+}
+
+.collection {
+  display: grid;
+  grid-template-rows: auto minmax(320px, 1fr) auto auto;
+  min-height: calc(100svh - 128px);
+  background: #000;
+}
+
+.seriesBar {
+  position: relative;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 clamp(20px, 3.5vw, 56px);
+  overflow: hidden;
+  border-bottom: 1px solid #151515;
+  background: #000;
+}
+
+.seriesLabel,
+.seriesBar > p {
+  margin: 0;
+  color: #484848;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.seriesLabel {
+  padding-right: 22px;
+}
+
+.seriesBar > p {
+  padding-left: 22px;
+  text-align: right;
+}
+
+.seriesTabs {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.seriesTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.seriesTabs button {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 45px;
+  padding: 0 17px;
+  border: 0;
+  color: #5d5d5d;
+  background: transparent;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.seriesTabs button::after {
+  position: absolute;
+  right: 17px;
+  bottom: 0;
+  left: 17px;
+  height: 1px;
+  background: transparent;
+  content: "";
+}
+
+.seriesTabs button:hover {
+  color: #bcbcbc;
+}
+
+.seriesTabs small {
+  color: #3d3d3d;
+  font-size: 7px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.seriesTabs .seriesActive {
+  color: #ececec;
+}
+
+.seriesTabs .seriesActive::after {
+  background: #ececec;
+}
+
+.seriesTabs .seriesActive small {
+  color: #888;
+}
+
+.railViewport {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  outline: none;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.railViewport::before {
+  display: none;
+}
+
+.railViewport[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.rail {
+  --rail-drag-x: 0px;
+  position: absolute;
+  inset: 0;
+  perspective: 1400px;
+  perspective-origin: 50% 46%;
+  animation: seriesReveal 280ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+@keyframes seriesReveal {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.railCard {
+  --foil-angle: 122deg;
+  --foil-hue: 0deg;
+  --foil-opacity: 0.2;
+  --glare-x: var(--foil-x, 50%);
+  --glare-y: var(--foil-y, 50%);
+  --glare-angle: 122deg;
+  --glare-opacity: 0.16;
+  --coat-opacity: 0.16;
+  --fresnel-opacity: 0.12;
+  --specular-strength: 0.3;
+  --broad-specular: 0.36;
+  --view-grazing: 0.05;
+  --sparkle-opacity: 0.07;
+  --spectral-shift: 0deg;
+  --relief-x: 0px;
+  --relief-y: 0px;
+  --light-azimuth: 128deg;
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  z-index: var(--card-z, 1);
+  width: clamp(170px, 14.6vw, 246px);
+  aspect-ratio: 5 / 7;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 3.25%;
+  opacity: var(--card-opacity, 1);
+  background: transparent;
+  box-shadow: 0 24px 45px rgb(0 0 0 / 75%);
+  transform:
+    translate3d(calc(-50% + var(--card-x, 0px) + var(--rail-drag-x, 0px)), -50%, 0)
+    rotateY(var(--card-rotate, 0deg))
+    scale(var(--card-scale, 1));
+  transform-style: preserve-3d;
+  cursor: pointer;
+  transition:
+    transform 420ms cubic-bezier(0.22, 0.78, 0.2, 1),
+    opacity 300ms ease,
+    filter 300ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.railViewport[data-dragging="true"] .railCard {
+  transition:
+    opacity 120ms linear,
+    filter 120ms linear;
+}
+
+.railCard:not(.railCardActive) {
+  filter: saturate(0.88) brightness(0.79);
+}
+
+.railCard:not(.railCardActive):hover {
+  filter: saturate(0.96) brightness(0.9);
+}
+
+.railCardActive {
+  filter: none;
+}
+
+.railCardActive .cardArtwork {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 14%),
+    0 24px 48px rgb(0 0 0 / 78%);
+}
+
+.activeCaption {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(54px, 0.45fr) minmax(220px, 1.4fr) minmax(120px, 0.55fr);
+  align-items: center;
+  gap: 24px;
+  width: min(780px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 14px 0 18px;
+  border-top: 1px solid #1c1c1c;
+}
+
+.selectionStatus {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.activeCaption > span {
+  color: #686868;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.activeCaption > div {
+  min-width: 0;
+}
+
+.activeCaption strong {
+  display: block;
+  overflow: hidden;
+  color: #f2f2f2;
+  font-size: clamp(19px, 2.2vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activeCaption p {
+  margin: 7px 0 0;
+  overflow: hidden;
+  color: #707070;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.activeCaption > button {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border: 0;
+  color: #aaa;
+  background: transparent;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.activeCaption > button:hover {
+  color: #fff;
+}
+
+.activeCaption > button svg {
+  width: 15px;
+  height: 15px;
+  transform: rotate(180deg);
+}
+
+.railControls {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding-bottom: 13px;
+}
+
+.railControls > button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #222;
+  border-radius: 50%;
+  place-items: center;
+  color: #8a8a8a;
+  background: #030303;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.railControls > button:hover:not(:disabled) {
+  border-color: #555;
+  color: #fff;
+}
+
+.railControls > button:disabled {
+  color: #333;
+  cursor: default;
+}
+
+.railControls > button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.railScrubber {
+  display: grid;
+  width: clamp(96px, 15vw, 210px);
+  align-items: center;
+}
+
+.railScrubber input {
+  width: 100%;
+  height: 14px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+.railScrubber input::-webkit-slider-runnable-track {
+  height: 1px;
+  background: #303030;
+}
+
+.railScrubber input::-webkit-slider-thumb {
+  width: 24px;
+  height: 3px;
+  margin-top: -1px;
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+  background: var(--gallery-white);
+}
+
+.railScrubber input::-moz-range-track {
+  height: 1px;
+  background: #303030;
+}
+
+.railScrubber input::-moz-range-thumb {
+  width: 24px;
+  height: 3px;
+  border: 0;
+  border-radius: 0;
+  background: var(--gallery-white);
+}
+
+.footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 22;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 clamp(20px, 3.5vw, 56px);
+  border-top: 1px solid #171717;
+  color: #525252;
+  background: #000;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.footer p {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+}
+
+.footer svg {
+  width: 13px;
+  height: 13px;
+}
+
+.footer a {
+  color: #777;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.footer a:hover {
+  color: #fff;
+}
+
+/* The artwork owns no motion variables. It only consumes values inherited from
+   either the rail item or the quaternion-driven interactive card. */
+.cardArtwork {
+  --foil-strength: 0.62;
+  --glare-strength: 0.66;
+  --coat-strength: 0.62;
+  --finish-track-x: calc(var(--foil-x, 50%) + var(--finish-offset-x, 0%));
+  --finish-track-y: calc(var(--foil-y, 50%) + var(--finish-offset-y, 0%));
+  --finish-counter-x: calc(100% - var(--foil-x, 50%) + var(--finish-offset-x, 0%));
+  --finish-counter-y: calc(100% - var(--foil-y, 50%) + var(--finish-offset-y, 0%));
+  --finish-relief-x: calc(var(--finish-track-x) + var(--relief-x, 0px));
+  --finish-relief-y: calc(var(--finish-track-y) + var(--relief-y, 0px));
+  position: relative;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 5 / 7;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 3.1%;
+  background: #101010;
+  box-shadow: 0 14px 28px rgb(0 0 0 / 55%);
+  isolation: isolate;
+  transform: translateZ(0);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cardArtwork[data-trajectory="counter"] {
+  --finish-track-x: var(--finish-counter-x);
+  --finish-track-y: var(--finish-counter-y);
+}
+
+.cardArtwork[data-trajectory="horizontal"] {
+  --finish-track-y: var(--finish-offset-y, 50%);
+}
+
+.cardArtwork[data-trajectory="vertical"] {
+  --finish-track-x: var(--finish-offset-x, 50%);
+}
+
+.cardArtwork[data-trajectory="diagonal"] {
+  --finish-track-y: calc(var(--foil-x, 50%) + var(--finish-offset-y, 0%));
+}
+
+.cardArtwork[data-trajectory="orbit"] {
+  --finish-track-x: calc(var(--foil-x, 50%) + var(--finish-offset-y, 0%));
+  --finish-track-y: calc(100% - var(--foil-y, 50%) + var(--finish-offset-x, 0%));
+}
+
+.scanImage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.foilDiffraction,
+.foilEtching,
+.foilRelief,
+.foilMicrotexture,
+.foilSparkle,
+.foilGlare,
+.clearCoat,
+.backSatin,
+.autographProtection {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.foilDiffraction {
+  z-index: 2;
+  background-position:
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    center;
+  background-size: 100% 100%, 230% 230%, 100% 100%;
+  mix-blend-mode: var(--finish-blend, color-dodge);
+  opacity: clamp(
+    0,
+    calc(var(--foil-opacity, 0.2) * var(--foil-strength) * var(--finish-intensity, 1)),
+    0.52
+  );
+  filter:
+    hue-rotate(var(--foil-hue, 0deg))
+    saturate(calc(1 + var(--finish-spectral, 0.62)))
+    contrast(var(--finish-contrast, 1.22));
+  transform: translateZ(0);
+  will-change: opacity, background-position, filter;
+}
+
+.foilEtching {
+  z-index: 3;
+  mix-blend-mode: var(--finish-etch-blend, screen);
+  opacity: clamp(
+    0,
+    calc(var(--foil-opacity, 0.2) * var(--foil-strength) * var(--finish-intensity, 1)),
+    0.38
+  );
+  filter: hue-rotate(var(--foil-hue, 0deg));
+  will-change: opacity, background-position, filter;
+}
+
+.foilRelief {
+  z-index: 4;
+  background-image:
+    repeating-linear-gradient(
+      calc(var(--finish-angle, 112deg) + var(--light-azimuth, 128deg)),
+      rgb(255 255 255 / 16%) 0 0.65px,
+      transparent 0.85px calc(var(--finish-micro-scale, 18px) * 0.46),
+      rgb(0 0 0 / 22%) calc(var(--finish-micro-scale, 18px) * 0.5),
+      transparent calc(var(--finish-micro-scale, 18px) * 0.56) var(--finish-micro-scale, 18px)
+    ),
+    radial-gradient(
+      ellipse 36% 27% at var(--finish-relief-x) var(--finish-relief-y),
+      rgb(255 255 255 / 34%),
+      transparent 70%
+    );
+  background-position:
+    var(--finish-counter-x) var(--finish-counter-y),
+    center;
+  background-size:
+    var(--finish-scale-x, 90px) var(--finish-scale-y, 110px),
+    100% 100%;
+  mix-blend-mode: soft-light;
+  opacity: clamp(
+    0.01,
+    calc((0.06 + var(--broad-specular, 0.35) * 0.2 + var(--view-grazing, 0.04) * 0.1) * var(--finish-relief, 0.56)),
+    0.34
+  );
+  filter: contrast(calc(1 + var(--finish-relief, 0.56) * 0.45));
+  transform: translate(var(--relief-x, 0px), var(--relief-y, 0px));
+  will-change: opacity, transform, background-position;
+}
+
+.foilMicrotexture {
+  z-index: 5;
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+  mix-blend-mode: var(--finish-etch-blend, screen);
+  opacity: clamp(
+    0,
+    calc(var(--foil-opacity, 0.2) * var(--finish-intensity, 1) * 0.52),
+    0.28
+  );
+  transform: translateZ(0);
+  will-change: opacity, background-position;
+}
+
+.foilSparkle {
+  z-index: 6;
+  background-image:
+    radial-gradient(circle, rgb(255 255 255 / 96%) 0 0.7px, hsl(var(--finish-hue) 100% 82% / 68%) 0.9px, transparent 2.4px),
+    radial-gradient(circle, hsl(var(--finish-secondary-hue) 100% 82% / 82%) 0 0.55px, transparent 2px),
+    radial-gradient(ellipse 22% 16% at var(--finish-track-x) var(--finish-track-y), rgb(255 255 255 / 58%), transparent 72%);
+  background-position:
+    var(--finish-track-x) var(--finish-track-y),
+    var(--finish-counter-x) var(--finish-counter-y),
+    center;
+  background-size:
+    calc(var(--finish-scale-x, 90px) * 0.47) calc(var(--finish-scale-y, 110px) * 0.43),
+    calc(var(--finish-scale-y, 110px) * 0.31) calc(var(--finish-scale-x, 90px) * 0.39),
+    100% 100%;
+  mix-blend-mode: color-dodge;
+  opacity: clamp(0, calc(var(--sparkle-opacity, 0.06) * var(--finish-sparkle, 0.42)), 0.54);
+  filter:
+    hue-rotate(var(--spectral-shift, 0deg))
+    saturate(calc(1 + var(--finish-dispersion, 0.5)));
+  will-change: opacity, background-position, filter;
+}
+
+.foilGlare {
+  z-index: 7;
+  background:
+    radial-gradient(
+      ellipse 28% 20% at var(--glare-x, 52%) var(--glare-y, 45%),
+      rgb(255 255 255 / 54%) 0%,
+      rgb(255 255 255 / 22%) 12%,
+      rgb(210 225 255 / 9%) 34%,
+      transparent 68%
+    );
+  mix-blend-mode: screen;
+  opacity: clamp(
+    0,
+    calc(var(--glare-opacity, 0.18) * var(--glare-strength) * var(--finish-gloss, 1)),
+    0.5
+  );
+  transform: rotate(var(--glare-angle, 120deg)) scale(1.18);
+  transform-origin: var(--glare-x, 50%) var(--glare-y, 50%);
+  will-change: opacity, transform, background;
+}
+
+.clearCoat {
+  z-index: 8;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse 62% 46% at var(--glare-x, 52%) var(--glare-y, 45%),
+      rgb(255 255 255 / 38%) 0%,
+      rgb(255 255 255 / 10%) 18%,
+      transparent 56%
+    ),
+    linear-gradient(
+      var(--glare-angle, 120deg),
+      transparent 12%,
+      rgb(255 255 255 / 10%) 45%,
+      rgb(255 255 255 / 30%) 50%,
+      rgb(255 255 255 / 8%) 56%,
+      transparent 86%
+    );
+  mix-blend-mode: screen;
+  opacity: clamp(
+    0.012,
+    calc(var(--coat-opacity, 0.16) * var(--coat-strength) * (0.55 + var(--finish-gloss, 1) * 0.45)),
+    0.42
+  );
+  filter: blur(calc(var(--finish-roughness, 0.34) * 0.18px));
+  will-change: opacity, background;
+}
+
+.clearCoat::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(255 255 255 / 82%);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 7px rgb(255 255 255 / 32%),
+    inset 0 0 28px rgb(255 255 255 / 8%);
+  content: "";
+  opacity: clamp(0, calc(var(--fresnel-opacity, 0.12) * var(--finish-fresnel, 0.72)), 0.82);
+}
+
+/* The chrome ink lives on printed borders and backgrounds, not on skin, cloth,
+   type or autograph ink. These series profiles approximate the physical strike
+   zones while preserving the exact scanned artwork below. */
+.cardArtwork[data-foil-mask="chrome-frame"] {
+  --foil-strength: 0.72;
+  --glare-strength: 0.7;
+  --coat-strength: 0.62;
+}
+
+.cardArtwork[data-foil-mask="prizm-frame"] {
+  --foil-strength: 0.58;
+  --glare-strength: 0.72;
+  --coat-strength: 0.6;
+}
+
+.cardArtwork[data-foil-mask="chrome-auto"] {
+  --foil-strength: 0.58;
+  --glare-strength: 0.64;
+  --coat-strength: 0.58;
+}
+
+.cardArtwork[data-foil-mask="prizm-auto"] {
+  --foil-strength: 0.42;
+  --glare-strength: 0.5;
+  --coat-strength: 0.5;
+}
+
+.cardArtwork[data-foil-mask="prizm-center-auto"] {
+  --foil-strength: 0.4;
+  --glare-strength: 0.48;
+  --coat-strength: 0.48;
+}
+
+.cardArtwork[data-foil-mask="night-vision"] {
+  --foil-strength: 0.64;
+  --glare-strength: 0.52;
+  --coat-strength: 0.54;
+}
+
+.cardArtwork[data-foil-mask="gold-auto"] {
+  --foil-strength: 0.54;
+  --glare-strength: 0.62;
+  --coat-strength: 0.56;
+}
+
+.cardArtwork[data-foil-mask="archive-prizm"] {
+  --foil-strength: 0.66;
+  --glare-strength: 0.66;
+  --coat-strength: 0.56;
+}
+
+.cardArtwork[data-foil-mask="archive-prizm"] .foilDiffraction,
+.cardArtwork[data-foil-mask="archive-prizm"] .foilEtching,
+.cardArtwork[data-foil-mask="archive-prizm"] .foilMicrotexture {
+  -webkit-mask-image: radial-gradient(
+    ellipse 32% 46% at 50% 43%,
+    rgb(0 0 0 / 10%) 0 43%,
+    rgb(0 0 0 / 32%) 61%,
+    #000 82%
+  );
+  mask-image: radial-gradient(
+    ellipse 32% 46% at 50% 43%,
+    rgb(0 0 0 / 10%) 0 43%,
+    rgb(0 0 0 / 32%) 61%,
+    #000 82%
+  );
+}
+
+.cardArtwork[data-foil-mask="chrome-frame"] .foilDiffraction,
+.cardArtwork[data-foil-mask="chrome-frame"] .foilEtching {
+  -webkit-mask-image: radial-gradient(
+    ellipse 36% 50% at 50% 44%,
+    rgb(0 0 0 / 9%) 0 48%,
+    rgb(0 0 0 / 25%) 68%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 36% 50% at 50% 44%,
+    rgb(0 0 0 / 9%) 0 48%,
+    rgb(0 0 0 / 25%) 68%,
+    #000 100%
+  );
+}
+
+.cardArtwork[data-foil-mask="prizm-frame"] .foilDiffraction,
+.cardArtwork[data-foil-mask="prizm-frame"] .foilEtching {
+  -webkit-mask-image: radial-gradient(
+    ellipse 31% 47% at 50% 43%,
+    rgb(0 0 0 / 5%) 0 46%,
+    rgb(0 0 0 / 22%) 65%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 31% 47% at 50% 43%,
+    rgb(0 0 0 / 5%) 0 46%,
+    rgb(0 0 0 / 22%) 65%,
+    #000 100%
+  );
+}
+
+.cardArtwork[data-foil-mask="chrome-auto"] .foilDiffraction,
+.cardArtwork[data-foil-mask="chrome-auto"] .foilEtching {
+  -webkit-mask-image: linear-gradient(#000 0 61%, transparent 66% 91%, #000 96%);
+  mask-image: linear-gradient(#000 0 61%, transparent 66% 91%, #000 96%);
+}
+
+.cardArtwork[data-foil-mask="prizm-auto"] .foilDiffraction,
+.cardArtwork[data-foil-mask="prizm-auto"] .foilEtching {
+  -webkit-mask-image: linear-gradient(#000 0 63%, transparent 68% 91%, #000 96%);
+  mask-image: linear-gradient(#000 0 63%, transparent 68% 91%, #000 96%);
+}
+
+.cardArtwork[data-foil-mask="prizm-center-auto"] .foilDiffraction,
+.cardArtwork[data-foil-mask="prizm-center-auto"] .foilEtching {
+  -webkit-mask-image: linear-gradient(#000 0 58%, transparent 64% 84%, #000 90%);
+  mask-image: linear-gradient(#000 0 58%, transparent 64% 84%, #000 90%);
+}
+
+.cardArtwork[data-foil-mask="night-vision"] .foilDiffraction,
+.cardArtwork[data-foil-mask="night-vision"] .foilEtching {
+  -webkit-mask-image: radial-gradient(
+    ellipse 28% 48% at 55% 45%,
+    rgb(0 0 0 / 8%) 0 52%,
+    rgb(0 0 0 / 36%) 72%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 28% 48% at 55% 45%,
+    rgb(0 0 0 / 8%) 0 52%,
+    rgb(0 0 0 / 36%) 72%,
+    #000 100%
+  );
+}
+
+.cardArtwork[data-foil-mask="gold-auto"] .foilDiffraction,
+.cardArtwork[data-foil-mask="gold-auto"] .foilEtching {
+  -webkit-mask-image: linear-gradient(#000 0 60%, transparent 65% 89%, #000 95%);
+  mask-image: linear-gradient(#000 0 60%, transparent 65% 89%, #000 95%);
+}
+
+/* Standard Topps Refractor: one continuous spectral band and mirror sweep. */
+.cardArtwork[data-foil="topps-refractor"] .foilDiffraction {
+  background-image:
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + 90deg),
+      transparent 27%,
+      rgb(91 226 255 / 18%) 37%,
+      rgb(102 103 255 / 21%) 42%,
+      rgb(255 92 197 / 18%) 47%,
+      rgb(255 226 105 / 15%) 52%,
+      rgb(97 255 190 / 14%) 57%,
+      transparent 69%
+    ),
+    radial-gradient(
+      ellipse 34% 24% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 24%) 0%,
+      rgb(202 232 255 / 10%) 31%,
+      transparent 68%
+    );
+  background-position:
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    center;
+  background-size: 210% 210%, 100% 100%;
+  mix-blend-mode: screen;
+  filter:
+    hue-rotate(var(--foil-hue, 0deg))
+    saturate(1.12)
+    contrast(1.12);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.4);
+}
+
+.cardArtwork[data-foil="topps-refractor"] .foilEtching {
+  background: linear-gradient(
+    calc(var(--foil-angle, 120deg) + 90deg),
+    transparent 43%,
+    rgb(219 240 255 / 10%) 46%,
+    rgb(255 255 255 / 44%) 49%,
+    rgb(255 255 255 / 17%) 52%,
+    transparent 57%
+  );
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 220% 220%;
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.45), 0.32);
+}
+
+/* Night Vision is a broad monochrome green interference finish. Large soft
+   waves move through the whole print; there is no RGB rainbow or micro-grid. */
+.cardArtwork[data-foil="topps-night-vision"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      ellipse 68% 36% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(231 255 241 / 30%) 0%,
+      rgb(86 235 164 / 22%) 24%,
+      rgb(14 132 112 / 11%) 47%,
+      transparent 72%
+    ),
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + 22deg),
+      transparent 18%,
+      rgb(36 188 132 / 7%) 34%,
+      rgb(158 255 207 / 18%) 48%,
+      rgb(22 128 108 / 8%) 63%,
+      transparent 82%
+    ),
+    radial-gradient(
+      ellipse 75% 58% at calc(100% - var(--foil-x, 50%)) calc(100% - var(--foil-y, 50%)),
+      rgb(116 255 189 / 11%),
+      transparent 66%
+    );
+  background-position:
+    center,
+    var(--foil-x, 50%) var(--foil-y, 50%),
+    center;
+  background-size: 100% 100%, 180% 180%, 100% 100%;
+  mix-blend-mode: screen;
+  filter: saturate(1.08) contrast(1.12);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.36);
+}
+
+.cardArtwork[data-foil="topps-night-vision"] .foilEtching {
+  background: radial-gradient(
+    ellipse 28% 18% at var(--foil-x, 50%) var(--foil-y, 50%),
+    rgb(238 255 245 / 32%),
+    rgb(110 245 185 / 12%) 34%,
+    transparent 74%
+  );
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.34), 0.22);
+}
+
+/* Panini Silver Prizm: cooler chrome, hard specular travel and narrow rainbows. */
+.cardArtwork[data-foil="prizm-silver"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      ellipse 30% 23% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 54%) 0%,
+      rgb(192 226 255 / 21%) 24%,
+      transparent 58%
+    ),
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + 90deg),
+      transparent 35%,
+      rgb(105 226 255 / 8%) 43%,
+      rgb(255 255 255 / 22%) 48%,
+      rgb(255 121 209 / 7%) 53%,
+      transparent 62%
+    );
+  background-position:
+    center,
+    var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 100% 100%, 190% 190%;
+  mix-blend-mode: screen;
+  filter: saturate(0.82) contrast(1.16);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.29);
+}
+
+.cardArtwork[data-foil="prizm-silver"] .foilEtching {
+  background: linear-gradient(
+    calc(var(--foil-angle, 120deg) + 90deg),
+    transparent 44%,
+    rgb(210 232 247 / 12%) 47%,
+    rgb(255 255 255 / 48%) 50%,
+    rgb(205 229 247 / 10%) 53%,
+    transparent 57%
+  );
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 205% 205%;
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.54), 0.36);
+}
+
+/* Topps Mercury blue: blue anodized chrome with cyan/magenta interference. */
+.cardArtwork[data-foil="mercury-blue"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      circle at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 90%) 0%,
+      rgb(89 235 255 / 72%) 9%,
+      rgb(29 105 255 / 56%) 24%,
+      rgb(169 61 255 / 44%) 38%,
+      transparent 65%
+    ),
+    conic-gradient(
+      from var(--foil-angle, 120deg) at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(18 91 255 / 30%),
+      rgb(56 236 255 / 55%) 19%,
+      rgb(80 105 255 / 42%) 37%,
+      rgb(220 63 255 / 43%) 54%,
+      rgb(68 216 255 / 48%) 72%,
+      rgb(17 77 255 / 27%)
+    ),
+    linear-gradient(145deg, rgb(16 104 255 / 18%), rgb(108 225 255 / 9%) 52%, rgb(93 22 220 / 17%));
+  mix-blend-mode: color-dodge;
+  filter:
+    hue-rotate(var(--foil-hue, 0deg))
+    saturate(1.42)
+    contrast(1.24);
+}
+
+.cardArtwork[data-foil="mercury-blue"] .foilEtching {
+  background:
+    repeating-radial-gradient(
+      ellipse at var(--foil-x, 50%) var(--foil-y, 50%),
+      transparent 0 7px,
+      rgb(126 226 255 / 14%) 8px,
+      transparent 9px 18px
+    ),
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + 24deg),
+      transparent 0 13px,
+      rgb(255 255 255 / 12%) 14px,
+      transparent 15px 29px
+    );
+}
+
+/* Mercury Gold uses a smooth amber/champagne plated sweep. The card-specific
+   alpha mask restricts it to the printed gold architecture and keeps the
+   player, black panels, nameplate and blue on-card ink untouched. */
+.cardArtwork[data-foil="topps-gold"] .foilDiffraction {
+  background-image: linear-gradient(
+    calc(var(--foil-angle, 120deg) + 90deg),
+    transparent 29%,
+    rgb(211 139 26 / 9%) 38%,
+    rgb(255 213 100 / 19%) 43%,
+    rgb(255 250 211 / 36%) 49%,
+    rgb(247 181 54 / 21%) 55%,
+    rgb(139 76 15 / 7%) 63%,
+    transparent 73%
+  );
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 205% 205%;
+  mix-blend-mode: screen;
+  filter: saturate(1.04) contrast(1.13);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.34);
+}
+
+.cardArtwork[data-foil="topps-gold"] .foilEtching {
+  background: radial-gradient(
+    ellipse 34% 23% at var(--foil-x, 50%) var(--foil-y, 50%),
+    rgb(255 253 222 / 38%),
+    rgb(255 208 92 / 13%) 31%,
+    transparent 68%
+  );
+  mix-blend-mode: screen;
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.4), 0.28);
+}
+
+/* Panini autograph stock uses the Silver Prizm recipe at a lower density so
+   the printed player and ink remain legible. The ink itself is redrawn above. */
+.cardArtwork[data-foil="prizm-auto"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      ellipse 34% 25% at var(--foil-x, 50%) var(--foil-y, 50%),
+      rgb(255 255 255 / 36%) 0%,
+      rgb(180 217 239 / 14%) 25%,
+      transparent 61%
+    ),
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + 90deg),
+      transparent 40%,
+      rgb(106 217 255 / 5%) 46%,
+      rgb(255 255 255 / 18%) 50%,
+      rgb(255 138 218 / 4%) 54%,
+      transparent 61%
+    );
+  background-position:
+    center,
+    var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 100% 100%, 205% 205%;
+  mix-blend-mode: screen;
+  filter: saturate(0.55) contrast(1.1);
+  opacity: clamp(0, calc(var(--foil-opacity, 0.2) * var(--foil-strength)), 0.23);
+}
+
+.cardArtwork[data-foil="prizm-auto"] .foilEtching {
+  background: linear-gradient(
+    calc(var(--foil-angle, 120deg) + 90deg),
+    transparent 45%,
+    rgb(221 236 248 / 10%) 48%,
+    rgb(255 255 255 / 34%) 50%,
+    rgb(211 231 245 / 8%) 53%,
+    transparent 56%
+  );
+  background-position: var(--foil-x, 50%) var(--foil-y, 50%);
+  background-size: 220% 220%;
+  filter: none;
+  opacity: clamp(0, calc(var(--glare-opacity, 0.18) * 0.36), 0.24);
+}
+
+/* Generated Prizm archive --------------------------------------------------
+   The source scan, per-card alpha mask and optical recipe remain independent.
+   Every recipe below consumes deterministic spatial parameters emitted by the
+   archive pipeline; pointer/quaternion values only supply the viewing angle. */
+
+.cardArtwork[data-pattern] .foilDiffraction {
+  background-position:
+    var(--finish-track-x) var(--finish-track-y),
+    var(--finish-counter-x) var(--finish-counter-y),
+    var(--finish-offset-x) var(--finish-offset-y);
+  mix-blend-mode: var(--finish-blend, screen);
+  filter:
+    saturate(calc(0.82 + var(--finish-spectral, 0.62)))
+    contrast(var(--finish-contrast, 1.16));
+  opacity: clamp(
+    0.02,
+    calc(var(--foil-opacity, 0.2) * var(--finish-intensity, 0.62)),
+    0.58
+  );
+}
+
+.cardArtwork[data-pattern] .foilEtching,
+.cardArtwork[data-pattern] .foilRelief,
+.cardArtwork[data-pattern] .foilMicrotexture,
+.cardArtwork[data-pattern] .foilSparkle {
+  background-position:
+    var(--finish-track-x) var(--finish-track-y),
+    var(--finish-counter-x) var(--finish-counter-y);
+  filter: contrast(var(--finish-contrast, 1.16));
+}
+
+.cardArtwork[data-pattern] .foilEtching {
+  mix-blend-mode: var(--finish-etch-blend, screen);
+  opacity: clamp(
+    0.015,
+    calc(var(--glare-opacity, 0.18) * var(--finish-intensity, 0.62) * 0.72),
+    0.36
+  );
+}
+
+.cardArtwork[data-pattern] .foilMicrotexture {
+  background-image:
+    repeating-linear-gradient(
+      calc(var(--finish-angle) + 19deg),
+      transparent 0 calc(var(--finish-micro-scale) - 1px),
+      rgb(255 255 255 / 16%) var(--finish-micro-scale),
+      transparent calc(var(--finish-micro-scale) + 1px) calc(var(--finish-micro-scale) * 2)
+    ),
+    repeating-linear-gradient(
+      calc(var(--finish-angle) - 71deg),
+      transparent 0 calc(var(--finish-micro-scale) * 1.35),
+      hsl(var(--finish-secondary-hue) 100% 78% / 12%) calc(var(--finish-micro-scale) * 1.4),
+      transparent calc(var(--finish-micro-scale) * 1.48) calc(var(--finish-micro-scale) * 2.7)
+    );
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    var(--finish-scale-y) var(--finish-scale-x);
+  mix-blend-mode: var(--finish-etch-blend, screen);
+  opacity: clamp(
+    0.01,
+    calc(var(--foil-opacity, 0.2) * var(--finish-intensity, 0.62) * 0.5),
+    0.26
+  );
+}
+
+/* The relief and sparse point-specular passes model plate depth and microflake
+   separately from the colour diffraction recipe above. */
+.cardArtwork[data-pattern="silver"] .foilSparkle,
+.cardArtwork[data-pattern="color"] .foilSparkle {
+  opacity: clamp(0, calc(var(--sparkle-opacity, 0.06) * var(--finish-sparkle, 0.42) * 0.44), 0.18);
+}
+
+.cardArtwork[data-pattern="ice"] .foilRelief,
+.cardArtwork[data-pattern="power"] .foilRelief {
+  background-image:
+    conic-gradient(from calc(var(--finish-phase) + var(--light-azimuth)) at 50% 50%, #fff4, transparent 10% 23%, #0005 25% 37%, transparent 40% 57%, #fff3 60% 68%, transparent 72%),
+    radial-gradient(circle at var(--finish-relief-x) var(--finish-relief-y), #fff5, transparent 64%);
+  background-size: var(--finish-scale-x) var(--finish-scale-y), 100% 100%;
+}
+
+.cardArtwork[data-pattern="mojo"] .foilRelief,
+.cardArtwork[data-pattern="pulsar"] .foilRelief,
+.cardArtwork[data-pattern="scope"] .foilRelief,
+.cardArtwork[data-pattern="gold-vinyl"] .foilRelief {
+  background-image:
+    repeating-radial-gradient(circle, #fff3 0 0.7px, transparent 1px 5px, #0004 5.7px, transparent 6.5px 12px),
+    radial-gradient(circle at var(--finish-relief-x) var(--finish-relief-y), #fff6, transparent 62%);
+  background-size: var(--finish-scale-x) var(--finish-scale-y), 100% 100%;
+}
+
+.cardArtwork[data-pattern="disco"] .foilSparkle,
+.cardArtwork[data-pattern="fast-break"] .foilSparkle,
+.cardArtwork[data-pattern="glitter"] .foilSparkle,
+.cardArtwork[data-pattern="sparkle"] .foilSparkle {
+  background-size:
+    calc(var(--finish-scale-x) * 0.26) calc(var(--finish-scale-y) * 0.26),
+    calc(var(--finish-scale-y) * 0.2) calc(var(--finish-scale-x) * 0.24),
+    100% 100%;
+  opacity: clamp(0, calc(var(--sparkle-opacity, 0.06) * var(--finish-sparkle, 0.42) * 1.45), 0.62);
+}
+
+.cardArtwork[data-pattern="wave"] .foilRelief,
+.cardArtwork[data-pattern="multi-wave"] .foilRelief,
+.cardArtwork[data-pattern="shimmer"] .foilRelief,
+.cardArtwork[data-pattern="lazer"] .foilRelief {
+  background-image:
+    repeating-linear-gradient(
+      calc(var(--finish-angle) + var(--light-azimuth)),
+      #fff4 0 0.6px,
+      transparent 1px calc(var(--finish-micro-scale) * 0.7),
+      #0004 calc(var(--finish-micro-scale) * 0.76),
+      transparent calc(var(--finish-micro-scale) * 0.82) var(--finish-micro-scale)
+    ),
+    radial-gradient(ellipse 44% 20% at var(--finish-relief-x) var(--finish-relief-y), #fff5, transparent 72%);
+}
+
+.cardArtwork[data-pattern="snakeskin"] .foilSparkle,
+.cardArtwork[data-pattern="zebra"] .foilSparkle,
+.cardArtwork[data-pattern="elephant"] .foilSparkle,
+.cardArtwork[data-pattern="tiger"] .foilSparkle,
+.cardArtwork[data-pattern="camo"] .foilSparkle {
+  opacity: clamp(0, calc(var(--sparkle-opacity, 0.06) * var(--finish-sparkle, 0.42) * 0.24), 0.12);
+}
+
+/* Base Prizm: broad, restrained Optichrome sweep with sparse plate lines. */
+.cardArtwork[data-pattern="base"] .foilDiffraction {
+  background-image:
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + var(--finish-angle, 96deg)),
+      transparent 24%,
+      hsl(var(--finish-hue) 92% 72% / 12%) 39%,
+      rgb(255 255 255 / 30%) 49%,
+      hsl(var(--finish-secondary-hue) 92% 72% / 11%) 58%,
+      transparent 75%
+    ),
+    radial-gradient(
+      ellipse 34% 26% at var(--finish-track-x) var(--finish-track-y),
+      rgb(255 255 255 / 26%),
+      transparent 68%
+    );
+  background-size: 210% 210%, 100% 100%;
+}
+
+.cardArtwork[data-pattern="base"] .foilEtching {
+  background-image: repeating-linear-gradient(
+    calc(var(--finish-angle) + 28deg),
+    transparent 0 calc(var(--finish-micro-scale) - 1px),
+    rgb(255 255 255 / 10%) var(--finish-micro-scale),
+    transparent calc(var(--finish-micro-scale) + 1px) calc(var(--finish-micro-scale) * 2)
+  );
+}
+
+/* Silver and Pandora: cool mirror stock versus tight square diffraction cells. */
+.cardArtwork[data-pattern="silver"] .foilDiffraction {
+  background-image:
+    radial-gradient(
+      ellipse 30% 22% at var(--finish-track-x) var(--finish-track-y),
+      rgb(255 255 255 / 58%),
+      rgb(184 224 255 / 18%) 28%,
+      transparent 62%
+    ),
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + var(--finish-angle)),
+      transparent 36%,
+      hsl(var(--finish-hue) 88% 76% / 12%) 44%,
+      rgb(255 255 255 / 38%) 50%,
+      hsl(var(--finish-secondary-hue) 80% 78% / 10%) 55%,
+      transparent 64%
+    );
+  background-size: 100% 100%, 195% 195%;
+}
+
+.cardArtwork[data-pattern="silver"] .foilEtching {
+  background-image: linear-gradient(
+    calc(var(--foil-angle, 120deg) + var(--finish-angle) + 90deg),
+    transparent 45%,
+    rgb(210 235 250 / 13%) 48%,
+    rgb(255 255 255 / 55%) 50%,
+    rgb(202 229 248 / 10%) 53%,
+    transparent 57%
+  );
+  background-size: 215% 215%;
+}
+
+.cardArtwork[data-pattern="pandora"] .foilDiffraction {
+  background-image:
+    conic-gradient(
+      from var(--finish-phase),
+      hsl(var(--finish-hue) 100% 72% / 40%),
+      transparent 18% 34%,
+      hsl(var(--finish-secondary-hue) 100% 72% / 36%) 48%,
+      transparent 64% 82%,
+      hsl(var(--finish-hue) 100% 78% / 36%)
+    ),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff8, transparent 44%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="pandora"] .foilEtching {
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 9px, rgb(255 255 255 / 18%) 10px, transparent 11px 20px),
+    repeating-linear-gradient(-45deg, transparent 0 9px, rgb(255 255 255 / 14%) 10px, transparent 11px 20px);
+  background-size: var(--finish-micro-scale) var(--finish-micro-scale);
+}
+
+/* Solid colour parallels retain the printed hue and use a narrow mirror band. */
+.cardArtwork[data-pattern="color"] .foilDiffraction {
+  background-image:
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + var(--finish-angle)),
+      transparent 27%,
+      hsl(var(--finish-hue) 100% 48% / 18%) 38%,
+      hsl(var(--finish-hue) 100% 82% / 38%) 49%,
+      hsl(var(--finish-secondary-hue) 92% 62% / 13%) 58%,
+      transparent 73%
+    ),
+    radial-gradient(ellipse 32% 24% at var(--finish-track-x) var(--finish-track-y), #fff7, transparent 68%);
+  background-size: 205% 205%, 100% 100%;
+}
+
+.cardArtwork[data-pattern="color"] .foilEtching {
+  background-image: repeating-linear-gradient(
+    calc(var(--finish-angle) + 42deg),
+    transparent 0 calc(var(--finish-micro-scale) * 1.8),
+    hsl(var(--finish-hue) 100% 88% / 13%) calc(var(--finish-micro-scale) * 1.9),
+    transparent calc(var(--finish-micro-scale) * 2)
+  );
+}
+
+/* Ice: independent fractured cells. */
+.cardArtwork[data-pattern="ice"] .foilDiffraction {
+  background-image:
+    conic-gradient(
+      from var(--finish-phase) at 48% 46%,
+      transparent 0 10%,
+      hsl(var(--finish-hue) 100% 78% / 44%) 11% 17%,
+      transparent 18% 31%,
+      rgb(255 255 255 / 40%) 32% 37%,
+      transparent 38% 56%,
+      hsl(var(--finish-secondary-hue) 100% 73% / 38%) 57% 64%,
+      transparent 65% 83%,
+      rgb(255 255 255 / 34%) 84% 90%,
+      transparent 91%
+    ),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff9, transparent 46%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="ice"] .foilEtching {
+  background-image:
+    repeating-linear-gradient(calc(var(--finish-angle) + 17deg), transparent 0 17px, #fff3 18px, transparent 20px 39px),
+    repeating-linear-gradient(calc(var(--finish-angle) - 51deg), transparent 0 23px, #fff2 24px, transparent 26px 47px);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    var(--finish-scale-y) var(--finish-scale-x);
+}
+
+/* Mojo and Pulsar: circular embossing with different radial cadence. */
+.cardArtwork[data-pattern="mojo"] .foilDiffraction {
+  background-image:
+    repeating-radial-gradient(
+      circle at center,
+      transparent 0 12%,
+      hsl(var(--finish-hue) 100% 74% / 44%) 14% 18%,
+      rgb(255 255 255 / 36%) 20% 23%,
+      hsl(var(--finish-secondary-hue) 100% 70% / 32%) 25% 29%,
+      transparent 31% 42%
+    ),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff8, transparent 48%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="mojo"] .foilEtching {
+  background-image: radial-gradient(circle, transparent 48%, #fff4 51%, transparent 55%);
+  background-size: var(--finish-micro-scale) var(--finish-micro-scale);
+}
+
+.cardArtwork[data-pattern="pulsar"] .foilDiffraction {
+  background-image:
+    repeating-radial-gradient(
+      ellipse at center,
+      transparent 0 9%,
+      hsl(var(--finish-hue) 100% 72% / 38%) 11% 15%,
+      transparent 17% 25%,
+      hsl(var(--finish-secondary-hue) 100% 76% / 32%) 27% 31%,
+      transparent 33% 44%
+    ),
+    conic-gradient(from var(--finish-phase) at var(--finish-track-x) var(--finish-track-y), transparent, #fff6, transparent 34% 66%, #fff4, transparent);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="pulsar"] .foilEtching {
+  background-image: repeating-radial-gradient(circle, transparent 0 8px, #fff3 9px, transparent 10px 18px);
+  background-size: var(--finish-micro-scale) var(--finish-micro-scale);
+}
+
+/* Disco and Fast Break: circular dot matrices at two physical densities. */
+.cardArtwork[data-pattern="disco"] .foilDiffraction,
+.cardArtwork[data-pattern="fast-break"] .foilDiffraction {
+  background-image:
+    radial-gradient(circle, rgb(255 255 255 / 72%) 0 7%, hsl(var(--finish-hue) 100% 68% / 46%) 9% 17%, transparent 19%),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff8, hsl(var(--finish-secondary-hue) 100% 70% / 24%) 24%, transparent 58%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="fast-break"] .foilDiffraction {
+  background-position:
+    calc(var(--finish-track-x) + var(--finish-micro-scale)) calc(var(--finish-track-y) + var(--finish-micro-scale)),
+    var(--finish-counter-x) var(--finish-counter-y);
+}
+
+.cardArtwork[data-pattern="disco"] .foilEtching,
+.cardArtwork[data-pattern="fast-break"] .foilEtching {
+  background-image: radial-gradient(circle, #fff5 0 5%, transparent 7% 100%);
+  background-size: var(--finish-micro-scale) var(--finish-micro-scale);
+}
+
+/* Sparkle and Glitter: offset star points; Glitter is intentionally denser. */
+.cardArtwork[data-pattern="sparkle"] .foilDiffraction,
+.cardArtwork[data-pattern="glitter"] .foilDiffraction {
+  background-image:
+    radial-gradient(circle, #fff 0 2%, hsl(var(--finish-hue) 100% 76% / 70%) 3%, transparent 8%),
+    radial-gradient(circle, hsl(var(--finish-secondary-hue) 100% 78% / 76%) 0 2%, transparent 7%),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff9, transparent 52%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    calc(var(--finish-scale-x) * 0.63) calc(var(--finish-scale-y) * 0.71),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="sparkle"] .foilEtching,
+.cardArtwork[data-pattern="glitter"] .foilEtching {
+  background-image:
+    repeating-linear-gradient(calc(var(--finish-angle) + 45deg), transparent 0 11px, #fff4 12px, transparent 13px 25px),
+    repeating-linear-gradient(calc(var(--finish-angle) - 45deg), transparent 0 15px, #fff3 16px, transparent 17px 31px);
+  background-size: var(--finish-micro-scale) var(--finish-micro-scale);
+}
+
+/* Red/White/Blue: printed tri-band with a restrained silver crossing highlight. */
+.cardArtwork[data-pattern="tricolor"] .foilDiffraction {
+  background-image:
+    linear-gradient(
+      calc(var(--finish-angle) + 90deg),
+      rgb(207 24 51 / 34%) 0 28%,
+      rgb(255 255 255 / 18%) 34% 62%,
+      rgb(29 91 201 / 34%) 70% 100%
+    ),
+    linear-gradient(calc(var(--foil-angle, 120deg) + 90deg), transparent 38%, #fff7 49%, transparent 62%);
+  background-size: 100% 100%, 210% 210%;
+}
+
+.cardArtwork[data-pattern="tricolor"] .foilEtching {
+  background-image: repeating-linear-gradient(calc(var(--finish-angle) + 90deg), transparent 0 24px, #fff2 25px, transparent 26px 52px);
+}
+
+/* Wave and Multi Wave: long elliptical interference bands. */
+.cardArtwork[data-pattern="wave"] .foilDiffraction,
+.cardArtwork[data-pattern="multi-wave"] .foilDiffraction {
+  background-image:
+    repeating-radial-gradient(
+      ellipse 80% 18% at var(--finish-track-x) var(--finish-track-y),
+      transparent 0 9%,
+      hsl(var(--finish-hue) 100% 72% / 38%) 11% 14%,
+      rgb(255 255 255 / 28%) 16% 18%,
+      hsl(var(--finish-secondary-hue) 100% 72% / 28%) 20% 23%,
+      transparent 25% 34%
+    ),
+    linear-gradient(calc(var(--foil-angle, 120deg) + var(--finish-angle)), transparent 35%, #fff5 50%, transparent 66%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    200% 200%;
+}
+
+.cardArtwork[data-pattern="multi-wave"] .foilEtching {
+  background-image: repeating-radial-gradient(
+    ellipse 24% 74% at var(--finish-counter-x) var(--finish-counter-y),
+    transparent 0 8%,
+    hsl(var(--finish-secondary-hue) 100% 76% / 32%) 10% 13%,
+    transparent 15% 24%
+  );
+  background-size: var(--finish-scale-y) var(--finish-scale-x);
+}
+
+.cardArtwork[data-pattern="wave"] .foilEtching {
+  background-image: repeating-linear-gradient(calc(var(--finish-angle) + 90deg), transparent 0 18px, #fff3 19px, transparent 21px 39px);
+  background-size: var(--finish-scale-x) var(--finish-scale-y);
+}
+
+/* Animal Choice parallels: four deliberately different print geometries. */
+.cardArtwork[data-pattern="snakeskin"] .foilDiffraction {
+  background-image:
+    radial-gradient(ellipse 58% 72%, transparent 42%, hsl(var(--finish-hue) 62% 72% / 34%) 45% 51%, #fff4 53%, transparent 57%),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff6, transparent 56%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="snakeskin"] .foilEtching {
+  background-image: radial-gradient(ellipse, transparent 46%, #0005 49% 55%, transparent 58%);
+  background-size: var(--finish-micro-scale) calc(var(--finish-micro-scale) * 1.32);
+}
+
+.cardArtwork[data-pattern="zebra"] .foilDiffraction {
+  background-image:
+    repeating-linear-gradient(calc(var(--finish-angle) + 18deg), #fff3 0 7px, transparent 8px 17px, #0008 18px 31px, transparent 32px 42px),
+    linear-gradient(calc(var(--foil-angle) + 90deg), transparent 36%, #fff7 50%, transparent 64%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    210% 210%;
+}
+
+.cardArtwork[data-pattern="elephant"] .foilDiffraction {
+  background-image:
+    radial-gradient(ellipse at 24% 28%, #fff3 0 13%, transparent 15%),
+    radial-gradient(ellipse at 72% 66%, #0007 0 18%, transparent 20%),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff6, transparent 56%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    var(--finish-scale-y) var(--finish-scale-x),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="tiger"] .foilDiffraction {
+  background-image:
+    repeating-linear-gradient(calc(var(--finish-angle) + 13deg), hsl(27 96% 55% / 34%) 0 9px, transparent 10px 17px, #0009 18px 31px, transparent 32px 44px),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff7, transparent 58%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="zebra"] .foilEtching,
+.cardArtwork[data-pattern="elephant"] .foilEtching,
+.cardArtwork[data-pattern="tiger"] .foilEtching {
+  background-image: repeating-linear-gradient(calc(var(--finish-angle) - 34deg), transparent 0 19px, #fff2 20px, transparent 22px 41px);
+}
+
+/* Checker, Hyper and Finite: square, diamond and micro-grid geometries. */
+.cardArtwork[data-pattern="checker"] .foilDiffraction {
+  background-image:
+    conic-gradient(from var(--finish-phase), #fff7 0 25%, #050505b8 0 50%, #fff4 0 75%, #090909c2 0),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff8, transparent 54%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="hyper"] .foilDiffraction {
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 9px, hsl(var(--finish-hue) 100% 72% / 40%) 10px, transparent 12px 21px),
+    repeating-linear-gradient(-45deg, transparent 0 9px, hsl(var(--finish-secondary-hue) 100% 74% / 34%) 10px, transparent 12px 21px),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff7, transparent 52%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    var(--finish-scale-y) var(--finish-scale-x),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="black-finite"] .foilDiffraction {
+  background-image:
+    conic-gradient(from var(--finish-phase), #fff5 0 12%, #020202e8 13% 37%, #5e67734d 38% 49%, #010101ed 50% 87%, #fff3 88%),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff8, transparent 42%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="checker"] .foilEtching,
+.cardArtwork[data-pattern="hyper"] .foilEtching,
+.cardArtwork[data-pattern="black-finite"] .foilEtching {
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 8px, #fff3 9px, transparent 10px 18px),
+    repeating-linear-gradient(-45deg, transparent 0 8px, #fff2 9px, transparent 10px 18px);
+  background-size: var(--finish-micro-scale) var(--finish-micro-scale);
+}
+
+/* Shimmer and Lazer: anisotropic line fields that travel on different axes. */
+.cardArtwork[data-pattern="shimmer"] .foilDiffraction,
+.cardArtwork[data-pattern="lazer"] .foilDiffraction {
+  background-image:
+    repeating-linear-gradient(
+      calc(var(--foil-angle, 120deg) + var(--finish-angle)),
+      transparent 0 calc(var(--finish-micro-scale) * 0.45),
+      hsl(var(--finish-hue) 100% 73% / 42%) calc(var(--finish-micro-scale) * 0.5),
+      rgb(255 255 255 / 32%) calc(var(--finish-micro-scale) * 0.58),
+      transparent calc(var(--finish-micro-scale) * 0.72) var(--finish-micro-scale)
+    ),
+    radial-gradient(ellipse 30% 48% at var(--finish-track-x) var(--finish-track-y), #fff8, hsl(var(--finish-secondary-hue) 100% 72% / 18%) 30%, transparent 70%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="lazer"] .foilEtching {
+  background-image: repeating-linear-gradient(calc(var(--finish-angle) - 56deg), transparent 0 13px, #fff5 14px, transparent 15px 29px);
+}
+
+.cardArtwork[data-pattern="shimmer"] .foilEtching {
+  background-image: repeating-linear-gradient(calc(var(--finish-angle) + 90deg), transparent 0 7px, #fff3 8px, transparent 9px 17px);
+}
+
+/* Seismic and Scope: large shock rings versus compact sight rings. */
+.cardArtwork[data-pattern="seismic"] .foilDiffraction,
+.cardArtwork[data-pattern="scope"] .foilDiffraction {
+  background-image:
+    repeating-radial-gradient(
+      circle at var(--finish-track-x) var(--finish-track-y),
+      transparent 0 8%,
+      hsl(var(--finish-hue) 100% 72% / 34%) 10% 13%,
+      #fff5 15% 17%,
+      hsl(var(--finish-secondary-hue) 100% 72% / 26%) 19% 22%,
+      transparent 24% 33%
+    ),
+    conic-gradient(from var(--finish-phase) at var(--finish-counter-x) var(--finish-counter-y), transparent, #fff5, transparent 27% 73%, #fff4, transparent);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="scope"] .foilEtching {
+  background-image:
+    linear-gradient(transparent 49%, #fff4 50%, transparent 51%),
+    linear-gradient(90deg, transparent 49%, #fff3 50%, transparent 51%);
+  background-size: var(--finish-micro-scale) var(--finish-micro-scale);
+}
+
+.cardArtwork[data-pattern="seismic"] .foilEtching {
+  background-image: repeating-radial-gradient(circle, transparent 0 14px, #fff3 15px, transparent 17px 31px);
+}
+
+/* Camo and Power: matte organic fields versus sharp electric facets. */
+.cardArtwork[data-pattern="camo"] .foilDiffraction {
+  background-image:
+    radial-gradient(ellipse at 20% 30%, hsl(94 30% 44% / 36%) 0 18%, transparent 20%),
+    radial-gradient(ellipse at 74% 62%, hsl(48 32% 38% / 36%) 0 22%, transparent 24%),
+    radial-gradient(ellipse at 42% 82%, #10170fc7 0 16%, transparent 18%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    var(--finish-scale-y) var(--finish-scale-x),
+    calc(var(--finish-scale-x) * 0.78) calc(var(--finish-scale-y) * 0.86);
+}
+
+.cardArtwork[data-pattern="power"] .foilDiffraction {
+  background-image:
+    conic-gradient(from var(--finish-phase) at 50% 50%, transparent 0 8%, hsl(var(--finish-hue) 100% 68% / 45%) 9% 14%, transparent 15% 31%, #fff6 32% 36%, transparent 37% 58%, hsl(var(--finish-secondary-hue) 100% 72% / 38%) 59% 65%, transparent 66%),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff8, transparent 52%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="camo"] .foilEtching,
+.cardArtwork[data-pattern="power"] .foilEtching {
+  background-image: repeating-linear-gradient(calc(var(--finish-angle) + 37deg), transparent 0 19px, #fff2 20px, transparent 22px 41px);
+}
+
+/* Gold, Gold Vinyl, Black and Black Gold. */
+.cardArtwork[data-pattern="gold"] .foilDiffraction {
+  background-image:
+    linear-gradient(
+      calc(var(--foil-angle, 120deg) + var(--finish-angle)),
+      transparent 28%,
+      rgb(159 88 10 / 18%) 38%,
+      rgb(255 207 80 / 46%) 46%,
+      rgb(255 252 215 / 62%) 50%,
+      rgb(218 138 27 / 38%) 56%,
+      transparent 72%
+    ),
+    radial-gradient(ellipse 32% 24% at var(--finish-track-x) var(--finish-track-y), rgb(255 248 190 / 54%), transparent 68%);
+  background-size: 205% 205%, 100% 100%;
+}
+
+.cardArtwork[data-pattern="gold-vinyl"] .foilDiffraction {
+  background-image:
+    repeating-radial-gradient(
+      circle at var(--finish-track-x) var(--finish-track-y),
+      transparent 0 4px,
+      rgb(255 215 94 / 38%) 5px,
+      rgb(255 251 213 / 52%) 6px,
+      transparent 7px 13px
+    ),
+    conic-gradient(from var(--finish-phase) at var(--finish-track-x) var(--finish-track-y), rgb(112 58 5 / 20%), rgb(255 223 117 / 55%), rgb(151 86 10 / 22%) 36%, rgb(255 249 199 / 58%) 52%, rgb(113 57 5 / 18%) 72%, rgb(255 213 90 / 48%));
+  background-size: 100% 100%, 100% 100%;
+}
+
+.cardArtwork[data-pattern="black"] .foilDiffraction {
+  background-image:
+    linear-gradient(calc(var(--foil-angle) + var(--finish-angle)), #0008 18%, transparent 34%, #c6d1df52 48%, #fff7 51%, #111c 67%, #0009),
+    radial-gradient(ellipse 28% 22% at var(--finish-track-x) var(--finish-track-y), #fff7, transparent 62%);
+  background-size: 210% 210%, 100% 100%;
+}
+
+.cardArtwork[data-pattern="black-gold"] .foilDiffraction {
+  background-image:
+    repeating-linear-gradient(calc(var(--finish-angle) + 18deg), #050505d9 0 15px, rgb(218 153 42 / 42%) 16px 20px, #111d 21px 39px),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), rgb(255 232 151 / 52%), transparent 56%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="gold"] .foilEtching,
+.cardArtwork[data-pattern="gold-vinyl"] .foilEtching,
+.cardArtwork[data-pattern="black"] .foilEtching,
+.cardArtwork[data-pattern="black-gold"] .foilEtching {
+  background-image: repeating-linear-gradient(calc(var(--finish-angle) + 90deg), transparent 0 17px, rgb(255 244 190 / 22%) 18px, transparent 20px 37px);
+}
+
+/* Cherry Blossom: a five-petal repeat, not a generic pink tint. */
+.cardArtwork[data-pattern="sakura"] .foilDiffraction {
+  background-image:
+    radial-gradient(ellipse at 50% 18%, hsl(337 100% 82% / 52%) 0 12%, transparent 14%),
+    radial-gradient(ellipse at 80% 43%, hsl(328 100% 76% / 46%) 0 12%, transparent 14%),
+    radial-gradient(ellipse at 68% 78%, hsl(310 90% 78% / 42%) 0 12%, transparent 14%),
+    radial-gradient(ellipse at 31% 78%, hsl(344 100% 84% / 48%) 0 12%, transparent 14%),
+    radial-gradient(ellipse at 19% 43%, hsl(320 100% 78% / 44%) 0 12%, transparent 14%),
+    radial-gradient(circle at var(--finish-track-x) var(--finish-track-y), #fff8, transparent 54%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    var(--finish-scale-x) var(--finish-scale-y),
+    var(--finish-scale-x) var(--finish-scale-y),
+    var(--finish-scale-x) var(--finish-scale-y),
+    var(--finish-scale-x) var(--finish-scale-y),
+    100% 100%;
+}
+
+.cardArtwork[data-pattern="sakura"] .foilEtching {
+  background-image: radial-gradient(circle, rgb(255 246 211 / 74%) 0 3%, transparent 5%);
+  background-size: var(--finish-scale-x) var(--finish-scale-y);
+}
+
+/* Breakaway and source-named exclusives use shard and broad refractor fields. */
+.cardArtwork[data-pattern="breakaway"] .foilDiffraction {
+  background-image:
+    repeating-linear-gradient(calc(var(--finish-angle) + 17deg), transparent 0 13px, hsl(var(--finish-hue) 100% 72% / 34%) 14px 18px, #fff5 19px, transparent 21px 39px),
+    linear-gradient(calc(var(--foil-angle) + 90deg), transparent 34%, hsl(var(--finish-secondary-hue) 100% 72% / 26%) 43%, #fff7 50%, transparent 65%);
+  background-size:
+    var(--finish-scale-x) var(--finish-scale-y),
+    210% 210%;
+}
+
+.cardArtwork[data-pattern="exclusive"] .foilDiffraction {
+  background-image:
+    conic-gradient(from var(--finish-phase) at var(--finish-track-x) var(--finish-track-y), hsl(var(--finish-hue) 100% 70% / 28%), transparent 18%, hsl(var(--finish-secondary-hue) 100% 74% / 30%) 36%, #fff6 50%, transparent 68%, hsl(var(--finish-hue) 100% 76% / 24%)),
+    radial-gradient(circle at var(--finish-counter-x) var(--finish-counter-y), #fff7, transparent 58%);
+  background-size: 180% 180%, 100% 100%;
+}
+
+.cardArtwork[data-pattern="breakaway"] .foilEtching,
+.cardArtwork[data-pattern="exclusive"] .foilEtching {
+  background-image: repeating-linear-gradient(calc(var(--finish-angle) - 41deg), transparent 0 21px, #fff3 22px, transparent 24px 45px);
+}
+
+.cardArtwork[data-card="cristiano-ronaldo-prizm-auto"] {
+  --foil-strength: 0.53;
+  --glare-strength: 0.6;
+  --coat-strength: 0.56;
+}
+
+.autographProtection {
+  z-index: 9;
+  overflow: hidden;
+  filter: contrast(1.025) saturate(0.98);
+  transform: translateZ(0);
+}
+
+.autographProtection img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.cardBackArtwork {
+  border-color: rgb(255 255 255 / 10%);
+}
+
+.backSatin {
+  z-index: 2;
+  background:
+    repeating-linear-gradient(
+      calc(var(--glare-angle, 120deg) + 17deg),
+      transparent 0 3px,
+      rgb(255 255 255 / 2.5%) 3.5px,
+      transparent 4px 9px
+    ),
+    linear-gradient(
+      var(--glare-angle, 120deg),
+      transparent 23%,
+      rgb(255 255 255 / 12%) 48%,
+      rgb(255 255 255 / 4%) 56%,
+      transparent 78%
+    );
+  mix-blend-mode: soft-light;
+  opacity: clamp(0.015, calc(var(--coat-opacity, 0.14) * 0.72), 0.22);
+}
+
+.inspector {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-rows: 72px minmax(0, 1fr);
+  overflow: hidden;
+  color: #f4f4f4;
+  background: #000;
+  animation: inspectorReveal 180ms ease-out both;
+}
+
+@keyframes inspectorReveal {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.inspectorHeader {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 clamp(20px, 3.5vw, 56px);
+  border-bottom: 1px solid #1c1c1c;
+  background: #000;
+}
+
+.inspectorHeader > p {
+  margin: 0;
+  color: #686868;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.closeButton {
+  justify-self: end;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #242424;
+  border-radius: 50%;
+  place-items: center;
+  color: #8d8d8d;
+  background: #030303;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.closeButton:hover {
+  border-color: #555;
+  color: #fff;
+}
+
+.closeButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+.inspectorLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 28vw, 440px);
+  min-height: 0;
+}
+
+.inspectCardStage {
+  --shadow-x: 0px;
+  --shadow-y: 24px;
+  --shadow-scale: 1;
+  --shadow-opacity: 0.62;
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  perspective: 1050px;
+  perspective-origin: 50% 49%;
+  place-items: center;
+  background: #000;
+  isolation: isolate;
+  animation: stageReveal 340ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+@keyframes stageReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.interactiveCard {
+  --card-depth: 1.8px;
+  position: relative;
+  z-index: 2;
+  width: clamp(286px, min(31vw, 57vh), 430px);
+  aspect-ratio: 5 / 7;
+  outline: none;
+  transform: var(--card-transform);
+  transform-style: preserve-3d;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  will-change: transform;
+}
+
+.interactiveCard[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.cardFace {
+  position: absolute;
+  inset: 0;
+  border-radius: 3.1%;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-backface-visibility: hidden;
+}
+
+.cardFaceFront {
+  transform: translateZ(calc(var(--card-depth) / 2));
+}
+
+.cardFaceBack {
+  transform: rotateY(180deg) translateZ(calc(var(--card-depth) / 2));
+}
+
+.cardFace .cardArtwork {
+  border: 0;
+  box-shadow: none;
+}
+
+.cardEdge {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  background:
+    linear-gradient(90deg, #676767, #f0f0f0 46%, #777 72%, #292929);
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.cardEdgeLeft,
+.cardEdgeRight {
+  top: 1.4%;
+  width: var(--card-depth);
+  height: 97.2%;
+}
+
+.cardEdgeLeft {
+  left: 0;
+  transform: translateX(-50%) rotateY(90deg);
+}
+
+.cardEdgeRight {
+  right: 0;
+  transform: translateX(50%) rotateY(90deg);
+}
+
+.cardEdgeTop,
+.cardEdgeBottom {
+  left: 1.8%;
+  width: 96.4%;
+  height: var(--card-depth);
+}
+
+.cardEdgeTop {
+  top: 0;
+  transform: translateY(-50%) rotateX(90deg);
+}
+
+.cardEdgeBottom {
+  bottom: 0;
+  transform: translateY(50%) rotateX(90deg);
+}
+
+.cardGroundShadow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: clamp(250px, min(29vw, 52vh), 400px);
+  height: 54px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 96%);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 96%);
+  opacity: var(--shadow-opacity, 0.62);
+  filter: blur(16px);
+  transform:
+    translate(calc(-50% + var(--shadow-x, 0px)), calc(240px + var(--shadow-y, 24px)))
+    scale(var(--shadow-scale, 1));
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.cardDetails {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(34px, 5vh, 70px) clamp(28px, 3.2vw, 52px);
+  overflow: auto;
+  border-left: 1px solid #202020;
+  background: #020202;
+  flex-direction: column;
+  scrollbar-color: #343434 transparent;
+  scrollbar-width: thin;
+  animation: detailsReveal 300ms 70ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+@keyframes detailsReveal {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cardDetails::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cardDetails::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cardDetails::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #343434;
+}
+
+.detailIndex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: clamp(34px, 7vh, 74px);
+  color: #5e5e5e;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.detailIndex strong {
+  color: #bdbdbd;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.detailEyebrow {
+  margin: 0 0 13px;
+  color: #777;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.cardDetails h2 {
+  margin: 0;
+  color: #f5f5f5;
+  font-size: clamp(36px, 3.25vw, 60px);
+  font-weight: 700;
+  letter-spacing: -0.065em;
+  line-height: 0.82;
+  text-transform: uppercase;
+}
+
+.cardDetails h2 span {
+  display: block;
+  margin-bottom: 7px;
+  color: #868686;
+  font-size: 0.38em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.cardDetails h2.longPlayerName {
+  font-size: clamp(30px, 2.6vw, 48px);
+  letter-spacing: -0.055em;
+}
+
+.detailTeam {
+  margin: 19px 0 0;
+  color: #717171;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.detailList {
+  display: grid;
+  gap: 0;
+  margin: clamp(34px, 6vh, 66px) 0 0;
+  border-top: 1px solid #202020;
+}
+
+.detailList div {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.6fr) 1fr;
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid #1d1d1d;
+}
+
+.detailList dt,
+.detailList dd {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.detailList dt {
+  color: #555;
+}
+
+.detailList dd {
+  color: #aaa;
+  text-align: right;
+}
+
+.inspectActions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 34px;
+}
+
+.inspectActions button {
+  min-height: 43px;
+  padding: 0 15px;
+  border: 1px solid #292929;
+  color: #888;
+  background: #050505;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.inspectActions button:hover {
+  border-color: #555;
+  color: #fff;
+}
+
+.inspectActions .flipButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: #080808;
+  background: #e8e8e8;
+}
+
+.inspectActions .flipButton:hover {
+  color: #000;
+  background: #fff;
+}
+
+.flipButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+.flipButton span {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  margin-left: auto;
+  border: 1px solid rgb(0 0 0 / 18%);
+  place-items: center;
+  font-size: 8px;
+}
+
+.inspectHint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 0;
+  color: #4d4d4d;
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  line-height: 1.6;
+}
+
+.inspectHint svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+}
+
+.mobileInfoButton {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  .railCard {
+    width: clamp(174px, 25vw, 226px);
+  }
+
+  .inspectorLayout {
+    grid-template-columns: minmax(0, 1fr) 310px;
+  }
+
+  .interactiveCard {
+    width: clamp(270px, min(36vw, 54vh), 360px);
+  }
+
+  .cardDetails {
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    overflow-y: auto;
+  }
+
+  .header {
+    grid-template-columns: auto 1fr;
+    min-height: 62px;
+    padding: 0 18px;
+  }
+
+  .archiveLabel {
+    display: none;
+  }
+
+  .sportSwitcher {
+    justify-self: end;
+  }
+
+  .sportSwitcher button {
+    min-width: 70px;
+    padding: 7px 10px;
+    font-size: 8px;
+  }
+
+  .collection {
+    grid-template-rows: auto minmax(340px, 1fr) auto auto;
+    min-height: calc(100svh - 108px);
+    padding-bottom: 46px;
+  }
+
+  .seriesBar {
+    grid-template-columns: auto minmax(0, 1fr);
+    min-height: 42px;
+    padding: 0 18px;
+  }
+
+  .seriesBar > p {
+    display: none;
+  }
+
+  .seriesLabel {
+    padding-right: 10px;
+  }
+
+  .seriesTabs button {
+    min-height: 41px;
+    padding: 0 11px;
+  }
+
+  .seriesTabs button::after {
+    right: 11px;
+    left: 11px;
+  }
+
+  .railCard {
+    top: 47%;
+    width: clamp(172px, 52vw, 224px);
+  }
+
+  .activeCaption {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    width: calc(100% - 36px);
+    padding: 13px 0 14px;
+  }
+
+  .activeCaption > button {
+    display: none;
+  }
+
+  .activeCaption strong {
+    font-size: 20px;
+  }
+
+  .activeCaption p {
+    font-size: 8px;
+  }
+
+  .railControls {
+    padding-bottom: 10px;
+  }
+
+  .footer {
+    height: 46px;
+    padding: 0 18px;
+  }
+
+  .footer p:last-child {
+    display: none;
+  }
+
+  .inspector {
+    grid-template-rows: 62px minmax(0, 1fr);
+  }
+
+  .inspectorHeader {
+    padding: 0 18px;
+  }
+
+  .inspectorHeader > p {
+    font-size: 8px;
+  }
+
+  .inspectorLayout {
+    display: block;
+    position: relative;
+    min-height: 0;
+  }
+
+  .inspectCardStage {
+    width: 100%;
+    height: 100%;
+    padding-bottom: 54px;
+    perspective: 920px;
+  }
+
+  .interactiveCard {
+    width: min(67vw, 335px, 53vh);
+  }
+
+  .cardGroundShadow {
+    width: min(61vw, 300px);
+    transform:
+      translate(calc(-50% + var(--shadow-x, 0px)), calc(190px + var(--shadow-y, 24px)))
+      scale(var(--shadow-scale, 1));
+  }
+
+  .cardDetails {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    max-height: min(70vh, 600px);
+    padding: 24px 22px 84px;
+    border-top: 1px solid #2b2b2b;
+    border-left: 0;
+    background: #050505;
+    box-shadow: 0 -24px 50px rgb(0 0 0 / 78%);
+    opacity: 0;
+    transform: translateY(calc(100% + 8px));
+    transition:
+      opacity 220ms ease,
+      transform 320ms cubic-bezier(0.22, 0.78, 0.2, 1);
+    pointer-events: none;
+    animation: none;
+  }
+
+  .cardDetailsOpen {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .detailIndex {
+    margin-bottom: 24px;
+  }
+
+  .cardDetails h2 {
+    font-size: clamp(38px, 12vw, 58px);
+  }
+
+  .detailList {
+    margin-top: 28px;
+  }
+
+  .inspectActions {
+    margin-top: 24px;
+  }
+
+  .inspectHint {
+    display: none;
+  }
+
+  .mobileInfoButton {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 130;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid #363636;
+    border-radius: 0;
+    color: #d8d8d8;
+    background: #090909;
+    box-shadow: none;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    cursor: pointer;
+  }
+
+  .mobileInfoButton svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .mobileInfoButtonOpen {
+    bottom: calc(min(70vh, 600px) - 48px);
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .cardDetailsOpen .detailIndex {
+    padding-right: 180px;
+  }
+}
+
+@media (max-width: 430px) {
+  .backLink {
+    font-size: 0;
+  }
+
+  .backLink svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .sportSwitcher button {
+    min-width: 62px;
+    letter-spacing: 0.11em;
+  }
+
+  .collection {
+    grid-template-rows: auto minmax(315px, 1fr) auto auto;
+  }
+
+  .seriesBar {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 7px;
+  }
+
+  .seriesLabel {
+    display: none;
+  }
+
+  .seriesTabs button {
+    padding: 0 10px;
+    font-size: 7px;
+  }
+
+  .seriesTabs button::after {
+    right: 10px;
+    left: 10px;
+  }
+
+  .railCard {
+    width: min(54vw, 202px);
+  }
+
+  .footer {
+    justify-content: center;
+    font-size: 7px;
+  }
+
+  .inspectorHeader {
+    grid-template-columns: 1fr auto;
+  }
+
+  .inspectorHeader > p {
+    display: none;
+  }
+
+  .interactiveCard {
+    width: min(76vw, 320px, 52vh);
+  }
+
+  .inspectActions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backLink,
+  .backButton,
+  .sportSwitcher button,
+  .seriesTabs button,
+  .railCard,
+  .activeCaption > button,
+  .railControls button,
+  .closeButton,
+  .inspectActions button,
+  .cardDetails {
+    transition-duration: 0.001ms !important;
+  }
+
+  .rail {
+    animation: none;
+  }
+
+  .inspector,
+  .inspectCardStage,
+  .cardDetails {
+    animation: none;
+  }
+
+  .foilDiffraction,
+  .foilEtching,
+  .foilGlare,
+  .clearCoat,
+  .backSatin,
+  .interactiveCard,
+  .cardGroundShadow {
+    will-change: auto;
+  }
+}

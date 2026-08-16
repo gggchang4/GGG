@@ -16,3 +16,4 @@ pnpm-debug.log*
 .dev-server.err.log
 .dev-server.pid
 .qa
+.cache
