@@ -930,63 +930,65 @@ export function InteractiveCard({
 
   return (
     <div ref={stageRef} className={styles.inspectCardStage}>
-      <div
-        ref={cardRef}
-        className={styles.interactiveCard}
-        style={transformStyle}
-        tabIndex={0}
-        role="group"
-        aria-label={`${card.player} card. Drag to inspect; release to return the card to its resting position. Press F or Space to flip. Use arrow keys to rotate.`}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={(event) => finishPointer(event)}
-        onPointerCancel={(event) => finishPointer(event, true)}
-        onPointerLeave={handlePointerLeave}
-        onLostPointerCapture={() => {
-          if (draggingRef.current) finishPointer(undefined, true);
-        }}
-        onKeyDown={handleKeyDown}
-        onDoubleClick={flipCard}
-        onDragStart={(event) => event.preventDefault()}
-      >
+      <div className={styles.inspectCardMotion} data-inspect-motion>
         <div
-          className={`${styles.cardFace} ${styles.cardFaceFront}`}
-          aria-hidden={visibleFace === "back"}
+          ref={cardRef}
+          className={styles.interactiveCard}
+          style={transformStyle}
+          tabIndex={0}
+          role="group"
+          aria-label={`${card.player} card. Drag to inspect; release to return the card to its resting position. Press F or Space to flip. Use arrow keys to rotate.`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={(event) => finishPointer(event)}
+          onPointerCancel={(event) => finishPointer(event, true)}
+          onPointerLeave={handlePointerLeave}
+          onLostPointerCapture={() => {
+            if (draggingRef.current) finishPointer(undefined, true);
+          }}
+          onKeyDown={handleKeyDown}
+          onDoubleClick={flipCard}
+          onDragStart={(event) => event.preventDefault()}
         >
-          <SportsCardArtwork
-            card={card}
-            priority
-            sizes="(max-width: 640px) calc(100vw - 72px), (max-width: 1024px) 360px, 430px"
+          <div
+            className={`${styles.cardFace} ${styles.cardFaceFront}`}
+            aria-hidden={visibleFace === "back"}
+          >
+            <SportsCardArtwork
+              card={card}
+              priority
+              sizes="(max-width: 640px) calc(100vw - 72px), (max-width: 1024px) 360px, 430px"
+            />
+          </div>
+          <div
+            className={`${styles.cardFace} ${styles.cardFaceBack}`}
+            aria-hidden={visibleFace === "front"}
+          >
+            <SportsCardArtwork
+              card={card}
+              face="back"
+              sizes="(max-width: 640px) calc(100vw - 72px), (max-width: 1024px) 360px, 430px"
+            />
+          </div>
+          <span
+            className={`${styles.cardEdge} ${styles.cardEdgeLeft}`}
+            aria-hidden="true"
+          />
+          <span
+            className={`${styles.cardEdge} ${styles.cardEdgeRight}`}
+            aria-hidden="true"
+          />
+          <span
+            className={`${styles.cardEdge} ${styles.cardEdgeTop}`}
+            aria-hidden="true"
+          />
+          <span
+            className={`${styles.cardEdge} ${styles.cardEdgeBottom}`}
+            aria-hidden="true"
           />
         </div>
-        <div
-          className={`${styles.cardFace} ${styles.cardFaceBack}`}
-          aria-hidden={visibleFace === "front"}
-        >
-          <SportsCardArtwork
-            card={card}
-            face="back"
-            sizes="(max-width: 640px) calc(100vw - 72px), (max-width: 1024px) 360px, 430px"
-          />
-        </div>
-        <span
-          className={`${styles.cardEdge} ${styles.cardEdgeLeft}`}
-          aria-hidden="true"
-        />
-        <span
-          className={`${styles.cardEdge} ${styles.cardEdgeRight}`}
-          aria-hidden="true"
-        />
-        <span
-          className={`${styles.cardEdge} ${styles.cardEdgeTop}`}
-          aria-hidden="true"
-        />
-        <span
-          className={`${styles.cardEdge} ${styles.cardEdgeBottom}`}
-          aria-hidden="true"
-        />
+        <span className={styles.cardGroundShadow} aria-hidden="true" />
       </div>
-      <span className={styles.cardGroundShadow} aria-hidden="true" />
     </div>
   );
 }
