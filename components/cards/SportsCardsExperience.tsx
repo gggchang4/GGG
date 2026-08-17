@@ -47,8 +47,23 @@ type RailCardStyle = CSSProperties & {
   "--foil-y": string;
 };
 
+type RailGestureState = {
+  pointerId: number | null;
+  startX: number;
+  startY: number;
+  startOffset: number;
+  lastX: number;
+  lastTime: number;
+  velocityX: number;
+  moved: boolean;
+  axis: "pending" | "horizontal" | "vertical";
+  targetIndex: number;
+};
+
 const DRAG_THRESHOLD = 7;
 const RAIL_WINDOW = 6;
+const RAIL_VELOCITY_SMOOTHING = 20;
+const RAIL_RELEASE_DAMPING = 0.02;
 type SeriesSelection = CardSeriesId | "all";
 
 const sportLabels: Record<CardSport, string> = {
@@ -59,6 +74,21 @@ const sportLabels: Record<CardSport, string> = {
 
 function clampIndex(index: number, count: number) {
   return Math.max(0, Math.min(count - 1, index));
+}
+
+function createRailGestureState(): RailGestureState {
+  return {
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    startOffset: 0,
+    lastX: 0,
+    lastTime: 0,
+    velocityX: 0,
+    moved: false,
+    axis: "pending",
+    targetIndex: 0,
+  };
 }
 
 function getRailCardStyle(position: number, step: number): RailCardStyle {
@@ -90,20 +120,12 @@ export function SportsCardsExperience() {
   const inspectorRef = useRef<HTMLElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef(0);
+  const railFrameRef = useRef<number | null>(null);
   const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inspectOriginRef = useRef<DOMRect | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const gestureRef = useRef({
-    pointerId: null as number | null,
-    startX: 0,
-    startY: 0,
-    lastX: 0,
-    startedAt: 0,
-    moved: false,
-    axis: "pending" as "pending" | "horizontal" | "vertical",
-    targetIndex: 0,
-  });
+  const gestureRef = useRef<RailGestureState>(createRailGestureState());
   const [sport, setSport] = useState<CardSport>("nba");
   const [seriesBySport, setSeriesBySport] = useState<Record<CardSport, SeriesSelection>>({
     nba: "all",
@@ -136,7 +158,7 @@ export function SportsCardsExperience() {
     const end = Math.min(cards.length, activeIndex + RAIL_WINDOW + 1);
     return cards.slice(start, end).map((card, offset) => ({ card, index: start + offset }));
   }, [activeIndex, cards]);
-  const setRailDragOffset = useCallback((nextOffset: number) => {
+  const applyRailDragOffset = useCallback((nextOffset: number) => {
     dragOffsetRef.current = nextOffset;
     const rail = railRef.current;
     if (!rail) return;
@@ -146,6 +168,32 @@ export function SportsCardsExperience() {
       applyRailCardStyle(element, getRailCardStyle(position, railStep));
     }
   }, [activeIndex, railStep]);
+
+  const cancelRailFrame = useCallback(() => {
+    if (railFrameRef.current === null) return;
+    cancelAnimationFrame(railFrameRef.current);
+    railFrameRef.current = null;
+  }, []);
+
+  const setRailDragOffset = useCallback(
+    (nextOffset: number) => {
+      cancelRailFrame();
+      applyRailDragOffset(nextOffset);
+    },
+    [applyRailDragOffset, cancelRailFrame],
+  );
+
+  const queueRailDragOffset = useCallback(
+    (nextOffset: number) => {
+      dragOffsetRef.current = nextOffset;
+      if (railFrameRef.current !== null) return;
+      railFrameRef.current = requestAnimationFrame(() => {
+        railFrameRef.current = null;
+        applyRailDragOffset(dragOffsetRef.current);
+      });
+    },
+    [applyRailDragOffset],
+  );
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -274,9 +322,10 @@ export function SportsCardsExperience() {
   }, [finishClose, inspectCard, isClosing, reducedMotion]);
 
   useEffect(() => () => {
+    cancelRailFrame();
     if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-  }, []);
+  }, [cancelRailFrame]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -292,18 +341,20 @@ export function SportsCardsExperience() {
   const changeIndex = useCallback(
     (nextIndex: number) => {
       const clamped = clampIndex(nextIndex, cards.length);
+      cancelRailFrame();
       dragOffsetRef.current = 0;
       setSelectedByScope((current) => ({
         ...current,
         [scopeKey]: cards[clamped].id,
       }));
     },
-    [cards, scopeKey],
+    [cancelRailFrame, cards, scopeKey],
   );
 
   const changeSport = (nextSport: CardSport) => {
     if (nextSport === sport) return;
     if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
+    cancelRailFrame();
     dragOffsetRef.current = 0;
     setSport(nextSport);
   };
@@ -311,6 +362,7 @@ export function SportsCardsExperience() {
   const changeSeries = (nextSeries: SeriesSelection) => {
     if (nextSeries === activeSeriesId) return;
     if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
+    cancelRailFrame();
     dragOffsetRef.current = 0;
     const nextScope = `${sport}:${nextSeries}`;
     const nextCards = getCardsBySport(sport, nextSeries);
@@ -343,10 +395,12 @@ export function SportsCardsExperience() {
     if (gesture.axis === "vertical") {
       setRailDragOffset(0);
     } else {
-      const elapsed = Math.max(16, performance.now() - gesture.startedAt);
-      const velocity = (gesture.lastX - gesture.startX) / elapsed;
+      const releaseTime = event?.timeStamp ?? performance.now();
+      const idleTime = Math.max(0, releaseTime - gesture.lastTime);
+      const velocity =
+        gesture.velocityX * Math.exp(-RAIL_RELEASE_DAMPING * idleTime);
       let step = Math.round(-dragOffsetRef.current / railStep);
-      if (Math.abs(velocity) > 0.45) step += velocity < 0 ? 1 : -1;
+      if (Math.abs(velocity) > 0.38) step += velocity < 0 ? 1 : -1;
       step = Math.max(-2, Math.min(2, step));
 
       if (gesture.moved && step !== 0) changeIndex(activeIndex + step);
@@ -360,16 +414,7 @@ export function SportsCardsExperience() {
       event && event.currentTarget.hasPointerCapture(event.pointerId),
     );
 
-    gestureRef.current = {
-      pointerId: null,
-      startX: 0,
-      startY: 0,
-      lastX: 0,
-      startedAt: 0,
-      moved: false,
-      axis: "pending",
-      targetIndex: 0,
-    };
+    gestureRef.current = createRailGestureState();
 
     if (event && shouldReleaseCapture) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -378,16 +423,7 @@ export function SportsCardsExperience() {
 
   const cancelRailGesture = (event?: PointerEvent<HTMLDivElement>) => {
     if (event && gestureRef.current.pointerId !== event.pointerId) return;
-    gestureRef.current = {
-      pointerId: null,
-      startX: 0,
-      startY: 0,
-      lastX: 0,
-      startedAt: 0,
-      moved: false,
-      axis: "pending",
-      targetIndex: 0,
-    };
+    gestureRef.current = createRailGestureState();
     setRailDragOffset(0);
     if (event) delete event.currentTarget.dataset.dragging;
   };
@@ -396,12 +432,15 @@ export function SportsCardsExperience() {
     if (event.button !== 0 || gestureRef.current.pointerId !== null) return;
     if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
     delete event.currentTarget.dataset.scrolling;
+    if (Math.abs(dragOffsetRef.current) > 0.01) setRailDragOffset(0);
     gestureRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      startOffset: dragOffsetRef.current,
       lastX: event.clientX,
-      startedAt: performance.now(),
+      lastTime: event.timeStamp,
+      velocityX: 0,
       moved: false,
       axis: "pending",
       targetIndex: Number(
@@ -416,15 +455,35 @@ export function SportsCardsExperience() {
   const handleRailPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const gesture = gestureRef.current;
     if (gesture.pointerId !== event.pointerId) return;
-    const deltaX = event.clientX - gesture.startX;
-    const deltaY = event.clientY - gesture.startY;
+    const nativeEvent = event.nativeEvent;
+    const coalescedEvents = nativeEvent.getCoalescedEvents?.() ?? [];
+    const samples =
+      coalescedEvents.length > 0 ? coalescedEvents : [nativeEvent];
+    const finalSample = samples[samples.length - 1];
+    const deltaX = finalSample.clientX - gesture.startX;
+    const deltaY = finalSample.clientY - gesture.startY;
     if (gesture.axis === "pending" && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > DRAG_THRESHOLD) {
       gesture.axis = Math.abs(deltaX) > Math.abs(deltaY) + 2 ? "horizontal" : "vertical";
       gesture.moved = true;
     }
+
+    for (const sample of samples) {
+      const elapsed = Math.max(
+        4,
+        Math.min(50, sample.timeStamp - gesture.lastTime || 8),
+      );
+      const instantaneousVelocity =
+        (sample.clientX - gesture.lastX) / elapsed;
+      const velocityBlend =
+        1 - Math.exp(-RAIL_VELOCITY_SMOOTHING * (elapsed / 1000));
+      gesture.velocityX +=
+        (instantaneousVelocity - gesture.velocityX) * velocityBlend;
+      gesture.lastX = sample.clientX;
+      gesture.lastTime = sample.timeStamp;
+    }
+
     if (gesture.axis !== "horizontal") return;
-    gesture.lastX = event.clientX;
-    setRailDragOffset(deltaX);
+    queueRailDragOffset(gesture.startOffset + deltaX);
   };
 
   const handleRailPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
@@ -453,7 +512,7 @@ export function SportsCardsExperience() {
       Math.min(upperBound, dragOffsetRef.current - impulse),
     );
     event.currentTarget.dataset.scrolling = "true";
-    setRailDragOffset(nextOffset);
+    queueRailDragOffset(nextOffset);
 
     if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
     const viewport = event.currentTarget;
