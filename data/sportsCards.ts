@@ -4,11 +4,13 @@ export type CardSport = "nba" | "nfl" | "football";
 
 export type CardSeriesId =
   | "nba-topps-chrome-icons"
+  | "nba-topps-chrome-modern"
   | "nba-panini-prizm-silver"
   | "nba-topps-mercury"
   | "nba-panini-prizm-2023-24"
   | "nfl-panini-prizm-2023"
   | "football-prizm-world-cup-autos"
+  | "football-panini-prizm-world-cup-classics"
   | "football-topps-chrome-modern"
   | "football-panini-prizm-world-cup-2022";
 
@@ -192,12 +194,21 @@ export const cardSeries: readonly CardSeries[] = [
     finish: "REFRACTOR",
   },
   {
+    id: "nba-topps-chrome-modern",
+    sport: "nba",
+    label: "MODERN TOPPS CHROME NBA",
+    shortLabel: "TOPPS CHROME",
+    maker: "Topps",
+    era: "2025–26",
+    finish: "REFRACTOR PARALLELS",
+  },
+  {
     id: "nba-panini-prizm-silver",
     sport: "nba",
     label: "PANINI PRIZM SILVER",
     shortLabel: "PRIZM SILVER",
     maker: "Panini",
-    era: "2013–2021",
+    era: "2012–2021",
     finish: "SILVER PRIZM",
   },
   {
@@ -235,6 +246,15 @@ export const cardSeries: readonly CardSeries[] = [
     maker: "Panini",
     era: "2018–2022",
     finish: "SIGNATURES PRIZM",
+  },
+  {
+    id: "football-panini-prizm-world-cup-classics",
+    sport: "football",
+    label: "PANINI PRIZM WORLD CUP CLASSICS",
+    shortLabel: "WORLD CUP CLASSICS",
+    maker: "Panini",
+    era: "2014–2018",
+    finish: "SILVER & GOLD PARALLELS",
   },
   {
     id: "football-topps-chrome-modern",

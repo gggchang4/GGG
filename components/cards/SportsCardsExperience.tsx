@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -14,8 +15,6 @@ import {
 } from "react";
 import {
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
   FlipHorizontal2,
   Info,
   Rotate3D,
@@ -26,7 +25,6 @@ import {
   getSeriesById,
   getSeriesBySport,
   sports,
-  sportsCards as completeCollection,
   type CardSeriesId,
   type CardSport,
   type SportsCard,
@@ -37,17 +35,35 @@ import styles from "@/components/cards/sports-cards.module.css";
 
 type RailCardStyle = CSSProperties & {
   "--card-x": string;
-  "--card-distance": number;
-  "--card-scale": number;
-  "--card-opacity": number;
-  "--card-z": number;
+  "--card-y": string;
+  "--card-z-offset": string;
+  "--card-scale": string;
+  "--card-opacity": string;
+  "--card-z": string;
   "--card-rotate": string;
+  "--card-brightness": string;
+  "--card-saturation": string;
   "--foil-x": string;
   "--foil-y": string;
 };
 
+type RailGestureState = {
+  pointerId: number | null;
+  startX: number;
+  startY: number;
+  startOffset: number;
+  lastX: number;
+  lastTime: number;
+  velocityX: number;
+  moved: boolean;
+  axis: "pending" | "horizontal" | "vertical";
+  targetIndex: number;
+};
+
 const DRAG_THRESHOLD = 7;
 const RAIL_WINDOW = 6;
+const RAIL_VELOCITY_SMOOTHING = 20;
+const RAIL_RELEASE_DAMPING = 0.02;
 type SeriesSelection = CardSeriesId | "all";
 
 const sportLabels: Record<CardSport, string> = {
@@ -60,22 +76,56 @@ function clampIndex(index: number, count: number) {
   return Math.max(0, Math.min(count - 1, index));
 }
 
+function createRailGestureState(): RailGestureState {
+  return {
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    startOffset: 0,
+    lastX: 0,
+    lastTime: 0,
+    velocityX: 0,
+    moved: false,
+    axis: "pending",
+    targetIndex: 0,
+  };
+}
+
+function getRailCardStyle(position: number, step: number): RailCardStyle {
+  const distance = Math.abs(position);
+  const focus = Math.exp(-Math.pow(distance / 1.06, 1.55));
+
+  return {
+    "--card-x": `${position * step}px`,
+    "--card-y": `${((1 - focus) * 22).toFixed(3)}px`,
+    "--card-z-offset": `${-Math.min(distance, 4) * 44}px`,
+    "--card-scale": (0.64 + focus * 0.44).toFixed(4),
+    "--card-opacity": (0.14 + Math.exp(-distance * 0.78) * 0.86).toFixed(4),
+    "--card-z": String(Math.max(1, 100 - Math.round(distance * 12))),
+    "--card-rotate": `${Math.max(-18, Math.min(18, position * -6.5))}deg`,
+    "--card-brightness": (0.54 + focus * 0.46).toFixed(4),
+    "--card-saturation": (0.72 + focus * 0.28).toFixed(4),
+    "--foil-x": `${50 + Math.max(-1.5, Math.min(1.5, position)) * 20}%`,
+    "--foil-y": `${40 + Math.min(distance, 3) * 7}%`,
+  };
+}
+
+function applyRailCardStyle(element: HTMLElement, style: RailCardStyle) {
+  element.style.cssText = Object.entries(style)
+    .map(([property, value]) => `${property}:${value}`)
+    .join(";");
+}
+
 export function SportsCardsExperience() {
   const inspectorRef = useRef<HTMLElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef(0);
+  const railFrameRef = useRef<number | null>(null);
+  const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inspectOriginRef = useRef<DOMRect | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const gestureRef = useRef({
-    pointerId: null as number | null,
-    startX: 0,
-    startY: 0,
-    lastX: 0,
-    startedAt: 0,
-    moved: false,
-    axis: "pending" as "pending" | "horizontal" | "vertical",
-    targetIndex: 0,
-  });
-  const wheelLockRef = useRef(0);
+  const gestureRef = useRef<RailGestureState>(createRailGestureState());
   const [sport, setSport] = useState<CardSport>("nba");
   const [seriesBySport, setSeriesBySport] = useState<Record<CardSport, SeriesSelection>>({
     nba: "all",
@@ -84,6 +134,7 @@ export function SportsCardsExperience() {
   });
   const [selectedByScope, setSelectedByScope] = useState<Record<string, string>>({});
   const [inspectCard, setInspectCard] = useState<SportsCard | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
   const [face, setFace] = useState<"front" | "back">("front");
   const [flipSignal, setFlipSignal] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
@@ -91,7 +142,6 @@ export function SportsCardsExperience() {
   const [railStep, setRailStep] = useState(236);
   const activeSeriesId = seriesBySport[sport];
   const scopeKey = `${sport}:${activeSeriesId}`;
-  const allSportCards = useMemo(() => getCardsBySport(sport), [sport]);
   const seriesOptions = useMemo(() => getSeriesBySport(sport), [sport]);
   const activeSeries = activeSeriesId === "all" ? null : getSeriesById(activeSeriesId);
   const cards = useMemo(
@@ -108,18 +158,42 @@ export function SportsCardsExperience() {
     const end = Math.min(cards.length, activeIndex + RAIL_WINDOW + 1);
     return cards.slice(start, end).map((card, offset) => ({ card, index: start + offset }));
   }, [activeIndex, cards]);
-  const seriesCounts = useMemo(
-    () => new Map(seriesOptions.map((series) => [
-      series.id,
-      allSportCards.filter((card) => card.seriesId === series.id).length,
-    ])),
-    [allSportCards, seriesOptions],
+  const applyRailDragOffset = useCallback((nextOffset: number) => {
+    dragOffsetRef.current = nextOffset;
+    const rail = railRef.current;
+    if (!rail) return;
+    for (const element of rail.querySelectorAll<HTMLElement>("[data-card-index]")) {
+      const index = Number(element.dataset.cardIndex);
+      const position = index - activeIndex + nextOffset / railStep;
+      applyRailCardStyle(element, getRailCardStyle(position, railStep));
+    }
+  }, [activeIndex, railStep]);
+
+  const cancelRailFrame = useCallback(() => {
+    if (railFrameRef.current === null) return;
+    cancelAnimationFrame(railFrameRef.current);
+    railFrameRef.current = null;
+  }, []);
+
+  const setRailDragOffset = useCallback(
+    (nextOffset: number) => {
+      cancelRailFrame();
+      applyRailDragOffset(nextOffset);
+    },
+    [applyRailDragOffset, cancelRailFrame],
   );
 
-  const setRailDragOffset = useCallback((nextOffset: number) => {
-    dragOffsetRef.current = nextOffset;
-    railRef.current?.style.setProperty("--rail-drag-x", `${nextOffset}px`);
-  }, []);
+  const queueRailDragOffset = useCallback(
+    (nextOffset: number) => {
+      dragOffsetRef.current = nextOffset;
+      if (railFrameRef.current !== null) return;
+      railFrameRef.current = requestAnimationFrame(() => {
+        railFrameRef.current = null;
+        applyRailDragOffset(dragOffsetRef.current);
+      });
+    },
+    [applyRailDragOffset],
+  );
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -146,7 +220,7 @@ export function SportsCardsExperience() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.requestAnimationFrame(() => {
-      inspectorRef.current?.querySelector<HTMLElement>("button")?.focus();
+      inspectorRef.current?.focus({ preventScroll: true });
     });
     return () => {
       document.body.style.overflow = previousOverflow;
@@ -154,11 +228,104 @@ export function SportsCardsExperience() {
     };
   }, [inspectCard]);
 
-  const closeInspect = useCallback(() => {
+  useLayoutEffect(() => {
+    if (!inspectCard || reducedMotion) {
+      inspectOriginRef.current = null;
+      return;
+    }
+
+    const motion = inspectorRef.current?.querySelector<HTMLElement>("[data-inspect-motion]");
+    const origin = inspectOriginRef.current;
+    if (!motion || !origin) return;
+
+    const destination = motion.getBoundingClientRect();
+    const deltaX = origin.left + origin.width / 2 - (destination.left + destination.width / 2);
+    const deltaY = origin.top + origin.height / 2 - (destination.top + destination.height / 2);
+    const scale = origin.width / destination.width;
+    const animation = motion.animate(
+      [
+        {
+          opacity: 0.82,
+          transform: `translate3d(${deltaX}px, ${deltaY}px, 0) scale(${scale})`,
+        },
+        {
+          opacity: 1,
+          transform: "translate3d(0, 0, 0) scale(1)",
+        },
+      ],
+      {
+        duration: 560,
+        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+        fill: "both",
+      },
+    );
+    animation.addEventListener("finish", () => {
+      inspectOriginRef.current = null;
+      animation.cancel();
+    }, { once: true });
+    return () => animation.cancel();
+  }, [inspectCard, reducedMotion]);
+
+  const finishClose = useCallback(() => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
     setInspectCard(null);
     setFace("front");
     setShowInfo(false);
+    setIsClosing(false);
   }, []);
+
+  const closeInspect = useCallback(() => {
+    if (!inspectCard || isClosing) return;
+    if (reducedMotion) {
+      finishClose();
+      return;
+    }
+
+    const inspector = inspectorRef.current;
+    const motion = inspector?.querySelector<HTMLElement>("[data-inspect-motion]");
+    const destination = document.getElementById(`rail-card-${inspectCard.id}`)?.getBoundingClientRect();
+    if (!inspector || !motion || !destination) {
+      finishClose();
+      return;
+    }
+
+    const origin = motion.getBoundingClientRect();
+    const deltaX = destination.left + destination.width / 2 - (origin.left + origin.width / 2);
+    const deltaY = destination.top + destination.height / 2 - (origin.top + origin.height / 2);
+    const scale = destination.width / origin.width;
+    setIsClosing(true);
+    motion.animate(
+      [
+        { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
+        {
+          opacity: 0.9,
+          transform: `translate3d(${deltaX}px, ${deltaY}px, 0) scale(${scale})`,
+        },
+      ],
+      {
+        duration: 420,
+        easing: "cubic-bezier(0.32, 0, 0.2, 1)",
+        fill: "forwards",
+      },
+    );
+    inspector.animate(
+      [{ opacity: 1 }, { opacity: 0 }],
+      {
+        duration: 330,
+        delay: 90,
+        easing: "cubic-bezier(0.32, 0, 0.2, 1)",
+        fill: "forwards",
+      },
+    );
+    closeTimerRef.current = setTimeout(finishClose, 430);
+  }, [finishClose, inspectCard, isClosing, reducedMotion]);
+
+  useEffect(() => () => {
+    cancelRailFrame();
+    if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  }, [cancelRailFrame]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -174,23 +341,29 @@ export function SportsCardsExperience() {
   const changeIndex = useCallback(
     (nextIndex: number) => {
       const clamped = clampIndex(nextIndex, cards.length);
+      cancelRailFrame();
+      dragOffsetRef.current = 0;
       setSelectedByScope((current) => ({
         ...current,
         [scopeKey]: cards[clamped].id,
       }));
-      setRailDragOffset(0);
     },
-    [cards, scopeKey, setRailDragOffset],
+    [cancelRailFrame, cards, scopeKey],
   );
 
   const changeSport = (nextSport: CardSport) => {
     if (nextSport === sport) return;
+    if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
+    cancelRailFrame();
+    dragOffsetRef.current = 0;
     setSport(nextSport);
-    setRailDragOffset(0);
   };
 
   const changeSeries = (nextSeries: SeriesSelection) => {
     if (nextSeries === activeSeriesId) return;
+    if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
+    cancelRailFrame();
+    dragOffsetRef.current = 0;
     const nextScope = `${sport}:${nextSeries}`;
     const nextCards = getCardsBySport(sport, nextSeries);
     setSelectedByScope((current) => {
@@ -202,11 +375,14 @@ export function SportsCardsExperience() {
       };
     });
     setSeriesBySport((current) => ({ ...current, [sport]: nextSeries }));
-    setRailDragOffset(0);
   };
 
   const openInspect = useCallback((card: SportsCard, trigger?: HTMLElement | null) => {
     returnFocusRef.current = trigger ?? (document.activeElement as HTMLElement | null);
+    inspectOriginRef.current = document
+      .getElementById(`rail-card-${card.id}`)
+      ?.getBoundingClientRect() ?? null;
+    setIsClosing(false);
     setInspectCard(card);
     setFace("front");
     setShowInfo(false);
@@ -219,10 +395,12 @@ export function SportsCardsExperience() {
     if (gesture.axis === "vertical") {
       setRailDragOffset(0);
     } else {
-      const elapsed = Math.max(16, performance.now() - gesture.startedAt);
-      const velocity = (gesture.lastX - gesture.startX) / elapsed;
+      const releaseTime = event?.timeStamp ?? performance.now();
+      const idleTime = Math.max(0, releaseTime - gesture.lastTime);
+      const velocity =
+        gesture.velocityX * Math.exp(-RAIL_RELEASE_DAMPING * idleTime);
       let step = Math.round(-dragOffsetRef.current / railStep);
-      if (Math.abs(velocity) > 0.45) step += velocity < 0 ? 1 : -1;
+      if (Math.abs(velocity) > 0.38) step += velocity < 0 ? 1 : -1;
       step = Math.max(-2, Math.min(2, step));
 
       if (gesture.moved && step !== 0) changeIndex(activeIndex + step);
@@ -236,16 +414,7 @@ export function SportsCardsExperience() {
       event && event.currentTarget.hasPointerCapture(event.pointerId),
     );
 
-    gestureRef.current = {
-      pointerId: null,
-      startX: 0,
-      startY: 0,
-      lastX: 0,
-      startedAt: 0,
-      moved: false,
-      axis: "pending",
-      targetIndex: 0,
-    };
+    gestureRef.current = createRailGestureState();
 
     if (event && shouldReleaseCapture) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -254,28 +423,24 @@ export function SportsCardsExperience() {
 
   const cancelRailGesture = (event?: PointerEvent<HTMLDivElement>) => {
     if (event && gestureRef.current.pointerId !== event.pointerId) return;
-    gestureRef.current = {
-      pointerId: null,
-      startX: 0,
-      startY: 0,
-      lastX: 0,
-      startedAt: 0,
-      moved: false,
-      axis: "pending",
-      targetIndex: 0,
-    };
+    gestureRef.current = createRailGestureState();
     setRailDragOffset(0);
     if (event) delete event.currentTarget.dataset.dragging;
   };
 
   const handleRailPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 || gestureRef.current.pointerId !== null) return;
+    if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
+    delete event.currentTarget.dataset.scrolling;
+    if (Math.abs(dragOffsetRef.current) > 0.01) setRailDragOffset(0);
     gestureRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      startOffset: dragOffsetRef.current,
       lastX: event.clientX,
-      startedAt: performance.now(),
+      lastTime: event.timeStamp,
+      velocityX: 0,
       moved: false,
       axis: "pending",
       targetIndex: Number(
@@ -290,15 +455,35 @@ export function SportsCardsExperience() {
   const handleRailPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const gesture = gestureRef.current;
     if (gesture.pointerId !== event.pointerId) return;
-    const deltaX = event.clientX - gesture.startX;
-    const deltaY = event.clientY - gesture.startY;
+    const nativeEvent = event.nativeEvent;
+    const coalescedEvents = nativeEvent.getCoalescedEvents?.() ?? [];
+    const samples =
+      coalescedEvents.length > 0 ? coalescedEvents : [nativeEvent];
+    const finalSample = samples[samples.length - 1];
+    const deltaX = finalSample.clientX - gesture.startX;
+    const deltaY = finalSample.clientY - gesture.startY;
     if (gesture.axis === "pending" && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > DRAG_THRESHOLD) {
       gesture.axis = Math.abs(deltaX) > Math.abs(deltaY) + 2 ? "horizontal" : "vertical";
       gesture.moved = true;
     }
+
+    for (const sample of samples) {
+      const elapsed = Math.max(
+        4,
+        Math.min(50, sample.timeStamp - gesture.lastTime || 8),
+      );
+      const instantaneousVelocity =
+        (sample.clientX - gesture.lastX) / elapsed;
+      const velocityBlend =
+        1 - Math.exp(-RAIL_VELOCITY_SMOOTHING * (elapsed / 1000));
+      gesture.velocityX +=
+        (instantaneousVelocity - gesture.velocityX) * velocityBlend;
+      gesture.lastX = sample.clientX;
+      gesture.lastTime = sample.timeStamp;
+    }
+
     if (gesture.axis !== "horizontal") return;
-    gesture.lastX = event.clientX;
-    setRailDragOffset(deltaX);
+    queueRailDragOffset(gesture.startOffset + deltaX);
   };
 
   const handleRailPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
@@ -319,10 +504,30 @@ export function SportsCardsExperience() {
       (dominant > 0 && activeIndex === cards.length - 1)
     ) return;
     event.preventDefault();
-    const now = performance.now();
-    if (now < wheelLockRef.current) return;
-    wheelLockRef.current = now + 260;
-    changeIndex(activeIndex + (dominant > 0 ? 1 : -1));
+    const lowerBound = activeIndex < cards.length - 1 ? -railStep * 1.08 : 0;
+    const upperBound = activeIndex > 0 ? railStep * 1.08 : 0;
+    const impulse = Math.max(-120, Math.min(120, dominant)) * 0.82;
+    const nextOffset = Math.max(
+      lowerBound,
+      Math.min(upperBound, dragOffsetRef.current - impulse),
+    );
+    event.currentTarget.dataset.scrolling = "true";
+    queueRailDragOffset(nextOffset);
+
+    if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
+    const viewport = event.currentTarget;
+    wheelTimerRef.current = setTimeout(() => {
+      delete viewport.dataset.scrolling;
+      wheelTimerRef.current = null;
+      const threshold = Math.min(44, railStep * 0.18);
+      const direction = dragOffsetRef.current < -threshold
+        ? 1
+        : dragOffsetRef.current > threshold
+          ? -1
+          : 0;
+      if (direction !== 0) changeIndex(activeIndex + direction);
+      else setRailDragOffset(0);
+    }, 95);
   };
 
   const handleRailKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -358,38 +563,39 @@ export function SportsCardsExperience() {
   };
 
   return (
-    <main className={styles.page} data-inspecting={inspectCard ? "true" : "false"}>
+    <main
+      className={styles.page}
+      data-inspecting={inspectCard ? "true" : "false"}
+      data-closing={isClosing ? "true" : "false"}
+    >
       <div
         className={styles.archiveContent}
         aria-hidden={inspectCard ? true : undefined}
         inert={inspectCard ? true : undefined}
       >
         <header className={styles.header}>
-        <Link href="/" className={styles.backLink} aria-label="Back to profile index">
-          <ArrowLeft aria-hidden="true" />
-          INDEX
-        </Link>
+          <Link href="/" className={styles.backLink} aria-label="Back to profile index">
+            <ArrowLeft aria-hidden="true" />
+            INDEX
+          </Link>
 
-        <p className={styles.archiveLabel}>SPECIAL CARD ARCHIVE</p>
-
-        <div className={styles.sportSwitcher} role="group" aria-label="Sport collection">
-          {sports.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={sport === item ? styles.sportActive : undefined}
-              aria-pressed={sport === item}
-              onClick={() => changeSport(item)}
-            >
-              {sportLabels[item]}
-            </button>
-          ))}
-        </div>
+          <div className={styles.sportSwitcher} role="group" aria-label="Sport collection">
+            {sports.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={sport === item ? styles.sportActive : undefined}
+                aria-pressed={sport === item}
+                onClick={() => changeSport(item)}
+              >
+                {sportLabels[item]}
+              </button>
+            ))}
+          </div>
         </header>
 
         <section className={styles.collection} aria-label={`${sport} card collection`}>
         <nav className={styles.seriesBar} aria-label={`${sport} card series`}>
-          <span className={styles.seriesLabel}>SERIES</span>
           <div className={styles.seriesTabs} role="group" aria-label="Filter cards by series">
             <button
               type="button"
@@ -398,7 +604,6 @@ export function SportsCardsExperience() {
               onClick={() => changeSeries("all")}
             >
               <span>ALL</span>
-              <small>{String(allSportCards.length).padStart(2, "0")}</small>
             </button>
             {seriesOptions.map((series) => {
               return (
@@ -409,15 +614,11 @@ export function SportsCardsExperience() {
                   aria-pressed={activeSeriesId === series.id}
                   onClick={() => changeSeries(series.id)}
                 >
-                    <span>{series.shortLabel}</span>
-                    <small>{String(seriesCounts.get(series.id) ?? 0).padStart(2, "0")}</small>
+                  <span>{series.shortLabel}</span>
                 </button>
               );
             })}
           </div>
-          <p aria-live="polite">
-            {activeSeries ? `${activeSeries.era} · ${activeSeries.finish}` : "PHYSICAL FRONT / BACK ARCHIVE"}
-          </p>
         </nav>
 
         <div
@@ -439,18 +640,7 @@ export function SportsCardsExperience() {
           <div ref={railRef} key={scopeKey} className={styles.rail}>
             {visibleCards.map(({ card, index }) => {
               const offset = index - activeIndex;
-              const visualOffset = offset;
-              const distance = Math.min(3, Math.abs(visualOffset));
-              const railStyle: RailCardStyle = {
-                "--card-x": `${visualOffset * railStep}px`,
-                "--card-distance": distance,
-                "--card-scale": Math.max(0.72, 1 - distance * 0.12),
-                "--card-opacity": Math.max(0.22, 1 - distance * 0.29),
-                "--card-z": 20 - Math.round(distance * 3),
-                "--card-rotate": `${Math.max(-11, Math.min(11, visualOffset * -4.25))}deg`,
-                "--foil-x": `${50 + Math.max(-1, Math.min(1, visualOffset)) * 25}%`,
-                "--foil-y": `${38 + distance * 8}%`,
-              };
+              const railStyle = getRailCardStyle(offset, railStep);
               const isActive = index === activeIndex;
 
               return (
@@ -483,76 +673,30 @@ export function SportsCardsExperience() {
         </p>
 
         <div className={styles.activeCaption}>
-          <span>
-            {String(activeIndex + 1).padStart(2, "0")} / {String(cards.length).padStart(2, "0")}
-          </span>
-          <div>
-            <strong>{activeCard.player}</strong>
-            <p>{activeCard.year} · {activeCard.maker} {activeCard.series} · {activeCard.parallel}</p>
-          </div>
           <button type="button" onClick={(event) => openInspect(activeCard, event.currentTarget)}>
-            VIEW CARD
-            <ArrowLeft aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className={styles.railControls}>
-          <button
-            type="button"
-            aria-label="Previous card"
-            disabled={activeIndex === 0}
-            onClick={() => changeIndex(activeIndex - 1)}
-          >
-            <ChevronLeft aria-hidden="true" />
-          </button>
-          <label className={styles.railScrubber}>
-            <span className={styles.selectionStatus}>Select card</span>
-            <input
-              type="range"
-              min={0}
-              max={Math.max(0, cards.length - 1)}
-              value={activeIndex}
-              aria-label={`Card ${activeIndex + 1} of ${cards.length}`}
-              onChange={(event) => changeIndex(Number(event.currentTarget.value))}
-            />
-          </label>
-          <button
-            type="button"
-            aria-label="Next card"
-            disabled={activeIndex === cards.length - 1}
-            onClick={() => changeIndex(activeIndex + 1)}
-          >
-            <ChevronRight aria-hidden="true" />
+            <strong>{activeCard.player}</strong>
+            <span>{activeCard.parallel}</span>
           </button>
         </div>
         </section>
-
-        <footer className={styles.footer}>
-          <p><Rotate3D aria-hidden="true" /> DRAG OR SCROLL · SELECT TO INSPECT</p>
-          <p>
-            {completeCollection.length} SPECIAL CARDS · PHYSICAL FRONT / BACK ·{" "}
-            <a href="/media/cards/ATTRIBUTION.md" target="_blank" rel="noreferrer">
-              MEDIA &amp; SOURCES
-          </a>
-        </p>
-        </footer>
       </div>
 
       {inspectCard ? (
         <section
           ref={inspectorRef}
           className={styles.inspector}
+          data-closing={isClosing ? "true" : "false"}
           aria-labelledby="card-inspector-title"
           aria-describedby="card-inspector-instructions"
           role="dialog"
           aria-modal="true"
+          tabIndex={-1}
           onKeyDown={handleInspectorKeyDown}
         >
           <header className={styles.inspectorHeader}>
             <button type="button" className={styles.backButton} onClick={closeInspect}>
               <ArrowLeft aria-hidden="true" /> COLLECTION
             </button>
-            <p id="card-inspector-title">{inspectCard.player} · {face.toUpperCase()} · {inspectCard.parallel}</p>
             <button
               type="button"
               className={styles.closeButton}
@@ -576,29 +720,23 @@ export function SportsCardsExperience() {
                 <span>{sportLabels[inspectCard.sport]}</span>
                 <strong>#{inspectCard.cardNumber}</strong>
               </div>
-              <p className={styles.detailEyebrow}>{inspectCard.year} · {inspectCard.maker}</p>
-              <h2 className={inspectCard.familyName.length > 10 ? styles.longPlayerName : undefined}>
+              <p className={styles.detailEyebrow}>{inspectCard.year} · {inspectCard.maker} · {face.toUpperCase()}</p>
+              <h2
+                id="card-inspector-title"
+                className={inspectCard.familyName.length > 10 ? styles.longPlayerName : undefined}
+              >
                 <span>{inspectCard.givenName}</span>
                 {inspectCard.familyName}
               </h2>
-              <p className={styles.detailTeam}>
-                {[
-                  inspectCard.team,
-                  ["NBA", "NFL", "INTL"].includes(inspectCard.position) ? null : inspectCard.position,
-                  `CARD #${inspectCard.number}`,
-                ].filter(Boolean).join(" · ")}
+              <p className={styles.detailParallel}>{inspectCard.parallel}</p>
+              <p className={styles.detailMeta}>
+                {inspectCard.series} · {inspectCard.serial}
               </p>
-
-              <dl className={styles.detailList}>
-                <div><dt>SET</dt><dd>{inspectCard.series}</dd></div>
-                <div><dt>PARALLEL</dt><dd>{inspectCard.parallel}</dd></div>
-                <div><dt>EDITION</dt><dd>{inspectCard.serial}</dd></div>
-                <div><dt>SCAN PAIR</dt><dd>{inspectCard.scanProvenance === "paired-physical-specimen" ? "SAME SPECIMEN" : "ARCHIVE FRONT / BACK"}</dd></div>
-                <div><dt>AUTOGRAPH</dt><dd>{inspectCard.autographed ? "YES" : "—"}</dd></div>
-                {inspectCard.sourcePage ? (
-                  <div><dt>SOURCE</dt><dd><a href={inspectCard.sourcePage} target="_blank" rel="noreferrer">VIEW SCAN PAIR</a></dd></div>
-                ) : null}
-              </dl>
+              {inspectCard.sourcePage ? (
+                <a className={styles.detailSource} href={inspectCard.sourcePage} target="_blank" rel="noreferrer">
+                  SOURCE RECORD <ArrowLeft aria-hidden="true" />
+                </a>
+              ) : null}
 
               <div className={styles.inspectActions}>
                 <button

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import type { SportsCard } from "@/data/sportsCards";
 import styles from "@/components/cards/sports-cards.module.css";
 
@@ -28,7 +28,7 @@ function createAlphaMaskStyle(src?: string): CSSProperties | undefined {
   };
 }
 
-export function SportsCardArtwork({
+export const SportsCardArtwork = memo(function SportsCardArtwork({
   card,
   face = "front",
   priority = false,
@@ -120,4 +120,4 @@ export function SportsCardArtwork({
       ) : null}
     </div>
   );
-}
+});

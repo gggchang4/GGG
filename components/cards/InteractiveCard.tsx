@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -22,7 +23,6 @@ type InteractiveCardProps = {
 };
 
 type CardTransform = CSSProperties & {
-  "--card-transform": string;
   "--glare-x": string;
   "--glare-y": string;
   "--glare-angle": string;
@@ -43,10 +43,15 @@ type CardTransform = CSSProperties & {
   "--relief-x": string;
   "--relief-y": string;
   "--light-azimuth": string;
-  "--shadow-x": string;
-  "--shadow-y": string;
-  "--shadow-scale": string;
-  "--shadow-opacity": string;
+};
+
+type InteractionGeometry = {
+  centerX: number;
+  centerY: number;
+  arcRadius: number;
+  halfWidth: number;
+  halfHeight: number;
+  ready: boolean;
 };
 
 type CardMotionState = {
@@ -65,24 +70,26 @@ const DEG_TO_RAD = Math.PI / 180;
 const DEFAULT_LIGHT_X = -0.34;
 const DEFAULT_LIGHT_Y = 0.42;
 const FACE_HYSTERESIS = 0.04;
-const ARC_RADIUS_FACTOR = 0.5;
+const ARC_RADIUS_FACTOR = 0.62;
 const MAX_ANGULAR_SPEED = 12;
-const MAX_RELEASE_ANGULAR_SPEED = 5.75;
+const MAX_RELEASE_ANGULAR_SPEED = 4.8;
 const MIN_ANGULAR_SPEED = 0.015;
 const INERTIA_DAMPING = 2.8;
-const RETURN_COAST_DURATION = 0.085;
-const RETURN_COAST_DAMPING = 6.5;
+const RETURN_COAST_DURATION = 0.09;
+const RETURN_COAST_DAMPING = 7.5;
 const RETURN_COAST_MIN_SPEED = 0.18;
 const RETURN_LIGHT_DAMPING = 7.5;
-const VELOCITY_SMOOTHING = 24;
-const SPRING_STIFFNESS = 72;
-const SPRING_DAMPING_RATIO = 0.86;
+const RELEASE_IDLE_DAMPING = 22;
+const VELOCITY_SMOOTHING = 20;
+const SPRING_STIFFNESS = 88;
+const SPRING_DAMPING_RATIO = 0.92;
 const SPRING_DAMPING =
   2 * Math.sqrt(SPRING_STIFFNESS) * SPRING_DAMPING_RATIO;
 const SPRING_POSITION_EPSILON = 0.002;
 const SPRING_VELOCITY_EPSILON = 0.02;
 const MAX_FRAME_DELTA = 1 / 30;
 const SPRING_STEP = 1 / 120;
+const OPTICAL_FRAME_INTERVAL = 30;
 
 const LOCAL_X = new Vector3(1, 0, 0);
 const LOCAL_Y = new Vector3(0, 1, 0);
@@ -141,8 +148,13 @@ export function InteractiveCard({
   const opticalDispersion = card.optics?.dispersion ?? 0.5;
   const cardRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<HTMLSpanElement>(null);
   const frameRef = useRef<number | null>(null);
+  const pointerFrameRef = useRef<number | null>(null);
+  const pointerFrameNeedsOpticsRef = useRef(false);
   const lastTimeRef = useRef(0);
+  const lastOpticalRenderRef = useRef(0);
+  const lastRenderedOrientationRef = useRef(INITIAL_ORIENTATION.clone());
   const previousFlipSignalRef = useRef(flipSignal);
   const visibleFaceRef = useRef<"front" | "back">("front");
   const onFaceChangeRef = useRef(onFaceChange);
@@ -150,6 +162,14 @@ export function InteractiveCard({
   const draggingRef = useRef(false);
   const pointerIdRef = useRef<number | null>(null);
   const stateRef = useRef<CardMotionState>(createMotionState());
+  const geometryRef = useRef<InteractionGeometry>({
+    centerX: 0,
+    centerY: 0,
+    arcRadius: 80,
+    halfWidth: 1,
+    halfHeight: 1,
+    ready: false,
+  });
   const scratchRef = useRef({
     matrix: new Matrix4(),
     nextArcPoint: new Vector3(),
@@ -170,18 +190,31 @@ export function InteractiveCard({
     keyboardQuaternion: new Quaternion(),
   });
 
+  const measureInteractionGeometry = useCallback(() => {
+    const stage = stageRef.current;
+    const cardElement = cardRef.current;
+    if (!stage || !cardElement) return;
+
+    const stageRect = stage.getBoundingClientRect();
+    const cardWidth = Math.max(1, cardElement.offsetWidth);
+    const cardHeight = Math.max(1, cardElement.offsetHeight);
+    geometryRef.current = {
+      centerX: stageRect.left + stageRect.width / 2,
+      centerY: stageRect.top + stageRect.height / 2,
+      arcRadius: Math.max(80, cardWidth * ARC_RADIUS_FACTOR),
+      halfWidth: cardWidth / 2,
+      halfHeight: cardHeight / 2,
+      ready: true,
+    };
+  }, []);
+
   const projectPointerToArcball = useCallback(
     (clientX: number, clientY: number, target: Vector3) => {
-      const stage = stageRef.current;
-      const cardElement = cardRef.current;
-      if (!stage || !cardElement) return target.set(0, 0, 1);
+      const geometry = geometryRef.current;
+      if (!geometry.ready) return target.set(0, 0, 1);
 
-      const stageRect = stage.getBoundingClientRect();
-      const centerX = stageRect.left + stageRect.width / 2;
-      const centerY = stageRect.top + stageRect.height / 2;
-      const radius = Math.max(80, cardElement.offsetWidth * ARC_RADIUS_FACTOR);
-      const x = (clientX - centerX) / radius;
-      const y = (centerY - clientY) / radius;
+      const x = (clientX - geometry.centerX) / geometry.arcRadius;
+      const y = (geometry.centerY - clientY) / geometry.arcRadius;
       const distanceSquared = x * x + y * y;
       const z =
         distanceSquared <= 0.5
@@ -194,31 +227,37 @@ export function InteractiveCard({
   );
 
   const updatePointerLight = useCallback((clientX: number, clientY: number) => {
-    const stage = stageRef.current;
-    const cardElement = cardRef.current;
-    if (!stage || !cardElement) return;
-
-    const stageRect = stage.getBoundingClientRect();
-    const centerX = stageRect.left + stageRect.width / 2;
-    const centerY = stageRect.top + stageRect.height / 2;
-    const halfWidth = Math.max(1, cardElement.offsetWidth / 2);
-    const halfHeight = Math.max(1, cardElement.offsetHeight / 2);
+    const geometry = geometryRef.current;
+    if (!geometry.ready) return;
     const state = stateRef.current;
 
-    state.lightX = clamp((clientX - centerX) / halfWidth, -1.25, 1.25);
-    state.lightY = clamp((centerY - clientY) / halfHeight, -1.25, 1.25);
+    state.lightX = clamp(
+      (clientX - geometry.centerX) / geometry.halfWidth,
+      -1.25,
+      1.25,
+    );
+    state.lightY = clamp(
+      (geometry.centerY - clientY) / geometry.halfHeight,
+      -1.25,
+      1.25,
+    );
   }, []);
 
-  const renderCard = useCallback(() => {
+  const renderCard = useCallback((time = performance.now(), forceOptics = false) => {
     const element = cardRef.current;
     if (!element) return;
 
     const state = stateRef.current;
     const scratch = scratchRef.current;
-    const matrix = scratch.matrix.makeRotationFromQuaternion(state.orientation);
-    const matrixTransform = `matrix3d(${matrix.elements
-      .map((value) => value.toFixed(8))
-      .join(",")})`;
+    const orientationChanged = !lastRenderedOrientationRef.current.equals(
+      state.orientation,
+    );
+
+    if (orientationChanged || forceOptics) {
+      const matrix = scratch.matrix.makeRotationFromQuaternion(state.orientation);
+      element.style.transform = `matrix3d(${matrix.elements.join(",")})`;
+      lastRenderedOrientationRef.current.copy(state.orientation);
+    }
 
     scratch.frontNormal.copy(LOCAL_Z).applyQuaternion(state.orientation);
 
@@ -229,7 +268,30 @@ export function InteractiveCard({
       face = "front";
     }
 
-    const visibleSurfaceSign = scratch.frontNormal.z >= 0 ? 1 : -1;
+    if (element.dataset.face !== face) element.dataset.face = face;
+
+    if (orientationChanged || forceOptics) {
+      const frontness = Math.abs(scratch.frontNormal.z);
+      const shadowX = clamp(-scratch.frontNormal.x * 26, -22, 22);
+      const shadowY = clamp(24 + scratch.frontNormal.y * 12, 12, 36);
+      const shadowScale = 0.64 + frontness * 0.36;
+      const shadowOpacity = 0.42 + frontness * 0.25;
+      const shadow = shadowRef.current;
+      if (shadow) {
+        shadow.style.cssText =
+          `--shadow-x:${shadowX.toFixed(2)}px;` +
+          `--shadow-y:${shadowY.toFixed(2)}px;` +
+          `--shadow-scale:${shadowScale.toFixed(4)};` +
+          `--shadow-opacity:${shadowOpacity.toFixed(4)}`;
+      }
+    }
+
+    const shouldRenderOptics =
+      forceOptics ||
+      time - lastOpticalRenderRef.current >= OPTICAL_FRAME_INTERVAL;
+
+    if (shouldRenderOptics) {
+      const visibleSurfaceSign = scratch.frontNormal.z >= 0 ? 1 : -1;
     scratch.surfaceX
       .copy(LOCAL_X)
       .applyQuaternion(state.orientation)
@@ -298,45 +360,37 @@ export function InteractiveCard({
     const lightAzimuth = (Math.atan2(state.lightY, state.lightX) * 180) / Math.PI;
     const reliefX = clamp(halfX * (0.7 + grazing), -1, 1) * 2.2;
     const reliefY = clamp(-halfY * (0.7 + grazing), -1, 1) * 2.2;
-    const frontness = Math.abs(scratch.frontNormal.z);
-    const shadowX = clamp(-scratch.frontNormal.x * 26, -22, 22);
-    const shadowY = clamp(24 + scratch.frontNormal.y * 12, 12, 36);
-    const shadowScale = 0.64 + frontness * 0.36;
-    const shadowOpacity = 0.42 + frontness * 0.25;
+      const sparkleOpacity = clamp(
+        sparkleSpecular + fresnel * opticalSparkle * 0.16,
+        0,
+        0.9,
+      );
+      const transform = element.style.transform || INITIAL_TRANSFORM;
+      element.style.cssText =
+        `transform:${transform};` +
+        `--glare-x:${glareX.toFixed(2)}%;` +
+        `--glare-y:${glareY.toFixed(2)}%;` +
+        `--glare-angle:${glareAngle.toFixed(2)}deg;` +
+        `--glare-opacity:${glareOpacity.toFixed(4)};` +
+        `--foil-x:${foilX.toFixed(2)}%;` +
+        `--foil-y:${foilY.toFixed(2)}%;` +
+        `--foil-angle:${foilAngle.toFixed(2)}deg;` +
+        `--foil-hue:${foilHue.toFixed(2)}deg;` +
+        `--foil-incidence:${((incidence * 180) / Math.PI).toFixed(2)}deg;` +
+        `--foil-opacity:${foilOpacity.toFixed(4)};` +
+        `--coat-opacity:${coatOpacity.toFixed(4)};` +
+        `--fresnel-opacity:${fresnel.toFixed(4)};` +
+        `--specular-strength:${specular.toFixed(4)};` +
+        `--broad-specular:${broadSpecular.toFixed(4)};` +
+        `--view-grazing:${grazing.toFixed(4)};` +
+        `--sparkle-opacity:${sparkleOpacity.toFixed(4)};` +
+        `--spectral-shift:${(foilHue * opticalDispersion).toFixed(2)}deg;` +
+        `--relief-x:${reliefX.toFixed(3)}px;` +
+        `--relief-y:${reliefY.toFixed(3)}px;` +
+        `--light-azimuth:${lightAzimuth.toFixed(2)}deg`;
+      lastOpticalRenderRef.current = time;
+    }
 
-    element.style.setProperty("--card-transform", matrixTransform);
-    element.style.setProperty("--glare-x", `${glareX.toFixed(2)}%`);
-    element.style.setProperty("--glare-y", `${glareY.toFixed(2)}%`);
-    element.style.setProperty("--glare-angle", `${glareAngle.toFixed(2)}deg`);
-    element.style.setProperty("--glare-opacity", glareOpacity.toFixed(4));
-    element.style.setProperty("--foil-x", `${foilX.toFixed(2)}%`);
-    element.style.setProperty("--foil-y", `${foilY.toFixed(2)}%`);
-    element.style.setProperty("--foil-angle", `${foilAngle.toFixed(2)}deg`);
-    element.style.setProperty("--foil-hue", `${foilHue.toFixed(2)}deg`);
-    element.style.setProperty("--foil-incidence", `${((incidence * 180) / Math.PI).toFixed(2)}deg`);
-    element.style.setProperty("--foil-opacity", foilOpacity.toFixed(4));
-    element.style.setProperty("--coat-opacity", coatOpacity.toFixed(4));
-    element.style.setProperty("--fresnel-opacity", fresnel.toFixed(4));
-    element.style.setProperty("--specular-strength", specular.toFixed(4));
-    element.style.setProperty("--broad-specular", broadSpecular.toFixed(4));
-    element.style.setProperty("--view-grazing", grazing.toFixed(4));
-    element.style.setProperty("--sparkle-opacity", clamp(sparkleSpecular + fresnel * opticalSparkle * 0.16, 0, 0.9).toFixed(4));
-    element.style.setProperty("--spectral-shift", `${(foilHue * opticalDispersion).toFixed(2)}deg`);
-    element.style.setProperty("--relief-x", `${reliefX.toFixed(3)}px`);
-    element.style.setProperty("--relief-y", `${reliefY.toFixed(3)}px`);
-    element.style.setProperty("--light-azimuth", `${lightAzimuth.toFixed(2)}deg`);
-    element.style.setProperty("--shadow-x", `${shadowX.toFixed(2)}px`);
-    element.style.setProperty("--shadow-y", `${shadowY.toFixed(2)}px`);
-    element.style.setProperty("--shadow-scale", shadowScale.toFixed(4));
-    element.style.setProperty("--shadow-opacity", shadowOpacity.toFixed(4));
-
-    const stage = stageRef.current;
-    stage?.style.setProperty("--shadow-x", `${shadowX.toFixed(2)}px`);
-    stage?.style.setProperty("--shadow-y", `${shadowY.toFixed(2)}px`);
-    stage?.style.setProperty("--shadow-scale", shadowScale.toFixed(4));
-    stage?.style.setProperty("--shadow-opacity", shadowOpacity.toFixed(4));
-
-    element.dataset.face = face;
     if (visibleFaceRef.current !== face) {
       visibleFaceRef.current = face;
       setVisibleFace(face);
@@ -351,6 +405,29 @@ export function InteractiveCard({
     opticalSparkle,
     opticalSpectral,
   ]);
+
+  const stopPointerRender = useCallback(() => {
+    if (pointerFrameRef.current !== null) {
+      cancelAnimationFrame(pointerFrameRef.current);
+      pointerFrameRef.current = null;
+    }
+    pointerFrameNeedsOpticsRef.current = false;
+  }, []);
+
+  const queuePointerRender = useCallback(
+    (forceOptics = false) => {
+      pointerFrameNeedsOpticsRef.current ||= forceOptics;
+      if (pointerFrameRef.current !== null) return;
+
+      pointerFrameRef.current = requestAnimationFrame((time) => {
+        pointerFrameRef.current = null;
+        const shouldForceOptics = pointerFrameNeedsOpticsRef.current;
+        pointerFrameNeedsOpticsRef.current = false;
+        renderCard(time, shouldForceOptics);
+      });
+    },
+    [renderCard],
+  );
 
   const stopAnimation = useCallback(() => {
     if (frameRef.current !== null) {
@@ -545,7 +622,7 @@ export function InteractiveCard({
         }
       }
 
-      renderCard();
+      renderCard(time, !keepAnimating);
 
       if (keepAnimating) {
         frameRef.current = requestAnimationFrame(animateCard);
@@ -580,7 +657,7 @@ export function InteractiveCard({
       state.orientation.copy(state.target);
       state.target = null;
       state.angularVelocity.set(0, 0, 0);
-      renderCard();
+      renderCard(performance.now(), true);
       return;
     }
 
@@ -598,7 +675,7 @@ export function InteractiveCard({
       stopAnimation();
       state.orientation.copy(state.target);
       state.target = null;
-      renderCard();
+      renderCard(performance.now(), true);
       return;
     }
 
@@ -615,9 +692,15 @@ export function InteractiveCard({
       const pointerId = pointerIdRef.current;
       const element = cardRef.current;
       const state = stateRef.current;
+      const releaseTime = event?.timeStamp ?? performance.now();
+      const pointerIdle = Math.max(
+        0,
+        (releaseTime - state.lastPointerTime) / 1000,
+      );
       draggingRef.current = false;
       pointerIdRef.current = null;
       state.lastPointerTime = 0;
+      stopPointerRender();
 
       if (element) {
         delete element.dataset.dragging;
@@ -638,11 +721,14 @@ export function InteractiveCard({
         state.coastElapsed = 0;
         state.lightX = DEFAULT_LIGHT_X;
         state.lightY = DEFAULT_LIGHT_Y;
-        renderCard();
+        renderCard(performance.now(), true);
       } else {
         state.returnToRest = true;
         state.coastElapsed = 0;
         state.target = null;
+        state.angularVelocity.multiplyScalar(
+          Math.exp(-RELEASE_IDLE_DAMPING * pointerIdle),
+        );
         state.angularVelocity.clampLength(
           0,
           MAX_RELEASE_ANGULAR_SPEED,
@@ -657,10 +743,17 @@ export function InteractiveCard({
           state.target = INITIAL_ORIENTATION.clone();
         }
 
+        renderCard(performance.now(), true);
         startAnimation();
       }
     },
-    [reducedMotion, renderCard, startAnimation, stopAnimation],
+    [
+      reducedMotion,
+      renderCard,
+      startAnimation,
+      stopAnimation,
+      stopPointerRender,
+    ],
   );
 
   const queueKeyboardRotation = useCallback(
@@ -680,7 +773,7 @@ export function InteractiveCard({
         stopAnimation();
         state.orientation.copy(state.target);
         state.target = null;
-        renderCard();
+        renderCard(performance.now(), true);
       } else {
         startAnimation();
       }
@@ -692,8 +785,21 @@ export function InteractiveCard({
     onFaceChangeRef.current = onFaceChange;
   }, [onFaceChange]);
 
+  useLayoutEffect(() => {
+    measureInteractionGeometry();
+    const stage = stageRef.current;
+    const cardElement = cardRef.current;
+    if (!stage || !cardElement) return;
+
+    const resizeObserver = new ResizeObserver(measureInteractionGeometry);
+    resizeObserver.observe(stage);
+    resizeObserver.observe(cardElement);
+    return () => resizeObserver.disconnect();
+  }, [card.id, measureInteractionGeometry]);
+
   useEffect(() => {
     stopAnimation();
+    stopPointerRender();
 
     const activePointerId = pointerIdRef.current;
     const element = cardRef.current;
@@ -721,10 +827,14 @@ export function InteractiveCard({
     visibleFaceRef.current = "front";
     setVisibleFace("front");
     onFaceChangeRef.current("front");
-    renderCard();
+    lastOpticalRenderRef.current = 0;
+    renderCard(performance.now(), true);
 
-    return stopAnimation;
-  }, [card.id, renderCard, stopAnimation]);
+    return () => {
+      stopAnimation();
+      stopPointerRender();
+    };
+  }, [card.id, renderCard, stopAnimation, stopPointerRender]);
 
   useEffect(() => {
     if (flipSignal !== previousFlipSignalRef.current) {
@@ -747,7 +857,7 @@ export function InteractiveCard({
     state.returnToRest = false;
     state.coastElapsed = 0;
     state.angularVelocity.set(0, 0, 0);
-    renderCard();
+    renderCard(performance.now(), true);
   }, [reducedMotion, renderCard, stopAnimation]);
 
   useEffect(() => {
@@ -764,6 +874,8 @@ export function InteractiveCard({
 
     event.preventDefault();
     stopAnimation();
+    stopPointerRender();
+    measureInteractionGeometry();
     draggingRef.current = true;
     pointerIdRef.current = event.pointerId;
 
@@ -782,7 +894,7 @@ export function InteractiveCard({
 
     event.currentTarget.setPointerCapture(event.pointerId);
     event.currentTarget.dataset.dragging = "true";
-    renderCard();
+    queuePointerRender(true);
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -797,7 +909,7 @@ export function InteractiveCard({
       !draggingRef.current ||
       pointerIdRef.current !== event.pointerId
     ) {
-      renderCard();
+      queuePointerRender();
       return;
     }
 
@@ -860,7 +972,7 @@ export function InteractiveCard({
       state.lastPointerTime = sample.timeStamp;
     }
 
-    renderCard();
+    queuePointerRender();
   };
 
   const handlePointerLeave = () => {
@@ -868,7 +980,7 @@ export function InteractiveCard({
     const state = stateRef.current;
     state.lightX = DEFAULT_LIGHT_X;
     state.lightY = DEFAULT_LIGHT_Y;
-    renderCard();
+    queuePointerRender(true);
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -901,7 +1013,7 @@ export function InteractiveCard({
   };
 
   const transformStyle: CardTransform = {
-    "--card-transform": INITIAL_TRANSFORM,
+    transform: INITIAL_TRANSFORM,
     "--glare-x": "54%",
     "--glare-y": "48%",
     "--glare-angle": "118deg",
@@ -922,71 +1034,74 @@ export function InteractiveCard({
     "--relief-x": "0px",
     "--relief-y": "0px",
     "--light-azimuth": "128deg",
-    "--shadow-x": "-1px",
-    "--shadow-y": "24px",
-    "--shadow-scale": "1",
-    "--shadow-opacity": "0.67",
   };
 
   return (
     <div ref={stageRef} className={styles.inspectCardStage}>
-      <div
-        ref={cardRef}
-        className={styles.interactiveCard}
-        style={transformStyle}
-        tabIndex={0}
-        role="group"
-        aria-label={`${card.player} card. Drag to inspect; release to return the card to its resting position. Press F or Space to flip. Use arrow keys to rotate.`}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={(event) => finishPointer(event)}
-        onPointerCancel={(event) => finishPointer(event, true)}
-        onPointerLeave={handlePointerLeave}
-        onLostPointerCapture={() => {
-          if (draggingRef.current) finishPointer(undefined, true);
-        }}
-        onKeyDown={handleKeyDown}
-        onDoubleClick={flipCard}
-        onDragStart={(event) => event.preventDefault()}
-      >
+      <div className={styles.inspectCardMotion} data-inspect-motion>
         <div
-          className={`${styles.cardFace} ${styles.cardFaceFront}`}
-          aria-hidden={visibleFace === "back"}
+          ref={cardRef}
+          className={styles.interactiveCard}
+          style={transformStyle}
+          tabIndex={0}
+          role="group"
+          aria-label={`${card.player} card. Drag to inspect; release to return the card to its resting position. Press F or Space to flip. Use arrow keys to rotate.`}
+          onPointerEnter={measureInteractionGeometry}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={(event) => finishPointer(event)}
+          onPointerCancel={(event) => finishPointer(event, true)}
+          onPointerLeave={handlePointerLeave}
+          onLostPointerCapture={() => {
+            if (draggingRef.current) finishPointer(undefined, true);
+          }}
+          onKeyDown={handleKeyDown}
+          onDoubleClick={flipCard}
+          onDragStart={(event) => event.preventDefault()}
         >
-          <SportsCardArtwork
-            card={card}
-            priority
-            sizes="(max-width: 640px) calc(100vw - 72px), (max-width: 1024px) 360px, 430px"
+          <div
+            className={`${styles.cardFace} ${styles.cardFaceFront}`}
+            aria-hidden={visibleFace === "back"}
+          >
+            <SportsCardArtwork
+              card={card}
+              priority
+              sizes="(max-width: 640px) calc(100vw - 72px), (max-width: 1024px) 360px, 430px"
+            />
+          </div>
+          <div
+            className={`${styles.cardFace} ${styles.cardFaceBack}`}
+            aria-hidden={visibleFace === "front"}
+          >
+            <SportsCardArtwork
+              card={card}
+              face="back"
+              sizes="(max-width: 640px) calc(100vw - 72px), (max-width: 1024px) 360px, 430px"
+            />
+          </div>
+          <span
+            className={`${styles.cardEdge} ${styles.cardEdgeLeft}`}
+            aria-hidden="true"
+          />
+          <span
+            className={`${styles.cardEdge} ${styles.cardEdgeRight}`}
+            aria-hidden="true"
+          />
+          <span
+            className={`${styles.cardEdge} ${styles.cardEdgeTop}`}
+            aria-hidden="true"
+          />
+          <span
+            className={`${styles.cardEdge} ${styles.cardEdgeBottom}`}
+            aria-hidden="true"
           />
         </div>
-        <div
-          className={`${styles.cardFace} ${styles.cardFaceBack}`}
-          aria-hidden={visibleFace === "front"}
-        >
-          <SportsCardArtwork
-            card={card}
-            face="back"
-            sizes="(max-width: 640px) calc(100vw - 72px), (max-width: 1024px) 360px, 430px"
-          />
-        </div>
         <span
-          className={`${styles.cardEdge} ${styles.cardEdgeLeft}`}
-          aria-hidden="true"
-        />
-        <span
-          className={`${styles.cardEdge} ${styles.cardEdgeRight}`}
-          aria-hidden="true"
-        />
-        <span
-          className={`${styles.cardEdge} ${styles.cardEdgeTop}`}
-          aria-hidden="true"
-        />
-        <span
-          className={`${styles.cardEdge} ${styles.cardEdgeBottom}`}
+          ref={shadowRef}
+          className={styles.cardGroundShadow}
           aria-hidden="true"
         />
       </div>
-      <span className={styles.cardGroundShadow} aria-hidden="true" />
     </div>
   );
 }
