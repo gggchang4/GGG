@@ -21,6 +21,7 @@ const CACHE_ROOT = path.join(ROOT, ".cache", "paired-card-scans");
 const MANIFEST_PATH = path.join(ROOT, "data", "sportsCardArchive.generated.json");
 const AUDIT_PATH = path.join(ROOT, "data", "sportsCardArchive.audit.generated.json");
 const TARGET_RATIO = 5 / 7;
+const LEGACY_AUTHENTIC_COUNTS = { nba: 7, nfl: 0, football: 7 };
 
 function sha256(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
@@ -297,7 +298,7 @@ async function buildCard(card, index) {
     ...card,
     ...names,
     number: card.cardNumber,
-    maker: "Panini",
+    maker: card.maker,
     rarity: card.parallel,
     frontImage: relativePublicPath(frontPath),
     backImage: relativePublicPath(backPath),
@@ -318,7 +319,7 @@ async function buildCard(card, index) {
     backSourcePage: card.sourcePage,
     sourceCollection: "https://www.fanaticscollect.com/",
     sourceRecord: specimenId,
-    stats: [card.league, card.parallel, `PANINI #${card.cardNumber}`],
+    stats: [card.league, card.parallel, `${card.maker.toUpperCase()} #${card.cardNumber}`],
     contentHashes: {
       front: frontHash,
       back: backHash,
@@ -342,7 +343,9 @@ function auditManifest(cards) {
     uniqueFronts: unique(cards.map((card) => card.contentHashes.front)),
     uniqueBacks: unique(cards.map((card) => card.contentHashes.back)),
     uniqueOptics: unique(cards.map((card) => card.optics.fingerprint)),
-    minimumPerSportAfterLegacyMerge: bySport.nba + 7 >= 21 && bySport.nfl >= 21 && bySport.football + 7 >= 21,
+    minimumPerSportAfterLegacyMerge: Object.entries(bySport).every(
+      ([sport, count]) => count + LEGACY_AUTHENTIC_COUNTS[sport] >= 21,
+    ),
   };
   if (Object.values(checks).some((value) => !value)) {
     throw new Error(`Archive audit failed: ${JSON.stringify(checks)}`);
@@ -351,9 +354,11 @@ function auditManifest(cards) {
     generatedAt: new Date().toISOString(),
     policy: "special cards only; one public listing and one paired physical specimen per record",
     generatedCards: cards.length,
-    legacyAuthenticCards: 14,
-    finalCards: cards.length + 14,
-    finalBySport: { nba: bySport.nba + 7, nfl: bySport.nfl, football: bySport.football + 7 },
+    legacyAuthenticCards: Object.values(LEGACY_AUTHENTIC_COUNTS).reduce((total, count) => total + count, 0),
+    finalCards: cards.length + Object.values(LEGACY_AUTHENTIC_COUNTS).reduce((total, count) => total + count, 0),
+    finalBySport: Object.fromEntries(
+      Object.entries(bySport).map(([sport, count]) => [sport, count + LEGACY_AUTHENTIC_COUNTS[sport]]),
+    ),
     autographed: cards.filter((card) => card.autographed).length,
     serialized: cards.filter((card) => card.serial !== "PARALLEL").length,
     opticalPatterns: [...new Set(cards.map((card) => card.optics.pattern))].sort(),
