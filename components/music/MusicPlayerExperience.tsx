@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -84,6 +85,10 @@ const TONEARM_END_ANGLE = -43;
 const TONEARM_MIN_ANGLE = -79;
 const TONEARM_MAX_ANGLE = -40;
 const TONEARM_RECORD_THRESHOLD = -72;
+const MOTOR_START_DURATION = 1.05;
+const MOTOR_SPEED_CHANGE_DURATION = 0.72;
+const MOTOR_STOP_DURATION = 0.9;
+const TONEARM_LIFT_DURATION = 0.26;
 const SHELF_CYCLES = [-1, 0, 1] as const;
 
 const shelfInstances = SHELF_CYCLES.flatMap((cycle) =>
@@ -275,6 +280,136 @@ function setVinylPresentationVariant(
   }
 }
 
+const ShelfItems = memo(function ShelfItems({
+  activeIndex,
+  phase,
+  focusAlbum,
+  shelfItemRefs,
+  shelfSleeveRefs,
+  slotRefs,
+}: {
+  activeIndex: number;
+  phase: PlayerPhase;
+  focusAlbum: (index: number, extract?: boolean) => void;
+  shelfItemRefs: RefObject<Array<HTMLButtonElement | null>>;
+  shelfSleeveRefs: RefObject<Array<HTMLSpanElement | null>>;
+  slotRefs: RefObject<Array<HTMLButtonElement | null>>;
+}) {
+  return shelfInstances.map(
+    ({ album, albumIndex: index, cycle, key }, instanceIndex) => {
+      const albumStyle = {
+        "--spine-color": album.spine,
+        "--edge-color": album.edge,
+        "--spine-ink": getContrastingInk(album.spine),
+      } as CSSProperties;
+      const canonical = cycle === 0;
+      const initiallyVisible =
+        Math.abs(
+          getShelfRelative(index, INITIAL_ALBUM_INDEX, "x") +
+            cycle * vinylAlbums.length,
+        ) <= 7.5;
+      const wrapsInitialSeam = index === vinylAlbums.length - 1;
+
+      return (
+        <button
+          key={key}
+          ref={(node) => {
+            shelfItemRefs.current[instanceIndex] = node;
+            if (canonical) {
+              slotRefs.current[index] = node;
+            }
+          }}
+          type="button"
+          className={styles.shelfSlot}
+          style={albumStyle}
+          disabled={!canonical || phase !== "browsing"}
+          tabIndex={canonical ? 0 : -1}
+          data-shelf-slot
+          data-record-index={index}
+          data-shelf-cycle={cycle}
+          data-shelf-clone={canonical ? undefined : true}
+          data-active={canonical && index === activeIndex}
+          aria-label={
+            canonical ? `Select ${album.title}, ${album.year}` : undefined
+          }
+          aria-hidden={canonical ? undefined : true}
+          aria-current={
+            canonical && index === activeIndex ? "true" : undefined
+          }
+          onClick={(event) => {
+            if (event.detail === 0) {
+              focusAlbum(index, true);
+            }
+          }}
+        >
+          <span
+            ref={(node) => {
+              shelfSleeveRefs.current[instanceIndex] = node;
+            }}
+            className={`${styles.shelfSleeve} ${styles.sleeveShell}`}
+            data-shelf-sleeve
+          >
+            <span className={`${styles.sleeveFace} ${styles.sleeveFront}`}>
+              <Image
+                src={album.cover}
+                alt=""
+                fill
+                sizes="(max-width: 719px) 68vw, min(68vh, 64vw)"
+                loading={initiallyVisible || wrapsInitialSeam ? "eager" : "lazy"}
+                draggable={false}
+              />
+            </span>
+            <span
+              className={`${styles.sleeveFace} ${styles.sleeveRear}`}
+              aria-hidden="true"
+            />
+            <span
+              className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveLeft}`}
+              aria-hidden="true"
+            >
+              <span className={styles.shelfSpineLabel}>
+                <strong>{album.title}</strong>
+                <small>{album.artist}</small>
+              </span>
+            </span>
+            <span
+              className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveRight}`}
+              aria-hidden="true"
+            >
+              <span className={styles.shelfSpineLabel}>
+                <strong>{album.title}</strong>
+                <small>{album.artist}</small>
+              </span>
+            </span>
+            <span
+              className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveTop}`}
+              aria-hidden="true"
+            >
+              <span className={styles.shelfSpineLabel}>
+                <strong>{album.title}</strong>
+                <small>{album.artist}</small>
+              </span>
+            </span>
+            <span
+              className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveBottom}`}
+              aria-hidden="true"
+            >
+              <span className={styles.shelfSpineLabel}>
+                <strong>{album.title}</strong>
+                <small>{album.artist}</small>
+              </span>
+            </span>
+          </span>
+          <span className={styles.albumMeta} aria-hidden="true">
+            <span className={styles.albumTitle}>{album.title}</span>
+            <span className={styles.albumArtist}>{album.artist}</span>
+          </span>
+        </button>
+      );
+    },
+  );
+});
+
 function Turntable({
   phase,
   album,
@@ -400,7 +535,9 @@ function Turntable({
           : motorState === "stopped"
         ? "Platter stopped"
         : tonearmRaised
-          ? "Paused · platter spinning"
+          ? motorOn
+            ? "Cue raised · platter spinning"
+            : "Paused · platter stopped"
           : stylusContact && tonearmOnRecord
             ? "Now playing"
             : "Lowering cue";
@@ -633,7 +770,7 @@ function Turntable({
             {album ? (
               <VinylRecord
                 album={album}
-                playing={motorOn}
+                playing={motorState !== "stopped"}
                 spinDuration={spinDuration}
                 controlledRotation
                 rotorRef={deckRotorRef}
@@ -1145,6 +1282,7 @@ export function MusicPlayerExperience() {
   const rackRef = useRef<HTMLElement>(null);
   const slotRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const shelfItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const shelfSleeveRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const sleeveRef = useRef<HTMLButtonElement>(null);
   const floatingRecordRef = useRef<HTMLButtonElement>(null);
   const platterRef = useRef<HTMLDivElement>(null);
@@ -1173,6 +1311,7 @@ export function MusicPlayerExperience() {
   const seekResumeIntentRef = useRef(false);
   const platterAngleRef = useRef(0);
   const shelfTweenRef = useRef<gsap.core.Tween | null>(null);
+  const shelfLayoutFrameRef = useRef<number | null>(null);
   const positionRef = useRef({
     value: restoredIndex ?? INITIAL_ALBUM_INDEX,
   });
@@ -1277,7 +1416,7 @@ export function MusicPlayerExperience() {
       (axis === "x" ? window.innerWidth : window.innerHeight) / (pitch * 2) +
       (axis === "x" ? 1.35 : 1.6);
 
-    shelfItemRefs.current.forEach((slot) => {
+    shelfItemRefs.current.forEach((slot, instanceIndex) => {
       if (!slot) {
         return;
       }
@@ -1305,6 +1444,17 @@ export function MusicPlayerExperience() {
             ? gapProgress * 0.34
             : 0);
       const distance = Math.abs(relative);
+      const visible = distance <= visibleRadius;
+
+      if (!visible) {
+        if (slot.dataset.layoutVisible !== "false") {
+          slot.dataset.layoutVisible = "false";
+          gsap.set(slot, { autoAlpha: 0, visibility: "hidden" });
+        }
+        return;
+      }
+
+      slot.dataset.layoutVisible = "true";
       const focus = 1 - clamp(distance, 0, 1);
       const veil = clamp((distance - 1) * 0.045, 0, 0.22);
       const depthBlur =
@@ -1324,7 +1474,7 @@ export function MusicPlayerExperience() {
         axis === "x"
           ? rotation.rotationY + velocityTilt * centreVelocityLock
           : 0;
-      const sleeve = slot.querySelector<HTMLElement>("[data-shelf-sleeve]");
+      const sleeve = shelfSleeveRefs.current[instanceIndex];
 
       slot.dataset.stackSide = relative < -0.08
         ? "above"
@@ -1343,8 +1493,6 @@ export function MusicPlayerExperience() {
         ).toFixed(3)}`,
       );
 
-      const visible = distance <= visibleRadius;
-
       gsap.set(
         slot,
         axis === "x"
@@ -1357,8 +1505,8 @@ export function MusicPlayerExperience() {
               rotationZ: 0,
               scale: 1,
               zIndex: Math.round(200 - distance * 12),
-              autoAlpha: visible ? 1 : 0,
-              visibility: visible ? "visible" : "hidden",
+              autoAlpha: 1,
+              visibility: "visible",
               filter: "none",
             }
           : {
@@ -1376,8 +1524,8 @@ export function MusicPlayerExperience() {
                 : Math.sin(albumIndex * 2.17) * 0.7,
               scale: 1,
               zIndex: Math.round(100 + relative * 10),
-              autoAlpha: visible ? 1 : 0,
-              visibility: visible ? "visible" : "hidden",
+              autoAlpha: 1,
+              visibility: "visible",
               filter: "none",
             },
       );
@@ -1389,6 +1537,17 @@ export function MusicPlayerExperience() {
       }
     });
   }, [reducedMotion]);
+
+  const scheduleShelfLayout = useCallback(() => {
+    if (shelfLayoutFrameRef.current !== null) {
+      return;
+    }
+
+    shelfLayoutFrameRef.current = window.requestAnimationFrame(() => {
+      shelfLayoutFrameRef.current = null;
+      layoutShelf();
+    });
+  }, [layoutShelf]);
 
   const animateShelfTo = useCallback(
     (index: number, onComplete?: () => void) => {
@@ -1469,13 +1628,18 @@ export function MusicPlayerExperience() {
     let syncedFloatingRotor: HTMLSpanElement | null = null;
     let syncedDeckRotor: HTMLSpanElement | null = null;
     let syncedStrobe: HTMLSpanElement | null = null;
+    let frame: number | null = null;
+    let previousTime = performance.now();
 
-    const updatePhysicalRotation = () => {
-      const deltaSeconds = Math.min(gsap.ticker.deltaRatio(60) / 60, 0.05);
+    const updatePhysicalRotation = (now: number, advance: boolean) => {
+      const deltaSeconds = advance
+        ? Math.min(Math.max(now - previousTime, 0) / 1000, 0.05)
+        : 0;
+      previousTime = now;
       const currentRpm = motorRpmRef.current.value;
       const isRotating = !reducedMotion && Math.abs(currentRpm) >= 0.001;
 
-      if (isRotating) {
+      if (isRotating && deltaSeconds > 0) {
         platterAngleRef.current =
           (platterAngleRef.current + currentRpm * 6 * deltaSeconds) % 360;
       }
@@ -1486,31 +1650,49 @@ export function MusicPlayerExperience() {
       const rotation = platterAngleRef.current;
       if (
         floatingRotorRef.current &&
+        phase !== "playing" &&
+        phase !== "switching" &&
         (isRotating || floatingRotorRef.current !== syncedFloatingRotor)
       ) {
-        gsap.set(floatingRotorRef.current, { rotation });
+        floatingRotorRef.current.style.transform = `rotate(${rotation}deg)`;
       }
       if (
         deckRotorRef.current &&
         (isRotating || deckRotorRef.current !== syncedDeckRotor)
       ) {
-        gsap.set(deckRotorRef.current, { rotation });
+        deckRotorRef.current.style.transform = `rotate(${rotation}deg)`;
       }
       if (
         platterStrobeRef.current &&
         (isRotating || platterStrobeRef.current !== syncedStrobe)
       ) {
-        gsap.set(platterStrobeRef.current, { rotation });
+        platterStrobeRef.current.style.transform = `rotate(${rotation}deg)`;
       }
 
       syncedFloatingRotor = floatingRotorRef.current;
       syncedDeckRotor = deckRotorRef.current;
       syncedStrobe = platterStrobeRef.current;
+
+      if (
+        !reducedMotion &&
+        (motorOnRef.current ||
+          motorStateRef.current !== "stopped" ||
+          Math.abs(motorRpmRef.current.value) >= 0.001)
+      ) {
+        frame = window.requestAnimationFrame((time) => {
+          updatePhysicalRotation(time, true);
+        });
+      }
     };
 
-    gsap.ticker.add(updatePhysicalRotation);
-    return () => gsap.ticker.remove(updatePhysicalRotation);
-  }, [reducedMotion]);
+    updatePhysicalRotation(previousTime, false);
+
+    return () => {
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [loadedIndex, motorOn, motorState, phase, reducedMotion, selectedIndex]);
 
   useEffect(() => {
     motorTweenRef.current?.kill();
@@ -1522,9 +1704,9 @@ export function MusicPlayerExperience() {
       ? 0.08
       : motorOn
         ? speedChange
-          ? 0.52
-          : 0.7
-        : 0.68;
+          ? MOTOR_SPEED_CHANGE_DURATION
+          : MOTOR_START_DURATION
+        : MOTOR_STOP_DURATION;
 
     const transitionState: MotorState =
       motorOn
@@ -1548,7 +1730,7 @@ export function MusicPlayerExperience() {
     motorTweenRef.current = gsap.to(motorRpmRef.current, {
       value: targetRpm,
       duration: motorDuration,
-      ease: motorOn ? "power2.out" : "power3.out",
+      ease: "power2.out",
       overwrite: true,
       onComplete: () => {
         motorRpmRef.current.value = targetRpm;
@@ -1576,11 +1758,11 @@ export function MusicPlayerExperience() {
   useLayoutEffect(() => {
     layoutShelf();
 
-    const onResize = () => layoutShelf();
+    const onResize = () => scheduleShelfLayout();
     window.addEventListener("resize", onResize);
 
     return () => window.removeEventListener("resize", onResize);
-  }, [layoutShelf]);
+  }, [layoutShelf, scheduleShelfLayout]);
 
   useLayoutEffect(() => {
     if (!rootRef.current) {
@@ -1839,6 +2021,9 @@ export function MusicPlayerExperience() {
       mechanicsSequenceRef.current?.kill();
       shelfTweenRef.current?.kill();
       cueSettleRef.current?.kill();
+      if (shelfLayoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(shelfLayoutFrameRef.current);
+      }
       if (wheelSnapRef.current !== null) {
         window.clearTimeout(wheelSnapRef.current);
       }
@@ -1914,7 +2099,7 @@ export function MusicPlayerExperience() {
     if (nextActive !== activeIndex) {
       setActiveIndex(nextActive);
     }
-    layoutShelf();
+    scheduleShelfLayout();
   };
 
   const finishRackGesture = (event: PointerEvent<HTMLElement>) => {
@@ -1986,7 +2171,7 @@ export function MusicPlayerExperience() {
     if (nextActive !== activeIndex) {
       setActiveIndex(nextActive);
     }
-    layoutShelf();
+    scheduleShelfLayout();
 
     if (wheelSnapRef.current !== null) {
       window.clearTimeout(wheelSnapRef.current);
@@ -2194,6 +2379,9 @@ export function MusicPlayerExperience() {
         tonearmRaisedRef.current = true;
         setTonearmRaised(true);
         setStylusContact(false);
+        if (motorOnRef.current) {
+          setMotorOn(false);
+        }
       }
     });
 
@@ -2215,9 +2403,15 @@ export function MusicPlayerExperience() {
     seekResumeIntentRef.current = false;
 
     if (isPlaying) {
-      // A manual deck pauses by lifting the stylus while the platter keeps its
-      // locked speed. START/STOP remains a separate mechanical control.
+      mechanicsSequenceRef.current?.kill();
       setCueRaised(true);
+      const sequence = gsap.timeline();
+      mechanicsSequenceRef.current = sequence;
+      sequence.call(
+        () => setMotorOn(false),
+        undefined,
+        reducedMotion ? 0.08 : TONEARM_LIFT_DURATION,
+      );
       return;
     }
 
@@ -2227,7 +2421,7 @@ export function MusicPlayerExperience() {
     const needsArmMove =
       tonearmAngleRef.current < TONEARM_RECORD_THRESHOLD;
     const motorSettleTime =
-      motorState === "locked" ? 0 : reducedMotion ? 0.08 : 0.72;
+      motorState === "locked" ? 0 : reducedMotion ? 0.08 : MOTOR_START_DURATION;
     const armStartTime = needsArmMove
       ? reducedMotion
         ? 0.03
@@ -2303,7 +2497,7 @@ export function MusicPlayerExperience() {
       sequence.call(
         () => setMotorOn(false),
         undefined,
-        reducedMotion ? 0.08 : 0.26,
+        reducedMotion ? 0.08 : TONEARM_LIFT_DURATION,
       );
       return;
     }
@@ -2355,7 +2549,7 @@ export function MusicPlayerExperience() {
       sequence.call(
         () => setCueRaised(false),
         undefined,
-        reducedMotion ? 0.08 : 0.72,
+        reducedMotion ? 0.08 : MOTOR_START_DURATION,
       );
       return;
     }
@@ -3566,114 +3760,14 @@ export function MusicPlayerExperience() {
         </header>
         <div className={styles.focusGlow} aria-hidden="true" />
         <div className={styles.rackTrack}>
-          {shelfInstances.map(
-            ({ album, albumIndex: index, cycle, key }, instanceIndex) => {
-              const albumStyle = {
-                "--spine-color": album.spine,
-                "--edge-color": album.edge,
-                "--spine-ink": getContrastingInk(album.spine),
-              } as CSSProperties;
-              const canonical = cycle === 0;
-
-              return (
-                <button
-                  key={key}
-                  ref={(node) => {
-                    shelfItemRefs.current[instanceIndex] = node;
-                    if (canonical) {
-                      slotRefs.current[index] = node;
-                    }
-                  }}
-                  type="button"
-                  className={styles.shelfSlot}
-                  style={albumStyle}
-                  disabled={!canonical || phase !== "browsing"}
-                  tabIndex={canonical ? 0 : -1}
-                  data-shelf-slot
-                  data-record-index={index}
-                  data-shelf-cycle={cycle}
-                  data-shelf-clone={canonical ? undefined : true}
-                  data-active={canonical && index === activeIndex}
-                  aria-label={
-                    canonical
-                      ? `Select ${album.title}, ${album.year}`
-                      : undefined
-                  }
-                  aria-hidden={canonical ? undefined : true}
-                  aria-current={
-                    canonical && index === activeIndex ? "true" : undefined
-                  }
-                  onClick={(event) => {
-                    if (event.detail === 0) {
-                      focusAlbum(index, true);
-                    }
-                  }}
-                >
-                  <span
-                    className={`${styles.shelfSleeve} ${styles.sleeveShell}`}
-                    data-shelf-sleeve
-                  >
-                    <span
-                      className={`${styles.sleeveFace} ${styles.sleeveFront}`}
-                    >
-                      <Image
-                        src={album.cover}
-                        alt=""
-                        fill
-                        sizes="(max-width: 719px) 68vw, min(68vh, 64vw)"
-                        loading={canonical ? "eager" : "lazy"}
-                        draggable={false}
-                      />
-                    </span>
-                    <span
-                      className={`${styles.sleeveFace} ${styles.sleeveRear}`}
-                      aria-hidden="true"
-                    />
-                    <span
-                      className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveLeft}`}
-                      aria-hidden="true"
-                    >
-                      <span className={styles.shelfSpineLabel}>
-                        <strong>{album.title}</strong>
-                        <small>{album.artist}</small>
-                      </span>
-                    </span>
-                    <span
-                      className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveRight}`}
-                      aria-hidden="true"
-                    >
-                      <span className={styles.shelfSpineLabel}>
-                        <strong>{album.title}</strong>
-                        <small>{album.artist}</small>
-                      </span>
-                    </span>
-                    <span
-                      className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveTop}`}
-                      aria-hidden="true"
-                    >
-                      <span className={styles.shelfSpineLabel}>
-                        <strong>{album.title}</strong>
-                        <small>{album.artist}</small>
-                      </span>
-                    </span>
-                    <span
-                      className={`${styles.sleeveFace} ${styles.sleeveWall} ${styles.sleeveBottom}`}
-                      aria-hidden="true"
-                    >
-                      <span className={styles.shelfSpineLabel}>
-                        <strong>{album.title}</strong>
-                        <small>{album.artist}</small>
-                      </span>
-                    </span>
-                  </span>
-                  <span className={styles.albumMeta} aria-hidden="true">
-                    <span className={styles.albumTitle}>{album.title}</span>
-                    <span className={styles.albumArtist}>{album.artist}</span>
-                  </span>
-                </button>
-              );
-            },
-          )}
+          <ShelfItems
+            activeIndex={activeIndex}
+            phase={phase}
+            focusAlbum={focusAlbum}
+            shelfItemRefs={shelfItemRefs}
+            shelfSleeveRefs={shelfSleeveRefs}
+            slotRefs={slotRefs}
+          />
         </div>
         <div
           key={`readout-${vinylAlbums[activeIndex].id}`}

@@ -55,7 +55,7 @@
     radial-gradient(circle at 17% 23%, rgb(255 255 255 / 11%) 0 0.5px, transparent 0.7px),
     radial-gradient(circle at 67% 61%, rgb(255 255 255 / 7%) 0 0.45px, transparent 0.65px);
   background-size: 5px 5px, 7px 7px;
-  animation: grainShift 0.42s steps(2) infinite;
+  transform: translate3d(0, 0, 0);
 }
 
 .turntableStage,
@@ -1483,7 +1483,7 @@
   z-index: 2;
   inset: 0.7%;
   opacity: 0.58;
-  will-change: transform;
+  will-change: auto;
 }
 
 .platterMat {
@@ -1827,6 +1827,18 @@
   .deckMark {
     display: none;
   }
+}
+
+/* Keep inactive full-screen layers out of the paint pipeline. */
+.page[data-phase="playing"] .recordRack,
+.page[data-phase="switching"] .recordRack,
+.page[data-phase="playing"] .presentationLayer,
+.page[data-phase="switching"] .presentationLayer {
+  content-visibility: hidden;
+}
+
+.turntableScene:not([data-motor-state="stopped"]) .platterStrobe {
+  will-change: transform;
 }
 
 /* Final playback mechanics: these overrides intentionally avoid the shelf. */
@@ -3472,9 +3484,9 @@
   min-height: 104px;
   padding: 13px clamp(22px, 3.4vw, 54px) max(13px, env(safe-area-inset-bottom));
   border-top: 1px solid rgb(255 255 255 / 8%);
-  background: rgb(4 5 6 / 82%);
+  background: rgb(4 5 6 / 94%);
   box-shadow: 0 -22px 60px rgb(0 0 0 / 25%);
-  backdrop-filter: blur(26px) saturate(1.08);
+  backdrop-filter: none;
 }
 
 .barTrack {

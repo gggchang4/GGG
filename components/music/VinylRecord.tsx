@@ -3,6 +3,7 @@
 import Image from "next/image";
 import gsap from "gsap";
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -43,7 +44,7 @@ type VinylRecordStyle = CSSProperties & {
   "--label-accent": string;
 };
 
-export function VinylRecord({
+export const VinylRecord = memo(function VinylRecord({
   album,
   playing = false,
   spinDuration,
@@ -234,4 +235,4 @@ export function VinylRecord({
       </span>
     </span>
   );
-}
+});
