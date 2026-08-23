@@ -913,7 +913,7 @@
   transform-style: preserve-3d;
   cursor: pointer;
   translate: -50% -50%;
-  will-change: transform, filter, opacity;
+  will-change: auto;
 }
 
 .shelfSlot::after {
@@ -2249,6 +2249,10 @@
   transform-origin: 50% 50%;
   transform-style: preserve-3d;
   translate: none;
+  will-change: auto;
+}
+
+.shelfSlot[data-layout-visible="true"] {
   will-change: transform;
 }
 
@@ -3630,6 +3634,10 @@
   transform: translateX(1px);
 }
 
+.transportSpinner {
+  animation: transportSpin 0.72s linear infinite;
+}
+
 .timeline {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 34px;
@@ -3800,7 +3808,7 @@
   color: rgb(255 255 255 / 62%);
   font: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
 }
 
 .deviceOption:hover,
@@ -3830,6 +3838,19 @@
 
 .deviceOption[data-active="true"] > svg:last-child {
   color: #83de92;
+}
+
+.deviceNote {
+  margin: 2px 4px 0;
+  color: rgb(255 255 255 / 38%);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.likeLarge:disabled,
+.upNextButton:disabled {
+  opacity: 0.42;
+  cursor: default;
 }
 
 /* Queue */
@@ -3972,6 +3993,15 @@
   scrollbar-color: rgb(255 255 255 / 16%) transparent;
 }
 
+.queueEmpty {
+  margin: 0;
+  padding: 18px 8px;
+  color: rgb(255 255 255 / 42%);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .queueItem {
   width: 100%;
   padding: 8px 7px;
@@ -4032,6 +4062,12 @@
 
   to {
     height: 14px;
+  }
+}
+
+@keyframes transportSpin {
+  to {
+    transform: rotate(1turn);
   }
 }
 
@@ -4228,7 +4264,7 @@
   .playerContext {
     top: auto;
     right: 22px;
-    bottom: calc(128px + max(24px, env(safe-area-inset-bottom)));
+    bottom: calc(158px + max(24px, env(safe-area-inset-bottom)));
     left: 22px;
     display: block;
     width: auto;
@@ -4273,14 +4309,40 @@
   .playerBar {
     grid-template-columns: 1fr;
     gap: 0;
-    min-height: 126px;
+    min-height: 156px;
     padding: 12px 22px max(14px, env(safe-area-inset-bottom));
     background: rgb(4 5 6 / 88%);
   }
 
-  .barTrack,
-  .barUtility {
+  .barTrack {
     display: none;
+  }
+
+  .barUtility {
+    display: flex;
+    justify-content: stretch;
+    width: min(78vw, 330px);
+    margin: 0 auto;
+  }
+
+  .barUtility > .speedButton,
+  .barUtility > [data-queue-trigger],
+  .barUtility > .deviceMenu {
+    display: none;
+  }
+
+  .volumeControl {
+    width: 100%;
+    gap: 9px;
+  }
+
+  .volumeControl .iconButton {
+    width: 30px;
+    height: 30px;
+  }
+
+  .volumeSlider {
+    min-width: 0;
   }
 
   .barCenter {
@@ -4310,7 +4372,7 @@
   .queueDrawer {
     top: 68px;
     right: 12px;
-    bottom: calc(138px + env(safe-area-inset-bottom));
+    bottom: calc(168px + env(safe-area-inset-bottom));
     left: 12px;
     width: auto;
     padding: 17px;
@@ -4415,6 +4477,7 @@
   .playerChrome,
   .queueDrawer,
   .devicePopover,
+  .transportSpinner,
   .playingBars[data-playing="true"] i {
     animation: none;
     transition-duration: 0.01ms;

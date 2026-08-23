@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Heart,
   ListMusic,
+  LoaderCircle,
   MonitorSpeaker,
   Pause,
   Play,
@@ -33,7 +34,10 @@ import {
 import gsap from "gsap";
 import { getPlaybackTrack } from "@/data/playbackCatalog";
 import { vinylAlbums, type VinylAlbum } from "@/data/records";
-import { usePlayback } from "@/components/music/PlaybackProvider";
+import {
+  usePlayback,
+  type MediaPlaybackState,
+} from "@/components/music/PlaybackProvider";
 import { VinylRecord } from "@/components/music/VinylRecord";
 import styles from "@/components/music/music-player.module.css";
 
@@ -85,9 +89,9 @@ const TONEARM_END_ANGLE = -43;
 const TONEARM_MIN_ANGLE = -79;
 const TONEARM_MAX_ANGLE = -40;
 const TONEARM_RECORD_THRESHOLD = -72;
-const MOTOR_START_DURATION = 1.05;
-const MOTOR_SPEED_CHANGE_DURATION = 0.72;
-const MOTOR_STOP_DURATION = 0.9;
+const MOTOR_START_DURATION = 0.7;
+const MOTOR_SPEED_CHANGE_DURATION = 0.52;
+const MOTOR_STOP_DURATION = 0.78;
 const TONEARM_LIFT_DURATION = 0.26;
 const SHELF_CYCLES = [-1, 0, 1] as const;
 
@@ -280,19 +284,27 @@ function setVinylPresentationVariant(
   }
 }
 
+function setStylePropertyIfChanged(
+  element: HTMLElement,
+  property: string,
+  value: string,
+) {
+  if (element.style.getPropertyValue(property) !== value) {
+    element.style.setProperty(property, value);
+  }
+}
+
 const ShelfItems = memo(function ShelfItems({
   activeIndex,
   phase,
   focusAlbum,
   shelfItemRefs,
-  shelfSleeveRefs,
   slotRefs,
 }: {
   activeIndex: number;
   phase: PlayerPhase;
   focusAlbum: (index: number, extract?: boolean) => void;
   shelfItemRefs: RefObject<Array<HTMLButtonElement | null>>;
-  shelfSleeveRefs: RefObject<Array<HTMLSpanElement | null>>;
   slotRefs: RefObject<Array<HTMLButtonElement | null>>;
 }) {
   return shelfInstances.map(
@@ -343,9 +355,6 @@ const ShelfItems = memo(function ShelfItems({
           }}
         >
           <span
-            ref={(node) => {
-              shelfSleeveRefs.current[instanceIndex] = node;
-            }}
             className={`${styles.shelfSleeve} ${styles.sleeveShell}`}
             data-shelf-sleeve
           >
@@ -429,8 +438,12 @@ function Turntable({
   volume,
   isPlaying,
   isPriming,
+  isStarting,
+  playIntent,
+  playbackState,
   shuffleEnabled,
   repeatMode,
+  queueIndices,
   error,
   track,
   onSeek,
@@ -459,7 +472,7 @@ function Turntable({
   onEject: () => void;
   onPrevious: () => void;
   onNext: (shuffle?: boolean) => void;
-  onSelectAlbum: (index: number) => void;
+  onSelectAlbum: (index: number, resumeOverride?: boolean) => void;
   motorOn: boolean;
   motorState: MotorState;
   speed: PlaybackSpeed;
@@ -472,8 +485,12 @@ function Turntable({
   volume: number;
   isPlaying: boolean;
   isPriming: boolean;
+  isStarting: boolean;
+  playIntent: boolean;
+  playbackState: MediaPlaybackState;
   shuffleEnabled: boolean;
   repeatMode: "off" | "all" | "one";
+  queueIndices: number[];
   error: string | null;
   track: { title: string; artist: string };
   onSeek: (seconds: number) => void;
@@ -500,32 +517,57 @@ function Turntable({
   const spinDuration = 60 / getPlaybackRpm(speed);
   const controlsLocked = phase !== "playing" || !album;
   const tonearmOnRecord = tonearmAngle >= TONEARM_RECORD_THRESHOLD;
-  const currentAlbumIndex = album
-    ? vinylAlbums.findIndex((candidate) => candidate.id === album.id)
-    : 0;
   const queueEntries = album
-    ? Array.from({ length: Math.min(5, vinylAlbums.length - 1) }, (_, offset) => {
-        const index = wrapAlbumIndex(currentAlbumIndex + offset + 1);
-        return { album: vinylAlbums[index], index };
-      })
+    ? queueIndices.map((index) => ({ album: vinylAlbums[index], index }))
     : [];
   const [likedAlbums, setLikedAlbums] = useState<Set<string>>(() => new Set());
   const [queueOpen, setQueueOpen] = useState(false);
   const [deviceOpen, setDeviceOpen] = useState(false);
-  const [deviceName, setDeviceName] = useState("This browser");
   const [stylusLightOn, setStylusLightOn] = useState(true);
   const [seekPreview, setSeekPreview] = useState<number | null>(null);
+  const transportActive = !error && (playIntent || isStarting);
+  const queueVisible = queueOpen && phase === "playing";
+  const deviceVisible = deviceOpen && phase === "playing";
   const lastVolumeRef = useRef(volume > 0 ? volume : 0.72);
   const seekPreviewRef = useRef<number | null>(null);
+  const committedSeekRef = useRef<number | null>(null);
+  const elapsedTimeRef = useRef<HTMLTimeElement>(null);
+  const seekInputRef = useRef<HTMLInputElement>(null);
+  const smoothClockRef = useRef({
+    elapsedSeconds,
+    syncedAt: 0,
+  });
+  const queuePanelRef = useRef<HTMLElement>(null);
+  const devicePanelRef = useRef<HTMLDivElement>(null);
+  const queueTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const deviceTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const playbackKeyStateRef = useRef({
+    elapsedSeconds,
+    duration,
+    volume,
+    onSeek,
+    onTogglePlayback,
+    onVolumeChange,
+  });
   const liked = album ? likedAlbums.has(album.id) : false;
   const displayedElapsed = seekPreview ?? elapsedSeconds;
   const progress = duration > 0 ? (displayedElapsed / duration) * 100 : 0;
+  const tonearmElapsed =
+    tonearmOnRecord && duration > 0
+      ? duration * getProgressFromTonearmAngle(tonearmAngle)
+      : 0;
   const volumePercent = Math.round(volume * 100);
   const nextAlbum = queueEntries[0]?.album ?? null;
   const nextTrack = nextAlbum ? getPlaybackTrack(nextAlbum.id) : null;
   const mechanicalStatus =
     phase === "switching"
       ? "Changing record"
+      : isStarting && !isPlaying
+        ? "Starting playback"
+      : playbackState === "buffering"
+        ? "Buffering · platter remains locked"
+        : playbackState === "loading" && !isPriming
+          ? "Starting audio"
       : motorState === "starting"
         ? "Starting platter"
         : motorState === "changing"
@@ -541,11 +583,35 @@ function Turntable({
           : stylusContact && tonearmOnRecord
             ? "Now playing"
             : "Lowering cue";
+  const playbackStatus = error
+    ? "Playback error"
+    : isPriming
+      ? "Preparing"
+      : isStarting
+        ? "Starting"
+      : playbackState === "buffering"
+        ? "Buffering"
+        : playbackState === "loading"
+          ? "Starting"
+          : playbackState === "ended"
+            ? "Finished"
+            : isPlaying
+              ? "Now playing"
+              : "Paused";
+  const showTransportLoader =
+    transportActive &&
+    !isPlaying &&
+    (isStarting ||
+      isPriming ||
+      playbackState === "loading" ||
+      playbackState === "buffering");
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
+      committedSeekRef.current = null;
       seekPreviewRef.current = null;
       setSeekPreview(null);
+      setQueueOpen(false);
       setDeviceOpen(false);
     });
 
@@ -553,10 +619,104 @@ function Turntable({
   }, [album?.id]);
 
   useEffect(() => {
+    const target = committedSeekRef.current;
+
+    if (target === null) {
+      return;
+    }
+
+    const reachedTarget = Math.abs(elapsedSeconds - target) <= 0.35;
+    const reachedEnd =
+      duration > 0 &&
+      target >= duration - 0.05 &&
+      playbackState === "ended";
+
+    if (!reachedTarget && !reachedEnd && !error) {
+      return;
+    }
+
+    committedSeekRef.current = null;
+    seekPreviewRef.current = null;
+    setSeekPreview(null);
+  }, [duration, elapsedSeconds, error, playbackState, seekPreview]);
+
+  useLayoutEffect(() => {
+    smoothClockRef.current = {
+      elapsedSeconds,
+      syncedAt: performance.now(),
+    };
+  }, [album?.id, elapsedSeconds, isPlaying, speed]);
+
+  useEffect(() => {
+    if (
+      !album ||
+      !isPlaying ||
+      duration <= 0 ||
+      seekPreview !== null
+    ) {
+      return;
+    }
+
+    const nativeRpm = album.vinyl.rpm ?? 33.333;
+    const playbackRate = getPlaybackRpm(speed) / nativeRpm;
+    let frame: number | null = null;
+
+    const updateSmoothTimeline = (now: number) => {
+      const clock = smoothClockRef.current;
+      const visualElapsed = clamp(
+        clock.elapsedSeconds + ((now - clock.syncedAt) / 1000) * playbackRate,
+        0,
+        duration,
+      );
+      const visualProgress = (visualElapsed / duration) * 100;
+
+      if (elapsedTimeRef.current) {
+        elapsedTimeRef.current.textContent = formatPlaybackTime(visualElapsed);
+      }
+      if (seekInputRef.current) {
+        seekInputRef.current.value = String(visualElapsed);
+        seekInputRef.current.style.setProperty(
+          "--range-progress",
+          `${visualProgress}%`,
+        );
+      }
+
+      if (visualElapsed < duration) {
+        frame = window.requestAnimationFrame(updateSmoothTimeline);
+      }
+    };
+
+    frame = window.requestAnimationFrame(updateSmoothTimeline);
+    return () => {
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [album, duration, isPlaying, seekPreview, speed]);
+
+  useEffect(() => {
     if (volume > 0) {
       lastVolumeRef.current = volume;
     }
   }, [volume]);
+
+  useEffect(() => {
+    playbackKeyStateRef.current = {
+      elapsedSeconds,
+      duration,
+      volume,
+      onSeek,
+      onTogglePlayback,
+      onVolumeChange,
+    };
+  }, [
+    duration,
+    elapsedSeconds,
+    onSeek,
+    onTogglePlayback,
+    onVolumeChange,
+    volume,
+  ]);
 
   useEffect(() => {
     if (phase !== "playing") {
@@ -566,42 +726,127 @@ function Turntable({
     const handlePlaybackKey = (event: globalThis.KeyboardEvent) => {
       const target = event.target;
       if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLButtonElement ||
-        target instanceof HTMLTextAreaElement
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        (target instanceof HTMLElement &&
+          (target.isContentEditable ||
+            Boolean(
+              target.closest(
+                "input, button, textarea, select, a[href], [contenteditable='true'], [role='textbox']",
+              ),
+            )))
       ) {
         return;
       }
 
       if (event.code === "Space") {
+        if (event.repeat) {
+          return;
+        }
         event.preventDefault();
-        onTogglePlayback();
+        playbackKeyStateRef.current.onTogglePlayback();
       } else if (event.key.toLowerCase() === "m") {
+        if (event.repeat) {
+          return;
+        }
         event.preventDefault();
-        if (volume > 0) {
-          lastVolumeRef.current = volume;
-          onVolumeChange(0);
+        const { volume: currentVolume, onVolumeChange: changeVolume } =
+          playbackKeyStateRef.current;
+        if (currentVolume > 0) {
+          lastVolumeRef.current = currentVolume;
+          changeVolume(0);
         } else {
-          onVolumeChange(lastVolumeRef.current || 0.72);
+          changeVolume(lastVolumeRef.current || 0.72);
         }
       } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
         event.preventDefault();
         const delta = event.key === "ArrowRight" ? 5 : -5;
-        onSeek(clamp(elapsedSeconds + delta, 0, duration));
+        const {
+          elapsedSeconds: currentElapsed,
+          duration: currentDuration,
+          onSeek: seekTo,
+        } = playbackKeyStateRef.current;
+        const target = clamp(currentElapsed + delta, 0, currentDuration);
+        committedSeekRef.current = target;
+        seekPreviewRef.current = target;
+        setSeekPreview(target);
+        seekTo(target);
       }
     };
 
     window.addEventListener("keydown", handlePlaybackKey);
     return () => window.removeEventListener("keydown", handlePlaybackKey);
-  }, [
-    duration,
-    elapsedSeconds,
-    onSeek,
-    onTogglePlayback,
-    onVolumeChange,
-    phase,
-    volume,
-  ]);
+  }, [phase]);
+
+  useEffect(() => {
+    if (!queueOpen && !deviceOpen) {
+      return;
+    }
+
+    const closeOpenPanel = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      event.preventDefault();
+      if (queueOpen) {
+        setQueueOpen(false);
+        window.requestAnimationFrame(() => queueTriggerRef.current?.focus());
+      }
+      if (deviceOpen) {
+        setDeviceOpen(false);
+        window.requestAnimationFrame(() => deviceTriggerRef.current?.focus());
+      }
+    };
+
+    const closeOnOutsidePointer = (event: globalThis.PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (
+        queueOpen &&
+        !queuePanelRef.current?.contains(target) &&
+        !target.closest("[data-queue-trigger]")
+      ) {
+        setQueueOpen(false);
+      }
+      if (
+        deviceOpen &&
+        !devicePanelRef.current?.contains(target) &&
+        !target.closest("[data-device-trigger]")
+      ) {
+        setDeviceOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", closeOpenPanel);
+    window.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => {
+      window.removeEventListener("keydown", closeOpenPanel);
+      window.removeEventListener("pointerdown", closeOnOutsidePointer);
+    };
+  }, [deviceOpen, queueOpen]);
+
+  const openQueue = (trigger: HTMLButtonElement) => {
+    queueTriggerRef.current = trigger;
+    setDeviceOpen(false);
+    setQueueOpen(true);
+  };
+
+  const toggleQueue = (trigger: HTMLButtonElement) => {
+    queueTriggerRef.current = trigger;
+    setDeviceOpen(false);
+    setQueueOpen((open) => !open);
+  };
+
+  const toggleDevice = (trigger: HTMLButtonElement) => {
+    deviceTriggerRef.current = trigger;
+    setQueueOpen(false);
+    setDeviceOpen((open) => !open);
+  };
 
   const toggleLike = () => {
     if (!album) {
@@ -634,14 +879,17 @@ function Turntable({
   };
 
   const cancelSeekPreview = () => {
+    committedSeekRef.current = null;
     seekPreviewRef.current = null;
     setSeekPreview(null);
   };
 
   const commitSeek = (fallbackValue: number) => {
-    const value = seekPreviewRef.current ?? fallbackValue;
-    cancelSeekPreview();
-    onSeek(clamp(value, 0, duration));
+    const value = clamp(seekPreviewRef.current ?? fallbackValue, 0, duration);
+    committedSeekRef.current = value;
+    seekPreviewRef.current = value;
+    setSeekPreview(value);
+    onSeek(value);
   };
 
   const previewKeyboardSeek = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -680,9 +928,14 @@ function Turntable({
   return (
     <section
       className={styles.turntableScene}
-      aria-label={`${isPlaying ? "Now playing" : "Loaded"}: ${track.title} by ${track.artist}`}
+      aria-label={`${playbackStatus}: ${track.title} by ${track.artist}`}
       aria-busy={
-        phase === "loading" || phase === "switching" || phase === "returning"
+        phase === "loading" ||
+        phase === "switching" ||
+        phase === "returning" ||
+        isPriming ||
+        playbackState === "loading" ||
+        playbackState === "buffering"
       }
       data-motor={motorOn ? "on" : "off"}
       data-motor-state={motorState}
@@ -763,9 +1016,12 @@ function Turntable({
             ref={deckRecordRef}
             type="button"
             className={styles.deckRecord}
-            onClick={() => setQueueOpen(true)}
+            data-queue-trigger
+            onClick={(event) => openQueue(event.currentTarget)}
             disabled={controlsLocked}
             aria-label="Open this record's play queue"
+            aria-controls="play-queue-panel"
+            aria-expanded={queueVisible}
           >
             {album ? (
               <VinylRecord
@@ -803,13 +1059,13 @@ function Turntable({
             disabled={!album || phase !== "playing"}
             role="slider"
             aria-label="Tonearm position"
-            aria-valuemin={TONEARM_HOME_ANGLE}
-            aria-valuemax={TONEARM_MAX_ANGLE}
-            aria-valuenow={Math.round(tonearmAngle)}
+            aria-valuemin={0}
+            aria-valuemax={Math.max(Math.round(duration), 1)}
+            aria-valuenow={Math.round(tonearmElapsed)}
             aria-valuetext={
               tonearmAngle < TONEARM_RECORD_THRESHOLD
                 ? "On arm rest"
-                : "Over the record"
+                : `${formatPlaybackTime(tonearmElapsed)} of ${formatPlaybackTime(duration)}; cue ${tonearmRaised ? "raised" : "lowered"}`
             }
             onPointerDown={onTonearmPointerDown}
             onPointerMove={onTonearmPointerMove}
@@ -857,8 +1113,9 @@ function Turntable({
         {album ? (
           <div
             className={styles.playerChrome}
-            data-playing={isPlaying}
-            data-queue-open={queueOpen}
+            data-playing={transportActive}
+            data-queue-open={queueVisible}
+            data-device-open={deviceVisible}
           >
             <header className={styles.nowPlayingHeader}>
               <button
@@ -880,9 +1137,12 @@ function Turntable({
               <button
                 type="button"
                 className={styles.headerAction}
-                onClick={() => setQueueOpen((open) => !open)}
-                aria-label={queueOpen ? "Close play queue" : "Open play queue"}
-                aria-expanded={queueOpen}
+                data-queue-trigger
+                onClick={(event) => toggleQueue(event.currentTarget)}
+                disabled={controlsLocked}
+                aria-label={queueVisible ? "Close play queue" : "Open play queue"}
+                aria-expanded={queueVisible}
+                aria-controls="play-queue-panel"
               >
                 <ListMusic aria-hidden="true" />
               </button>
@@ -929,6 +1189,7 @@ function Turntable({
                   className={styles.likeLarge}
                   data-active={liked}
                   onClick={toggleLike}
+                  disabled={controlsLocked}
                   aria-label={liked ? "Remove from liked music" : "Save to liked music"}
                   aria-pressed={liked}
                 >
@@ -939,8 +1200,12 @@ function Turntable({
                   <button
                     type="button"
                     className={styles.upNextButton}
-                    onClick={() => setQueueOpen(true)}
+                    data-queue-trigger
+                    onClick={(event) => openQueue(event.currentTarget)}
+                    disabled={controlsLocked}
                     aria-label={`Open queue. Up next: ${nextTrack?.title} by ${nextTrack?.artist}, paired with the ${nextAlbum.title} sleeve`}
+                    aria-controls="play-queue-panel"
+                    aria-expanded={queueVisible}
                   >
                     <span className={styles.upNextArtwork} aria-hidden="true">
                       <Image
@@ -981,6 +1246,7 @@ function Turntable({
                   className={styles.iconButton}
                   data-active={liked}
                   onClick={toggleLike}
+                  disabled={controlsLocked}
                   aria-label={liked ? "Remove from liked music" : "Save to liked music"}
                   aria-pressed={liked}
                 >
@@ -1015,10 +1281,15 @@ function Turntable({
                     className={styles.playButton}
                     onClick={onTogglePlayback}
                     disabled={controlsLocked}
-                    aria-label={`${isPlaying ? "Pause" : "Play"} ${track.title}`}
+                    aria-label={`${transportActive ? "Pause" : "Play"} ${track.title}`}
                     aria-keyshortcuts="Space"
                   >
-                    {isPlaying ? (
+                    {showTransportLoader ? (
+                      <LoaderCircle
+                        className={styles.transportSpinner}
+                        aria-hidden="true"
+                      />
+                    ) : transportActive ? (
                       <Pause fill="currentColor" aria-hidden="true" />
                     ) : (
                       <Play fill="currentColor" aria-hidden="true" />
@@ -1028,7 +1299,7 @@ function Turntable({
                     type="button"
                     className={styles.iconButton}
                     onClick={() => onNext(shuffleEnabled)}
-                    disabled={controlsLocked}
+                    disabled={controlsLocked || queueEntries.length === 0}
                     aria-label="Next CC0 track pairing"
                   >
                     <SkipForward fill="currentColor" aria-hidden="true" />
@@ -1040,7 +1311,13 @@ function Turntable({
                     data-repeat={repeatMode}
                     onClick={onCycleRepeat}
                     disabled={controlsLocked}
-                    aria-label={`Repeat ${repeatMode}`}
+                    aria-label={
+                      repeatMode === "off"
+                        ? "Repeat is off. Activate for repeat all"
+                        : repeatMode === "all"
+                          ? "Repeating all tracks. Activate for repeat one"
+                          : "Repeating the current track. Activate to turn repeat off"
+                    }
                     aria-pressed={repeatMode !== "off"}
                   >
                     <Repeat2 aria-hidden="true" />
@@ -1048,8 +1325,11 @@ function Turntable({
                   </button>
                 </div>
                 <div className={styles.timeline}>
-                  <time>{formatPlaybackTime(displayedElapsed)}</time>
+                  <time ref={elapsedTimeRef}>
+                    {formatPlaybackTime(displayedElapsed)}
+                  </time>
                   <input
+                    ref={seekInputRef}
                     type="range"
                     className={styles.playerSeek}
                     min="0"
@@ -1057,18 +1337,22 @@ function Turntable({
                     step="0.25"
                     value={Math.min(displayedElapsed, duration)}
                     style={progressStyle}
-                    onPointerDown={(event) =>
-                      previewSeek(Number(event.currentTarget.value))
-                    }
+                    onPointerDown={(event) => {
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      previewSeek(Number(event.currentTarget.value));
+                    }}
                     onInput={(event) =>
                       previewSeek(Number(event.currentTarget.value))
                     }
                     onChange={(event) =>
                       previewSeek(Number(event.currentTarget.value))
                     }
-                    onPointerUp={(event) =>
-                      commitSeek(Number(event.currentTarget.value))
-                    }
+                    onPointerUp={(event) => {
+                      commitSeek(Number(event.currentTarget.value));
+                      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                        event.currentTarget.releasePointerCapture(event.pointerId);
+                      }
+                    }}
                     onPointerCancel={cancelSeekPreview}
                     onKeyDown={previewKeyboardSeek}
                     onKeyUp={(event) => {
@@ -1101,17 +1385,20 @@ function Turntable({
                   className={styles.speedButton}
                   onClick={onToggleSpeed}
                   disabled={controlsLocked}
-                  aria-label={`Change visual platter speed. Current setting ${speed === 33 ? "33 and one third" : "45"} RPM. Audio stays at its original speed.`}
+                  aria-label={`Change turntable speed. Current setting ${speed === 33 ? "33 and one third" : "45"} RPM. Audio speed and pitch follow the platter.`}
                 >
                   {speed === 33 ? "33⅓" : "45"}
                 </button>
                 <button
                   type="button"
                   className={styles.iconButton}
-                  data-active={queueOpen}
-                  onClick={() => setQueueOpen((open) => !open)}
-                  aria-label={queueOpen ? "Close queue" : "Open queue"}
-                  aria-expanded={queueOpen}
+                  data-active={queueVisible}
+                  data-queue-trigger
+                  onClick={(event) => toggleQueue(event.currentTarget)}
+                  disabled={controlsLocked}
+                  aria-label={queueVisible ? "Close queue" : "Open queue"}
+                  aria-expanded={queueVisible}
+                  aria-controls="play-queue-panel"
                 >
                   <ListMusic aria-hidden="true" />
                 </button>
@@ -1119,35 +1406,36 @@ function Turntable({
                   <button
                     type="button"
                     className={styles.iconButton}
-                    data-active={deviceOpen}
-                    onClick={() => setDeviceOpen((open) => !open)}
-                    aria-label={`Listening on ${deviceName}`}
-                    aria-expanded={deviceOpen}
+                    data-active={deviceVisible}
+                    data-device-trigger
+                    onClick={(event) => toggleDevice(event.currentTarget)}
+                    disabled={controlsLocked}
+                    aria-label="Playback output: this browser"
+                    aria-expanded={deviceVisible}
+                    aria-controls="playback-output-panel"
                   >
                     <MonitorSpeaker aria-hidden="true" />
                   </button>
-                  {deviceOpen ? (
-                    <div className={styles.devicePopover} role="dialog" aria-label="Connect to a device">
-                      <strong>Connect to a device</strong>
-                      {["This browser"].map((device) => (
-                        <button
-                          key={device}
-                          type="button"
-                          className={styles.deviceOption}
-                          data-active={deviceName === device}
-                          onClick={() => {
-                            setDeviceName(device);
-                            setDeviceOpen(false);
-                          }}
-                        >
-                          <MonitorSpeaker aria-hidden="true" />
-                          <span>
-                            <strong>{device}</strong>
-                            <small>Current web player</small>
-                          </span>
-                          {deviceName === device ? <Check aria-hidden="true" /> : null}
-                        </button>
-                      ))}
+                  {deviceVisible ? (
+                    <div
+                      ref={devicePanelRef}
+                      id="playback-output-panel"
+                      className={styles.devicePopover}
+                      role="dialog"
+                      aria-label="Playback output"
+                    >
+                      <strong>Playback output</strong>
+                      <div className={styles.deviceOption} data-active="true">
+                        <MonitorSpeaker aria-hidden="true" />
+                        <span>
+                          <strong>This browser</strong>
+                          <small>Current web player</small>
+                        </span>
+                        <Check aria-hidden="true" />
+                      </div>
+                      <p className={styles.deviceNote}>
+                        Speaker selection follows your browser and system audio settings.
+                      </p>
                     </div>
                   ) : null}
                 </div>
@@ -1178,8 +1466,13 @@ function Turntable({
               </div>
             </footer>
 
-            {queueOpen ? (
-              <aside className={styles.queueDrawer} aria-label="Play queue">
+            {queueVisible ? (
+              <aside
+                ref={queuePanelRef}
+                id="play-queue-panel"
+                className={styles.queueDrawer}
+                aria-label="Play queue"
+              >
                 <div className={styles.queueHeader}>
                   <div>
                     <small>Playing next</small>
@@ -1188,7 +1481,12 @@ function Turntable({
                   <button
                     type="button"
                     className={styles.iconButton}
-                    onClick={() => setQueueOpen(false)}
+                    onClick={() => {
+                      setQueueOpen(false);
+                      window.requestAnimationFrame(() =>
+                        queueTriggerRef.current?.focus(),
+                      );
+                    }}
                     aria-label="Close queue panel"
                   >
                     <X aria-hidden="true" />
@@ -1215,31 +1513,35 @@ function Turntable({
                 </div>
                 <span className={styles.queueSectionLabel}>Next in queue</span>
                 <div className={styles.queueList}>
-                  {queueEntries.map((entry, queueIndex) => {
-                    const queuedTrack = getPlaybackTrack(entry.album.id);
+                  {queueEntries.length > 0 ? (
+                    queueEntries.map((entry, queueIndex) => {
+                      const queuedTrack = getPlaybackTrack(entry.album.id);
 
-                    return (
-                      <button
-                        key={entry.album.id}
-                        type="button"
-                        className={styles.queueItem}
-                        onClick={() => {
-                          onSelectAlbum(entry.index);
-                          setQueueOpen(false);
-                        }}
-                        aria-label={`Play ${queuedTrack.title} by ${queuedTrack.artist}, paired with the ${entry.album.title} sleeve`}
-                      >
-                        <span className={styles.queuePosition}>{queueIndex + 1}</span>
-                        <span className={styles.queueArtwork} aria-hidden="true">
-                          <Image src={entry.album.cover} alt="" fill sizes="48px" draggable={false} />
-                        </span>
-                        <span className={styles.queueCopy}>
-                          <strong>{queuedTrack.title}</strong>
-                          <span>{queuedTrack.artist} · {entry.album.title} sleeve</span>
-                        </span>
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={entry.album.id}
+                          type="button"
+                          className={styles.queueItem}
+                          onClick={() => {
+                            onSelectAlbum(entry.index, true);
+                            setQueueOpen(false);
+                          }}
+                          aria-label={`Play ${queuedTrack.title} by ${queuedTrack.artist}, paired with the ${entry.album.title} sleeve`}
+                        >
+                          <span className={styles.queuePosition}>{queueIndex + 1}</span>
+                          <span className={styles.queueArtwork} aria-hidden="true">
+                            <Image src={entry.album.cover} alt="" fill sizes="48px" draggable={false} />
+                          </span>
+                          <span className={styles.queueCopy}>
+                            <strong>{queuedTrack.title}</strong>
+                            <span>{queuedTrack.artist} · {entry.album.title} sleeve</span>
+                          </span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <p className={styles.queueEmpty}>End of queue</p>
+                  )}
                 </div>
               </aside>
             ) : null}
@@ -1258,23 +1560,38 @@ export function MusicPlayerExperience() {
     hasPlayback,
     isPlaying,
     isPriming,
+    playIntent,
+    playbackState,
+    playbackRate,
     currentTime,
     duration,
     volume,
     shuffleEnabled,
     repeatMode,
+    queueIndices,
     error,
     cueAlbum,
+    clearPlayback,
     play,
     pause,
     seek,
+    setPlaybackRate,
     setVolume,
     toggleShuffle,
     cycleRepeat,
+    resetPlaybackOrder,
+    recordPlaybackSelection,
+    getNextAlbumIndex,
+    takePreviousAlbumIndex,
+    registerTransportController,
   } = usePlayback();
   const restoredIndex = hasPlayback ? currentAlbumIndex : null;
+  const restoredNativeRpm = currentAlbum.vinyl.rpm ?? 33.333;
+  const restoredRpm = restoredNativeRpm * playbackRate;
   const restoredSpeed: PlaybackSpeed =
-    currentAlbum.vinyl.rpm === 45 ? 45 : 33;
+    Math.abs(restoredRpm - 45) < Math.abs(restoredRpm - (33 + 1 / 3))
+      ? 45
+      : 33;
   const restoredTonearmAngle = hasPlayback
     ? getTonearmAngleFromProgress(duration > 0 ? currentTime / duration : 0)
     : TONEARM_HOME_ANGLE;
@@ -1282,7 +1599,6 @@ export function MusicPlayerExperience() {
   const rackRef = useRef<HTMLElement>(null);
   const slotRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const shelfItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const shelfSleeveRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const sleeveRef = useRef<HTMLButtonElement>(null);
   const floatingRecordRef = useRef<HTMLButtonElement>(null);
   const platterRef = useRef<HTMLDivElement>(null);
@@ -1298,20 +1614,38 @@ export function MusicPlayerExperience() {
   const cueSettleRef = useRef<gsap.core.Tween | null>(null);
   const motorTweenRef = useRef<gsap.core.Tween | null>(null);
   const motorRpmRef = useRef({
-    value: hasPlayback && isPlaying ? getPlaybackRpm(restoredSpeed) : 0,
+    value: hasPlayback && playIntent ? getPlaybackRpm(restoredSpeed) : 0,
   });
-  const motorOnRef = useRef(hasPlayback && isPlaying);
+  const motorOnRef = useRef(hasPlayback && playIntent);
   const motorStateRef = useRef<MotorState>(
-    hasPlayback && isPlaying ? "locked" : "stopped",
+    hasPlayback && playIntent ? "locked" : "stopped",
   );
-  const tonearmRaisedRef = useRef(!isPlaying);
+  const tonearmRaisedRef = useRef(!playIntent);
   const playWhenLockedRef = useRef(false);
   const awaitingPlaybackRef = useRef(false);
   const playbackPrimingRef = useRef(isPriming);
+  const transportPendingRef = useRef(isPriming);
   const seekResumeIntentRef = useRef(false);
+  const playbackClockRef = useRef({
+    currentTime,
+    duration,
+    isPlaying,
+    playbackRate,
+    syncedAt: 0,
+  });
   const platterAngleRef = useRef(0);
+  const platterStrobeAngleRef = useRef(0);
   const shelfTweenRef = useRef<gsap.core.Tween | null>(null);
   const shelfLayoutFrameRef = useRef<number | null>(null);
+  const shelfMetricsRef = useRef({
+    valid: false,
+    axis: "x" as ShelfAxis,
+    viewportWidth: 0,
+    viewportHeight: 0,
+    sleeveSize: 320,
+    pitch: 82,
+    visibleRadius: 6,
+  });
   const positionRef = useRef({
     value: restoredIndex ?? INITIAL_ALBUM_INDEX,
   });
@@ -1352,15 +1686,31 @@ export function MusicPlayerExperience() {
   );
   const [loadedIndex, setLoadedIndex] = useState<number | null>(restoredIndex);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [motorOn, setMotorOnState] = useState(hasPlayback && isPlaying);
+  const [motorOn, setMotorOnState] = useState(hasPlayback && playIntent);
   const [motorState, setMotorState] = useState<MotorState>(
-    hasPlayback && isPlaying ? "locked" : "stopped",
+    hasPlayback && playIntent ? "locked" : "stopped",
   );
   const [speed, setSpeed] = useState<PlaybackSpeed>(restoredSpeed);
   const [tonearmAngle, setTonearmAngle] = useState(restoredTonearmAngle);
-  const [tonearmRaised, setTonearmRaised] = useState(!isPlaying);
-  const [stylusContact, setStylusContact] = useState(isPlaying);
+  const [tonearmRaised, setTonearmRaised] = useState(!playIntent);
+  const [stylusContact, setStylusContact] = useState(playIntent);
   const [tonearmDragging, setTonearmDragging] = useState(false);
+  const [transportPending, setTransportPendingState] = useState(isPriming);
+  const transportActionsRef = useRef<{
+    play: () => void;
+    pause: () => void;
+    previous: () => void;
+    next: (shuffle: boolean) => void;
+    seek: (seconds: number) => void;
+    ended: () => void;
+  }>({
+    play: () => undefined,
+    pause: () => undefined,
+    previous: () => undefined,
+    next: () => undefined,
+    seek: () => undefined,
+    ended: () => undefined,
+  });
 
   const selectedAlbum =
     selectedIndex === null ? null : vinylAlbums[selectedIndex];
@@ -1368,6 +1718,13 @@ export function MusicPlayerExperience() {
     ? getPlaybackTrack(selectedAlbum.id)
     : track;
   const loadedAlbum = loadedIndex === null ? null : vinylAlbums[loadedIndex];
+  const loadedTrack = loadedAlbum ? getPlaybackTrack(loadedAlbum.id) : track;
+  const transportActive = !error && (playIntent || transportPending);
+
+  const setTransportPending = useCallback((pending: boolean) => {
+    transportPendingRef.current = pending;
+    setTransportPendingState(pending);
+  }, []);
 
   const setMotorOn = useCallback(
     (nextMotorOn: boolean) => {
@@ -1392,31 +1749,55 @@ export function MusicPlayerExperience() {
     const axis = getShelfAxis();
     const removedIndex = removedIndexRef.current;
     const gapProgress = gapProgressRef.current.value;
+    const orientation = axis === "x" ? "horizontal" : "vertical";
 
-    if (rackRef.current) {
-      rackRef.current.dataset.orientation =
-        axis === "x" ? "horizontal" : "vertical";
+    if (
+      rackRef.current &&
+      rackRef.current.dataset.orientation !== orientation
+    ) {
+      rackRef.current.dataset.orientation = orientation;
     }
-    if (rootRef.current) {
+    if (rootRef.current && rootRef.current.dataset.browseAxis !== axis) {
       rootRef.current.dataset.browseAxis = axis;
     }
 
-    const referenceSlot = slotRefs.current.find(
-      (slot): slot is HTMLButtonElement => Boolean(slot),
-    );
-    const sleeveSize = referenceSlot?.offsetWidth ?? 320;
-    const pitch = getShelfPitch(axis, sleeveSize);
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const cachedMetrics = shelfMetricsRef.current;
+
+    if (
+      !cachedMetrics.valid ||
+      cachedMetrics.axis !== axis ||
+      cachedMetrics.viewportWidth !== viewportWidth ||
+      cachedMetrics.viewportHeight !== viewportHeight
+    ) {
+      const referenceSlot = slotRefs.current.find(
+        (slot): slot is HTMLButtonElement => Boolean(slot),
+      );
+      const sleeveSize = referenceSlot?.offsetWidth ?? cachedMetrics.sleeveSize;
+      const pitch = getShelfPitch(axis, sleeveSize);
+
+      shelfMetricsRef.current = {
+        valid: Boolean(referenceSlot),
+        axis,
+        viewportWidth,
+        viewportHeight,
+        sleeveSize,
+        pitch,
+        visibleRadius:
+          (axis === "x" ? viewportWidth : viewportHeight) / (pitch * 2) +
+          (axis === "x" ? 1.35 : 1.6),
+      };
+    }
+
+    const { pitch, sleeveSize, visibleRadius } = shelfMetricsRef.current;
     const velocityTilt = clamp(
       gestureRef.current.velocity / 2400,
       -1,
       1,
     ) * (axis === "x" ? 3 : 1.2);
 
-    const visibleRadius =
-      (axis === "x" ? window.innerWidth : window.innerHeight) / (pitch * 2) +
-      (axis === "x" ? 1.35 : 1.6);
-
-    shelfItemRefs.current.forEach((slot, instanceIndex) => {
+    shelfItemRefs.current.forEach((slot) => {
       if (!slot) {
         return;
       }
@@ -1445,16 +1826,20 @@ export function MusicPlayerExperience() {
             : 0);
       const distance = Math.abs(relative);
       const visible = distance <= visibleRadius;
+      const wasVisible = slot.dataset.layoutVisible === "true";
 
       if (!visible) {
-        if (slot.dataset.layoutVisible !== "false") {
+        if (wasVisible || slot.dataset.layoutVisible !== "false") {
           slot.dataset.layoutVisible = "false";
           gsap.set(slot, { autoAlpha: 0, visibility: "hidden" });
         }
         return;
       }
 
-      slot.dataset.layoutVisible = "true";
+      if (!wasVisible) {
+        slot.dataset.layoutVisible = "true";
+        gsap.set(slot, { autoAlpha: 1, visibility: "visible" });
+      }
       const focus = 1 - clamp(distance, 0, 1);
       const veil = clamp((distance - 1) * 0.045, 0, 0.22);
       const depthBlur =
@@ -1474,16 +1859,22 @@ export function MusicPlayerExperience() {
         axis === "x"
           ? rotation.rotationY + velocityTilt * centreVelocityLock
           : 0;
-      const sleeve = shelfSleeveRefs.current[instanceIndex];
-
-      slot.dataset.stackSide = relative < -0.08
+      const stackSide = relative < -0.08
         ? "above"
         : relative > 0.08
           ? "below"
           : "focus";
-      slot.style.setProperty("--shelf-veil", veil.toFixed(3));
-      slot.style.setProperty("--face-blur", `${depthBlur.toFixed(2)}px`);
-      slot.style.setProperty(
+      if (slot.dataset.stackSide !== stackSide) {
+        slot.dataset.stackSide = stackSide;
+      }
+      setStylePropertyIfChanged(slot, "--shelf-veil", veil.toFixed(3));
+      setStylePropertyIfChanged(
+        slot,
+        "--face-blur",
+        `${depthBlur.toFixed(2)}px`,
+      );
+      setStylePropertyIfChanged(
+        slot,
         "--face-brightness",
         `${clamp(
           (axis === "x" ? 1.035 : 1.025) -
@@ -1505,9 +1896,6 @@ export function MusicPlayerExperience() {
               rotationZ: 0,
               scale: 1,
               zIndex: Math.round(200 - distance * 12),
-              autoAlpha: 1,
-              visibility: "visible",
-              filter: "none",
             }
           : {
               x:
@@ -1524,17 +1912,8 @@ export function MusicPlayerExperience() {
                 : Math.sin(albumIndex * 2.17) * 0.7,
               scale: 1,
               zIndex: Math.round(100 + relative * 10),
-              autoAlpha: 1,
-              visibility: "visible",
-              filter: "none",
             },
       );
-
-      if (sleeve) {
-        gsap.set(sleeve, {
-          z: 0,
-        });
-      }
     });
   }, [reducedMotion]);
 
@@ -1625,6 +2004,16 @@ export function MusicPlayerExperience() {
   }, []);
 
   useLayoutEffect(() => {
+    playbackClockRef.current = {
+      currentTime,
+      duration,
+      isPlaying,
+      playbackRate,
+      syncedAt: performance.now(),
+    };
+  }, [currentTime, duration, isPlaying, playbackRate]);
+
+  useLayoutEffect(() => {
     let syncedFloatingRotor: HTMLSpanElement | null = null;
     let syncedDeckRotor: HTMLSpanElement | null = null;
     let syncedStrobe: HTMLSpanElement | null = null;
@@ -1633,7 +2022,7 @@ export function MusicPlayerExperience() {
 
     const updatePhysicalRotation = (now: number, advance: boolean) => {
       const deltaSeconds = advance
-        ? Math.min(Math.max(now - previousTime, 0) / 1000, 0.05)
+        ? Math.min(Math.max(now - previousTime, 0) / 1000, 600)
         : 0;
       previousTime = now;
       const currentRpm = motorRpmRef.current.value;
@@ -1642,6 +2031,35 @@ export function MusicPlayerExperience() {
       if (isRotating && deltaSeconds > 0) {
         platterAngleRef.current =
           (platterAngleRef.current + currentRpm * 6 * deltaSeconds) % 360;
+        platterStrobeAngleRef.current =
+          (platterStrobeAngleRef.current +
+            (currentRpm - getPlaybackRpm(speed)) * 6 * deltaSeconds) %
+            360;
+      }
+
+      const playbackClock = playbackClockRef.current;
+      if (
+        isRotating &&
+        playbackClock.isPlaying &&
+        playbackClock.duration > 0 &&
+        phaseRef.current === "playing" &&
+        !tonearmRaisedRef.current &&
+        tonearmGestureRef.current.pointerId === null &&
+        tonearmRef.current
+      ) {
+        const smoothElapsed = clamp(
+          playbackClock.currentTime +
+            ((now - playbackClock.syncedAt) / 1000) *
+              playbackClock.playbackRate,
+          0,
+          playbackClock.duration,
+        );
+        const smoothAngle = getTonearmAngleFromProgress(
+          smoothElapsed / playbackClock.duration,
+        );
+
+        tonearmAngleRef.current = smoothAngle;
+        gsap.set(tonearmRef.current, { rotationZ: smoothAngle });
       }
 
       // Keep newly mounted floating/deck rotors phase-aligned even while the
@@ -1666,7 +2084,7 @@ export function MusicPlayerExperience() {
         platterStrobeRef.current &&
         (isRotating || platterStrobeRef.current !== syncedStrobe)
       ) {
-        platterStrobeRef.current.style.transform = `rotate(${rotation}deg)`;
+        platterStrobeRef.current.style.transform = `rotate(${platterStrobeAngleRef.current}deg)`;
       }
 
       syncedFloatingRotor = floatingRotorRef.current;
@@ -1692,12 +2110,24 @@ export function MusicPlayerExperience() {
         window.cancelAnimationFrame(frame);
       }
     };
-  }, [loadedIndex, motorOn, motorState, phase, reducedMotion, selectedIndex]);
+  }, [
+    loadedIndex,
+    motorOn,
+    motorState,
+    phase,
+    reducedMotion,
+    selectedIndex,
+    speed,
+  ]);
 
   useEffect(() => {
     motorTweenRef.current?.kill();
 
     const targetRpm = motorOn ? getPlaybackRpm(speed) : 0;
+    const nativeRpm =
+      loadedIndex === null
+        ? getPlaybackRpm(speed)
+        : (vinylAlbums[loadedIndex].vinyl.rpm ?? 33.333);
     const currentRpm = motorRpmRef.current.value;
     const speedChange = motorOn && currentRpm > 0.5;
     const motorDuration = reducedMotion
@@ -1718,6 +2148,9 @@ export function MusicPlayerExperience() {
           : "stopped";
 
     if (Math.abs(currentRpm - targetRpm) < 0.001) {
+      if (motorOn) {
+        setPlaybackRate(targetRpm / nativeRpm);
+      }
       const settledState: MotorState = motorOn ? "locked" : "stopped";
       motorStateRef.current = settledState;
       setMotorState(settledState);
@@ -1732,8 +2165,16 @@ export function MusicPlayerExperience() {
       duration: motorDuration,
       ease: "power2.out",
       overwrite: true,
+      onUpdate: () => {
+        if (motorOn) {
+          setPlaybackRate(motorRpmRef.current.value / nativeRpm, false);
+        }
+      },
       onComplete: () => {
         motorRpmRef.current.value = targetRpm;
+        if (motorOn) {
+          setPlaybackRate(targetRpm / nativeRpm);
+        }
         const settledState: MotorState = motorOn ? "locked" : "stopped";
         motorStateRef.current = settledState;
         setMotorState(settledState);
@@ -1745,6 +2186,7 @@ export function MusicPlayerExperience() {
           tonearmAngleRef.current >= TONEARM_RECORD_THRESHOLD
         ) {
           playWhenLockedRef.current = false;
+          setTransportPending(false);
           play();
         }
       },
@@ -1753,7 +2195,15 @@ export function MusicPlayerExperience() {
     return () => {
       motorTweenRef.current?.kill();
     };
-  }, [motorOn, play, reducedMotion, speed]);
+  }, [
+    loadedIndex,
+    motorOn,
+    play,
+    reducedMotion,
+    setPlaybackRate,
+    setTransportPending,
+    speed,
+  ]);
 
   useLayoutEffect(() => {
     layoutShelf();
@@ -2237,7 +2687,7 @@ export function MusicPlayerExperience() {
   );
 
   const setCueRaised = useCallback(
-    (raised: boolean) => {
+    (raised: boolean, pauseMedia = true) => {
       cueSettleRef.current?.kill();
       tonearmRaisedRef.current = raised;
       setTonearmRaised(raised);
@@ -2246,7 +2696,9 @@ export function MusicPlayerExperience() {
       if (raised) {
         playWhenLockedRef.current = false;
         awaitingPlaybackRef.current = false;
-        pause();
+        if (pauseMedia) {
+          pause();
+        }
         return;
       }
 
@@ -2265,6 +2717,7 @@ export function MusicPlayerExperience() {
           setStylusContact(true);
           if (motorOnRef.current && motorStateRef.current === "locked") {
             playWhenLockedRef.current = false;
+            setTransportPending(false);
             play();
           } else {
             playWhenLockedRef.current = true;
@@ -2272,7 +2725,7 @@ export function MusicPlayerExperience() {
         },
       );
     },
-    [pause, play, reducedMotion],
+    [pause, play, reducedMotion, setTransportPending],
   );
 
   useEffect(() => {
@@ -2355,15 +2808,17 @@ export function MusicPlayerExperience() {
     }
 
     const frame = window.requestAnimationFrame(() => {
-      if (isPlaying) {
-        awaitingPlaybackRef.current = false;
-        if (!motorOnRef.current) {
-          setMotorOn(true);
+      if (playIntent || (transportPending && !error)) {
+        if (playIntent) {
+          awaitingPlaybackRef.current = false;
         }
-
-        tonearmRaisedRef.current = false;
-        setTonearmRaised(false);
-        setStylusContact(true);
+        if (
+          isPlaying &&
+          motorStateRef.current === "locked" &&
+          !tonearmRaisedRef.current
+        ) {
+          setStylusContact(true);
+        }
         return;
       }
 
@@ -2371,17 +2826,24 @@ export function MusicPlayerExperience() {
         awaitingPlaybackRef.current = false;
       }
 
+      if (playbackState === "ended") {
+        return;
+      }
+
       if (
         !isPriming &&
         !awaitingPlaybackRef.current &&
-        !tonearmRaisedRef.current
+        !tonearmRaisedRef.current &&
+        !mechanicsSequenceRef.current?.isActive()
       ) {
-        tonearmRaisedRef.current = true;
-        setTonearmRaised(true);
-        setStylusContact(false);
-        if (motorOnRef.current) {
-          setMotorOn(false);
-        }
+        setCueRaised(true);
+        const sequence = gsap.timeline();
+        mechanicsSequenceRef.current = sequence;
+        sequence.call(
+          () => setMotorOn(false),
+          undefined,
+          reducedMotion ? 0.08 : TONEARM_LIFT_DURATION,
+        );
       }
     });
 
@@ -2392,7 +2854,12 @@ export function MusicPlayerExperience() {
     isPlaying,
     isPriming,
     loadedIndex,
+    playbackState,
+    playIntent,
+    reducedMotion,
+    setCueRaised,
     setMotorOn,
+    transportPending,
   ]);
 
   const togglePlayback = useCallback(() => {
@@ -2402,7 +2869,8 @@ export function MusicPlayerExperience() {
 
     seekResumeIntentRef.current = false;
 
-    if (isPlaying) {
+    if (transportActive) {
+      setTransportPending(false);
       mechanicsSequenceRef.current?.kill();
       setCueRaised(true);
       const sequence = gsap.timeline();
@@ -2415,10 +2883,12 @@ export function MusicPlayerExperience() {
       return;
     }
 
+    setTransportPending(true);
     mechanicsSequenceRef.current?.kill();
     setCueRaised(true);
 
     const needsArmMove =
+      playbackState === "ended" ||
       tonearmAngleRef.current < TONEARM_RECORD_THRESHOLD;
     const motorSettleTime =
       motorState === "locked" ? 0 : reducedMotion ? 0.08 : MOTOR_START_DURATION;
@@ -2469,12 +2939,14 @@ export function MusicPlayerExperience() {
     sequence.call(() => setCueRaised(false), undefined, cueTime);
   }, [
     loadedIndex,
-    isPlaying,
     motorOn,
     motorState,
+    playbackState,
     reducedMotion,
     setCueRaised,
     setMotorOn,
+    setTransportPending,
+    transportActive,
   ]);
 
   const toggleMotor = useCallback(() => {
@@ -2484,6 +2956,7 @@ export function MusicPlayerExperience() {
 
     seekResumeIntentRef.current = false;
     mechanicsSequenceRef.current?.kill();
+    setTransportPending(false);
 
     if (!motorOn) {
       setMotorOn(true);
@@ -2509,6 +2982,7 @@ export function MusicPlayerExperience() {
     reducedMotion,
     setCueRaised,
     setMotorOn,
+    setTransportPending,
     tonearmRaised,
   ]);
 
@@ -2535,6 +3009,49 @@ export function MusicPlayerExperience() {
 
     seekResumeIntentRef.current = false;
     const nextRaised = !tonearmRaised;
+    setTransportPending(
+      !nextRaised && tonearmAngleRef.current >= TONEARM_RECORD_THRESHOLD,
+    );
+
+    if (
+      !nextRaised &&
+      playbackState === "ended" &&
+      tonearmRef.current
+    ) {
+      mechanicsSequenceRef.current?.kill();
+      if (!motorOn) {
+        setMotorOn(true);
+      }
+
+      const motorSettleTime =
+        motorState === "locked"
+          ? 0
+          : reducedMotion
+            ? 0.08
+            : MOTOR_START_DURATION;
+      const armTravelTime = reducedMotion ? 0.08 : 0.52;
+      const sequence = gsap.timeline();
+      mechanicsSequenceRef.current = sequence;
+      sequence
+        .to(tonearmRef.current, {
+          rotationZ: TONEARM_PLAY_ANGLE,
+          duration: armTravelTime,
+          ease: "sine.inOut",
+          overwrite: true,
+        })
+        .call(() => {
+          tonearmAngleRef.current = TONEARM_PLAY_ANGLE;
+          setTonearmAngle(TONEARM_PLAY_ANGLE);
+          seek(0);
+        })
+        .call(
+          () => setCueRaised(false),
+          undefined,
+          Math.max(motorSettleTime, armTravelTime + 0.1),
+        );
+      return;
+    }
+
     if (
       !nextRaised &&
       tonearmAngleRef.current >= TONEARM_RECORD_THRESHOLD &&
@@ -2559,9 +3076,12 @@ export function MusicPlayerExperience() {
     loadedIndex,
     motorOn,
     motorState,
+    playbackState,
     reducedMotion,
+    seek,
     setCueRaised,
     setMotorOn,
+    setTransportPending,
     tonearmRaised,
   ]);
 
@@ -2601,6 +3121,7 @@ export function MusicPlayerExperience() {
 
       event.preventDefault();
       seekResumeIntentRef.current = false;
+      setTransportPending(false);
       tonearmGestureRef.current = {
         pointerId: event.pointerId,
         moved: false,
@@ -2610,7 +3131,7 @@ export function MusicPlayerExperience() {
       event.currentTarget.setPointerCapture(event.pointerId);
       setTonearmDragging(true);
     },
-    [loadedIndex],
+    [loadedIndex, setTransportPending],
   );
 
   const handleTonearmPointerMove = useCallback(
@@ -2713,6 +3234,7 @@ export function MusicPlayerExperience() {
       }
 
       event.preventDefault();
+      setTransportPending(false);
       setCueRaised(true);
       const keyboardAngle = clamp(
         nextAngle,
@@ -2727,7 +3249,15 @@ export function MusicPlayerExperience() {
         seek(duration * getProgressFromTonearmAngle(keyboardAngle));
       }
     },
-    [duration, loadedIndex, seek, setCueRaised, setTonearmVisual, toggleCue],
+    [
+      duration,
+      loadedIndex,
+      seek,
+      setCueRaised,
+      setTonearmVisual,
+      setTransportPending,
+      toggleCue,
+    ],
   );
 
   const seekPlayback = useCallback(
@@ -2744,11 +3274,15 @@ export function MusicPlayerExperience() {
       const targetAngle = getTonearmAngleFromProgress(
         duration > 0 ? targetSeconds / duration : 0,
       );
+      const reachesEnd = duration > 0 && targetSeconds >= duration - 0.05;
       const angularDistance = Math.abs(
         targetAngle - tonearmAngleRef.current,
       );
-      const shouldResume = isPlaying || seekResumeIntentRef.current;
+      const shouldResume =
+        !reachesEnd &&
+        (playIntent || transportPending || seekResumeIntentRef.current);
       seekResumeIntentRef.current = shouldResume;
+      setTransportPending(shouldResume);
       const liftDuration = tonearmRaised
         ? 0
         : reducedMotion
@@ -2788,7 +3322,32 @@ export function MusicPlayerExperience() {
           liftDuration + travelDuration,
         );
 
-      if (shouldResume) {
+      if (reachesEnd) {
+        const parkStart =
+          liftDuration + travelDuration + (reducedMotion ? 0.02 : 0.12);
+        const parkDuration = reducedMotion ? 0.08 : 0.48;
+        sequence
+          .to(
+            tonearmRef.current,
+            {
+              rotationZ: TONEARM_HOME_ANGLE,
+              duration: parkDuration,
+              ease: "sine.inOut",
+              overwrite: true,
+            },
+            parkStart,
+          )
+          .call(
+            () => {
+              tonearmAngleRef.current = TONEARM_HOME_ANGLE;
+              setTonearmAngle(TONEARM_HOME_ANGLE);
+              motorOnRef.current = false;
+              setMotorOnState(false);
+            },
+            undefined,
+            parkStart + parkDuration,
+          );
+      } else if (shouldResume) {
         sequence.call(
           () => setCueRaised(false),
           undefined,
@@ -2799,11 +3358,13 @@ export function MusicPlayerExperience() {
     [
       loadedIndex,
       duration,
-      isPlaying,
+      playIntent,
       reducedMotion,
       seek,
       setCueRaised,
+      setTransportPending,
       tonearmRaised,
+      transportPending,
     ],
   );
 
@@ -2827,9 +3388,11 @@ export function MusicPlayerExperience() {
     }
 
     seekResumeIntentRef.current = false;
+    setTransportPending(true);
     updatePhase("loading");
     setCueRaised(true);
     setMotorOn(false);
+    resetPlaybackOrder(selectedIndex);
     cueAlbum(selectedIndex);
     setLoadedIndex(selectedIndex);
     setSpeed(vinylAlbums[selectedIndex].vinyl.rpm === 45 ? 45 : 33);
@@ -3046,9 +3609,11 @@ export function MusicPlayerExperience() {
   }, [
     cueAlbum,
     reducedMotion,
+    resetPlaybackOrder,
     selectedIndex,
     setCueRaised,
     setMotorOn,
+    setTransportPending,
     updatePhase,
   ]);
 
@@ -3127,10 +3692,9 @@ export function MusicPlayerExperience() {
       )
       .to(
         rackRef.current,
-        {
-          opacity: 0.58,
-          filter: reducedMotion ? "none" : "blur(0.8px)",
-          duration: reducedMotion ? 0.08 : duration * 0.4,
+          {
+            opacity: 0.58,
+            duration: reducedMotion ? 0.08 : duration * 0.4,
           ease: "power2.out",
         },
         "<",
@@ -3159,11 +3723,10 @@ export function MusicPlayerExperience() {
       )
       .to(
         rackRef.current,
-        {
-          opacity: 1,
-          y: 0,
-          filter: "none",
-          duration: duration * 0.58,
+          {
+            opacity: 1,
+            y: 0,
+            duration: duration * 0.58,
           ease: "power2.out",
         },
         `>-${duration * 0.34}`,
@@ -3196,8 +3759,10 @@ export function MusicPlayerExperience() {
     }
 
     seekResumeIntentRef.current = false;
+    setTransportPending(false);
     updatePhase("returning");
     setCueRaised(true);
+    clearPlayback();
 
     const sleeve = sleeveRef.current;
     const record = floatingRecordRef.current;
@@ -3386,11 +3951,10 @@ export function MusicPlayerExperience() {
       )
       .to(
         rackRef.current,
-        {
-          autoAlpha: 0.58,
-          scale: reducedMotion ? 1 : 1.018,
-          filter: reducedMotion ? "none" : "blur(0.8px)",
-          duration: 0.3 * motionBeat,
+          {
+            autoAlpha: 0.58,
+            scale: reducedMotion ? 1 : 1.018,
+            duration: 0.3 * motionBeat,
           ease: "power2.out",
         },
         2.62 * motionBeat,
@@ -3438,29 +4002,34 @@ export function MusicPlayerExperience() {
       )
       .to(
         rackRef.current,
-        {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          filter: "none",
-          duration: 0.35 * motionBeat,
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.35 * motionBeat,
           ease: "power2.out",
         },
         2.96 * motionBeat,
       )
       .set(record, { willChange: "auto" }, 3.58 * motionBeat);
   }, [
+    clearPlayback,
     layoutShelf,
     reducedMotion,
     restoreShelfAlbum,
     selectedIndex,
     setCueRaised,
     setMotorOn,
+    setTransportPending,
     updatePhase,
   ]);
 
   const selectPlayingAlbum = useCallback(
-    (requestedIndex: number) => {
+    (
+      requestedIndex: number,
+      resumeOverride?: boolean,
+      recordHistory = true,
+    ) => {
       if (
         phaseRef.current !== "playing" ||
         loadedIndex === null ||
@@ -3479,8 +4048,14 @@ export function MusicPlayerExperience() {
       seekResumeIntentRef.current = false;
       const deckRecord = deckRecordRef.current;
       const tonearm = tonearmRef.current;
-      const resumeAfterSwitch = isPlaying;
+      const resumeAfterSwitch = resumeOverride ?? transportActive;
       const beat = reducedMotion ? 0.22 : 1;
+
+      setTransportPending(resumeAfterSwitch);
+
+      if (recordHistory) {
+        recordPlaybackSelection(nextIndex);
+      }
 
       const updateAlbum = () => {
         const previousSlot = slotRefs.current[loadedIndex];
@@ -3607,43 +4182,227 @@ export function MusicPlayerExperience() {
       layoutShelf,
       loadedIndex,
       cueAlbum,
-      isPlaying,
+      recordPlaybackSelection,
       reducedMotion,
       selectedIndex,
       setCueRaised,
       setMotorOn,
+      setTransportPending,
+      transportActive,
       updatePhase,
     ],
   );
 
   const playPreviousAlbum = useCallback(() => {
-    if (loadedIndex !== null && currentTime > 3) {
-      seekPlayback(0);
-    } else if (loadedIndex !== null) {
-      selectPlayingAlbum(loadedIndex - 1);
+    if (loadedIndex === null) {
+      return;
     }
-  }, [currentTime, loadedIndex, seekPlayback, selectPlayingAlbum]);
+
+    if (currentTime > 3) {
+      seekPlayback(0);
+      return;
+    }
+
+    const previousIndex = takePreviousAlbumIndex();
+    if (previousIndex === null) {
+      seekPlayback(0);
+      return;
+    }
+
+    selectPlayingAlbum(previousIndex, undefined, !shuffleEnabled);
+  }, [
+    currentTime,
+    loadedIndex,
+    seekPlayback,
+    selectPlayingAlbum,
+    shuffleEnabled,
+    takePreviousAlbumIndex,
+  ]);
 
   const playNextAlbum = useCallback(
-    (shuffle = false) => {
+    (shuffle = false, resumeOverride?: boolean) => {
       if (loadedIndex === null) {
-        return;
+        return false;
       }
 
-      let nextIndex = loadedIndex + 1;
-      if (shuffle && vinylAlbums.length > 1) {
-        const offset = 1 + Math.floor(Math.random() * (vinylAlbums.length - 1));
-        nextIndex = loadedIndex + offset;
+      const nextIndex = getNextAlbumIndex(shuffle);
+
+      if (nextIndex === null) {
+        return false;
       }
 
-      selectPlayingAlbum(nextIndex);
+      selectPlayingAlbum(nextIndex, resumeOverride);
+      return true;
     },
-    [loadedIndex, selectPlayingAlbum],
+    [getNextAlbumIndex, loadedIndex, selectPlayingAlbum],
+  );
+
+  const replayCurrentAlbum = useCallback(() => {
+    if (
+      phaseRef.current !== "playing" ||
+      loadedIndex === null ||
+      !tonearmRef.current
+    ) {
+      return;
+    }
+
+    setTransportPending(true);
+    mechanicsSequenceRef.current?.kill();
+    setCueRaised(true, false);
+    if (!motorOnRef.current) {
+      setMotorOn(true);
+    }
+
+    const motorDelay =
+      motorStateRef.current === "locked"
+        ? 0
+        : reducedMotion
+          ? 0.08
+          : MOTOR_START_DURATION;
+    const liftDuration = reducedMotion ? 0.08 : TONEARM_LIFT_DURATION;
+    const armDuration = reducedMotion ? 0.1 : 0.52;
+    const sequence = gsap.timeline();
+    mechanicsSequenceRef.current = sequence;
+    sequence
+      .to(
+        tonearmRef.current,
+        {
+          rotationZ: TONEARM_PLAY_ANGLE,
+          duration: armDuration,
+          ease: "sine.inOut",
+          overwrite: true,
+        },
+        liftDuration,
+      )
+      .call(
+        () => {
+          tonearmAngleRef.current = TONEARM_PLAY_ANGLE;
+          setTonearmAngle(TONEARM_PLAY_ANGLE);
+          seek(0);
+        },
+        undefined,
+        liftDuration + armDuration,
+      )
+      .call(
+        () => setCueRaised(false),
+        undefined,
+        Math.max(motorDelay, liftDuration + armDuration + 0.1),
+      );
+  }, [
+    loadedIndex,
+    reducedMotion,
+    seek,
+    setCueRaised,
+    setMotorOn,
+    setTransportPending,
+  ]);
+
+  const finishPlaybackAtEnd = useCallback(() => {
+    if (
+      phaseRef.current !== "playing" ||
+      loadedIndex === null ||
+      !tonearmRef.current
+    ) {
+      return;
+    }
+
+    setTransportPending(false);
+    mechanicsSequenceRef.current?.kill();
+    setCueRaised(true, false);
+    const liftDuration = reducedMotion ? 0.08 : TONEARM_LIFT_DURATION;
+    const parkDuration = reducedMotion ? 0.1 : 0.58;
+    const sequence = gsap.timeline();
+    mechanicsSequenceRef.current = sequence;
+    sequence
+      .to(
+        tonearmRef.current,
+        {
+          rotationZ: TONEARM_HOME_ANGLE,
+          duration: parkDuration,
+          ease: "sine.inOut",
+          overwrite: true,
+        },
+        liftDuration,
+      )
+      .call(
+        () => {
+          tonearmAngleRef.current = TONEARM_HOME_ANGLE;
+          setTonearmAngle(TONEARM_HOME_ANGLE);
+          motorOnRef.current = false;
+          setMotorOnState(false);
+        },
+        undefined,
+        liftDuration + parkDuration,
+      );
+  }, [loadedIndex, reducedMotion, setCueRaised, setTransportPending]);
+
+  const handlePlaybackEnded = useCallback(() => {
+    if (repeatMode === "one") {
+      replayCurrentAlbum();
+      return;
+    }
+
+    if (!playNextAlbum(shuffleEnabled, true)) {
+      finishPlaybackAtEnd();
+    }
+  }, [
+    finishPlaybackAtEnd,
+    playNextAlbum,
+    repeatMode,
+    replayCurrentAlbum,
+    shuffleEnabled,
+  ]);
+
+  useEffect(() => {
+    transportActionsRef.current = {
+      play: () => {
+        if (!transportActive) {
+          togglePlayback();
+        }
+      },
+      pause: () => {
+        if (transportActive) {
+          togglePlayback();
+        }
+      },
+      previous: playPreviousAlbum,
+      next: playNextAlbum,
+      seek: seekPlayback,
+      ended: handlePlaybackEnded,
+    };
+  }, [
+    handlePlaybackEnded,
+    playNextAlbum,
+    playPreviousAlbum,
+    seekPlayback,
+    togglePlayback,
+    transportActive,
+  ]);
+
+  useEffect(
+    () =>
+      registerTransportController({
+        play: () => transportActionsRef.current.play(),
+        pause: () => transportActionsRef.current.pause(),
+        previous: () => transportActionsRef.current.previous(),
+        next: (shuffle) => transportActionsRef.current.next(shuffle),
+        seek: (seconds) => transportActionsRef.current.seek(seconds),
+        ended: () => transportActionsRef.current.ended(),
+      }),
+    [registerTransportController],
   );
 
   useEffect(() => {
     const handleGlobalKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "Escape") {
+      if (event.key !== "Escape" || event.defaultPrevented) {
+        return;
+      }
+
+      if (
+        rootRef.current?.querySelector(
+          '[data-queue-open="true"], [data-device-open="true"]',
+        )
+      ) {
         return;
       }
 
@@ -3670,6 +4429,22 @@ export function MusicPlayerExperience() {
 
       if (isPriming) {
         return `${selectedTrack.title} by ${selectedTrack.artist} is being prepared.`;
+      }
+
+      if (transportPending) {
+        return `${selectedTrack.title} by ${selectedTrack.artist} is starting as the platter and cue settle.`;
+      }
+
+      if (playbackState === "buffering") {
+        return `${selectedTrack.title} by ${selectedTrack.artist} is buffering while the platter remains at speed.`;
+      }
+
+      if (playbackState === "loading") {
+        return `${selectedTrack.title} by ${selectedTrack.artist} is starting.`;
+      }
+
+      if (playbackState === "ended") {
+        return `${selectedTrack.title} by ${selectedTrack.artist} has finished.`;
       }
 
       return isPlaying
@@ -3712,10 +4487,14 @@ export function MusicPlayerExperience() {
           volume={volume}
           isPlaying={isPlaying}
           isPriming={isPriming}
+          isStarting={transportPending}
+          playIntent={playIntent}
+          playbackState={playbackState}
           shuffleEnabled={shuffleEnabled}
           repeatMode={repeatMode}
+          queueIndices={queueIndices}
           error={error}
-          track={track}
+          track={loadedTrack}
           onSeek={seekPlayback}
           onVolumeChange={setVolume}
           onToggleShuffle={toggleShuffle}
@@ -3765,7 +4544,6 @@ export function MusicPlayerExperience() {
             phase={phase}
             focusAlbum={focusAlbum}
             shelfItemRefs={shelfItemRefs}
-            shelfSleeveRefs={shelfSleeveRefs}
             slotRefs={slotRefs}
           />
         </div>
