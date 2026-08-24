@@ -167,63 +167,65 @@ export const VinylRecord = memo(function VinylRecord({
     >
       <span className={styles.castShadow} />
 
-      <span className={styles.edgeDepth}>
-        <span className={styles.edgeReflection} />
-        <span className={styles.edgeNotches} />
-      </span>
-
       <span ref={bindRotor} className={styles.rotor} data-rotor>
-        <span className={styles.material} />
-
-        {hasDiscArtwork ? (
-          <span className={styles.discArtwork}>
-            <Image
-              src={album.cover}
-              alt=""
-              fill
-              sizes={artworkSizes}
-              loading="eager"
-              draggable={false}
-            />
-          </span>
-        ) : null}
-
-        {vinyl.artwork === "half-picture" ? (
-          <span className={styles.artworkSeam} />
-        ) : null}
-
-        <span className={styles.materialTexture} />
-        <span className={styles.pressRings} />
-        <span className={styles.grooves} />
-        <span className={styles.runoutGrooves} />
-        <span className={styles.outerLip} />
-
-        <span className={styles.label}>
-          {hasLabelArtwork ? (
-            <Image
-              className={styles.labelArtwork}
-              src={label.artwork ?? album.cover}
-              alt=""
-              fill
-              sizes={labelSizes}
-              loading="eager"
-              draggable={false}
-            />
-          ) : (
-            <span className={styles.blankLabel} />
-          )}
-          <span className={styles.labelCopy}>
-            <small>{label.kicker ?? "SIDE A"}</small>
-            <strong>{label.title ?? album.title}</strong>
-            <small>{label.subtitle ?? album.artist}</small>
-            <em>SIDE A · {rpm === 45 ? "45" : "33⅓"} RPM</em>
-          </span>
-          <span className={styles.labelVarnish} />
-          <span className={styles.labelRing} />
+        <span className={styles.edgeDepth}>
+          <span className={styles.edgeReflection} />
+          <span className={styles.edgeNotches} />
         </span>
 
-        <span className={styles.spindleHole}>
-          <span />
+        <span className={styles.discSurface}>
+          <span className={styles.material} />
+
+          {hasDiscArtwork ? (
+            <span className={styles.discArtwork}>
+              <Image
+                src={album.cover}
+                alt=""
+                fill
+                sizes={artworkSizes}
+                loading="eager"
+                draggable={false}
+              />
+            </span>
+          ) : null}
+
+          {vinyl.artwork === "half-picture" ? (
+            <span className={styles.artworkSeam} />
+          ) : null}
+
+          <span className={styles.materialTexture} />
+          <span className={styles.pressRings} />
+          <span className={styles.grooves} />
+          <span className={styles.runoutGrooves} />
+          <span className={styles.outerLip} />
+
+          <span className={styles.label}>
+            {hasLabelArtwork ? (
+              <Image
+                className={styles.labelArtwork}
+                src={label.artwork ?? album.cover}
+                alt=""
+                fill
+                sizes={labelSizes}
+                loading="eager"
+                draggable={false}
+              />
+            ) : (
+              <span className={styles.blankLabel} />
+            )}
+            <span className={styles.labelCopy}>
+              <small>{label.kicker ?? "SIDE A"}</small>
+              <strong>{label.title ?? album.title}</strong>
+              <small>{label.subtitle ?? album.artist}</small>
+              <em>SIDE A · {rpm === 45 ? "45" : "33⅓"} RPM</em>
+            </span>
+            <span className={styles.labelVarnish} />
+            <span className={styles.labelRing} />
+          </span>
+
+          <span className={styles.spindleHole}>
+            <span />
+          </span>
         </span>
       </span>
 

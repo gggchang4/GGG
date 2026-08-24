@@ -66,15 +66,24 @@
 .rotor {
   position: absolute;
   inset: 0;
+  overflow: visible;
+  border-radius: 50%;
+  isolation: isolate;
+  transform-origin: 50% 50%;
+}
+
+.discSurface {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--vinyl-accent) 28%, transparent);
-  border-radius: 50%;
+  border-radius: inherit;
   background: var(--vinyl-primary);
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 9%),
     inset 0 0 1.8rem rgb(255 255 255 / 7%),
     inset 0 0 4rem rgb(0 0 0 / 24%);
-  transform-origin: 50% 50%;
 }
 
 .record[data-playing="true"] .rotor {
@@ -124,7 +133,7 @@
     );
 }
 
-.record[data-kind="translucent"] .rotor {
+.record[data-kind="translucent"] .discSurface {
   background: color-mix(in srgb, var(--vinyl-primary) 54%, transparent);
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 27%),

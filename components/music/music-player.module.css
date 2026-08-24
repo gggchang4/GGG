@@ -638,14 +638,14 @@
     inset 0 1px 0 rgb(255 255 255 / 20%);
 }
 
-.stylus::after {
+.stylusTip {
   position: absolute;
   right: 10%;
   bottom: -18%;
+  display: block;
   width: 7%;
   height: 28%;
   border-radius: 99px;
-  content: "";
   background: #d6d8d4;
   box-shadow: 0 1px 1px rgb(0 0 0 / 70%);
   transform: rotate(-9deg);
@@ -1764,6 +1764,46 @@
   pointer-events: auto;
 }
 
+/* Authoritative tonearm mechanics: yaw stays on the pivot button while cue
+   height is distributed across the tube, headshell and counterweight. */
+.tonearm .armTube,
+.tonearm .counterweight,
+.tonearm .stylus {
+  translate: 0 0;
+  transition-property: translate, filter;
+  transition-duration: 400ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.7, 1);
+}
+
+.tonearm[data-raised="true"] .armTube {
+  translate: 0 -2.5px;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tonearm[data-raised="true"] .stylus {
+  translate: 0 -5px;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tonearm[data-raised="true"] .counterweight {
+  translate: 0 1.2px;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tonearm[data-state="lifting"],
+.tonearm[data-state="traversing"],
+.tonearm[data-state="returning"] {
+  filter: drop-shadow(0 12px 8px rgb(0 0 0 / 48%));
+  will-change: transform;
+}
+
+.tonearm[data-state="lowering"] {
+  filter: drop-shadow(0 7px 5px rgb(0 0 0 / 44%));
+}
+
 .stylusLamp::before {
   position: absolute;
   right: 42%;
@@ -1826,6 +1866,14 @@
   .hardwarePanel,
   .deckMark {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tonearm .armTube,
+  .tonearm .counterweight,
+  .tonearm .stylus {
+    transition-duration: 0.01ms;
   }
 }
 
@@ -3202,6 +3250,7 @@
     transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.page[data-phase="loading"] .playerChrome,
 .page[data-phase="playing"] .playerChrome,
 .page[data-phase="switching"] .playerChrome {
   opacity: 1;
@@ -4557,4 +4606,29 @@
   .deckMark {
     display: none;
   }
+}
+
+/* A fixed pivot can only trace the groove when the visible effective arm is
+   long enough to intersect both the lead-in and runout circles. The cap keeps
+   that physical length stable once the gimbal reaches its desktop max size. */
+.tonearm {
+  width: min(580%, 420px);
+}
+
+.tonearmPivotDatum,
+.stylusContactDatum {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.tonearmPivotDatum {
+  top: 50%;
+  left: 100%;
+}
+
+.stylusContactDatum {
+  bottom: 0;
+  left: 50%;
 }
