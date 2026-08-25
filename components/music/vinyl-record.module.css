@@ -66,15 +66,24 @@
 .rotor {
   position: absolute;
   inset: 0;
+  overflow: visible;
+  border-radius: 50%;
+  isolation: isolate;
+  transform-origin: 50% 50%;
+}
+
+.discSurface {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--vinyl-accent) 28%, transparent);
-  border-radius: 50%;
+  border-radius: inherit;
   background: var(--vinyl-primary);
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 9%),
     inset 0 0 1.8rem rgb(255 255 255 / 7%),
     inset 0 0 4rem rgb(0 0 0 / 24%);
-  transform-origin: 50% 50%;
 }
 
 .record[data-playing="true"] .rotor {
@@ -99,37 +108,32 @@
 .material {
   background:
     radial-gradient(circle at 50% 49%, rgb(255 255 255 / 7%) 0 1%, transparent 1.4%),
-    radial-gradient(circle at 48% 48%, transparent 0 35%, rgb(255 255 255 / 3%) 47%, transparent 65%),
-    conic-gradient(
-      from 16deg,
-      color-mix(in srgb, var(--vinyl-primary) 92%, white),
-      var(--vinyl-primary) 24%,
-      color-mix(in srgb, var(--vinyl-primary) 78%, var(--vinyl-secondary)) 42%,
-      var(--vinyl-primary) 66%,
-      color-mix(in srgb, var(--vinyl-primary) 88%, white)
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, var(--vinyl-primary) 95%, white) 0,
+      var(--vinyl-primary) 72%,
+      color-mix(in srgb, var(--vinyl-primary) 91%, black) 100%
     );
 }
 
 .record[data-kind="black"] .material {
   background:
     radial-gradient(circle at 50% 50%, transparent 0 37%, rgb(255 255 255 / 1.8%) 52%, transparent 69%),
-    conic-gradient(from 2deg, #0a0a0a, #050505 21%, #090909 39%, #030303 68%, #080808 88%, #050505);
+    radial-gradient(circle at 50% 50%, #0a0a0a 0, #060606 72%, #020202 100%);
 }
 
 .record[data-kind="solid"] .material {
   background:
     radial-gradient(circle at 50% 50%, transparent 0 47%, rgb(255 255 255 / 8%) 49%, transparent 53%),
-    conic-gradient(
-      from 28deg,
-      color-mix(in srgb, var(--vinyl-primary) 88%, white),
-      var(--vinyl-primary) 30%,
-      color-mix(in srgb, var(--vinyl-primary) 76%, black) 55%,
-      var(--vinyl-primary) 79%,
-      color-mix(in srgb, var(--vinyl-primary) 90%, white)
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, var(--vinyl-primary) 94%, white) 0,
+      var(--vinyl-primary) 76%,
+      color-mix(in srgb, var(--vinyl-primary) 88%, black) 100%
     );
 }
 
-.record[data-kind="translucent"] .rotor {
+.record[data-kind="translucent"] .discSurface {
   background: color-mix(in srgb, var(--vinyl-primary) 54%, transparent);
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 27%),
@@ -161,16 +165,10 @@
 }
 
 .record[data-kind="translucent"] .material {
-  opacity: 0.68;
+  opacity: 0.58;
   background:
-    radial-gradient(circle at 50% 50%, transparent 0 53%, rgb(255 255 255 / 9%) 74%, transparent 84%),
-    conic-gradient(
-      from 8deg,
-      color-mix(in srgb, var(--vinyl-primary) 72%, transparent),
-      color-mix(in srgb, var(--vinyl-secondary) 46%, transparent) 34%,
-      color-mix(in srgb, var(--vinyl-primary) 42%, transparent) 68%,
-      color-mix(in srgb, var(--vinyl-accent) 34%, transparent)
-    );
+    radial-gradient(circle at 50% 50%, rgb(255 255 255 / 7%) 0 7%, transparent 8% 70%, rgb(0 0 0 / 8%) 100%),
+    color-mix(in srgb, var(--vinyl-primary) 76%, transparent);
 }
 
 .record[data-kind="marble"] .material {
@@ -316,7 +314,7 @@
     radial-gradient(circle, transparent 0 38%, rgb(0 0 0 / 17%) 38.15% 38.6%, transparent 39% 63%),
     radial-gradient(circle, transparent 0 69%, rgb(255 255 255 / 7%) 69.2% 69.5%, transparent 69.8% 88%),
     radial-gradient(circle, transparent 0 93.7%, rgb(255 255 255 / 14%) 94.1% 94.6%, rgb(0 0 0 / 22%) 95.3% 97.4%, transparent 97.8%);
-  mix-blend-mode: soft-light;
+  mix-blend-mode: normal;
 }
 
 .grooves {
@@ -343,7 +341,7 @@
     );
   -webkit-mask-image: radial-gradient(circle, transparent 0 18.2%, #000 19.2% 95%, transparent 98.4%);
   mask-image: radial-gradient(circle, transparent 0 18.2%, #000 19.2% 95%, transparent 98.4%);
-  mix-blend-mode: overlay;
+  mix-blend-mode: normal;
 }
 
 .runoutGrooves {
@@ -368,7 +366,7 @@
     #000 17.8% 25.2%,
     transparent 25.7%
   );
-  mix-blend-mode: overlay;
+  mix-blend-mode: normal;
 }
 
 .outerLip {
@@ -583,7 +581,7 @@
   );
   -webkit-mask-image: radial-gradient(circle, #000 0 97.4%, transparent 99.1%);
   mask-image: radial-gradient(circle, #000 0 97.4%, transparent 99.1%);
-  mix-blend-mode: multiply;
+  mix-blend-mode: normal;
 }
 
 .stationaryLight {
@@ -594,7 +592,7 @@
     radial-gradient(ellipse at 22% 14%, rgb(255 255 255 / 25%), transparent 29%);
   -webkit-mask-image: radial-gradient(circle, #000 0 97.4%, transparent 99.1%);
   mask-image: radial-gradient(circle, #000 0 97.4%, transparent 99.1%);
-  mix-blend-mode: screen;
+  mix-blend-mode: normal;
 }
 
 .lightFan,

@@ -18,16 +18,27 @@ export function HomeNowPlayingVinyl() {
     hasPlayback,
     isPlaying,
     isPriming,
+    playIntent,
+    playbackState,
+    error,
   } = usePlayback();
   const album = hasPlayback ? currentAlbum : recommendedAlbum;
   const displayedTrack = hasPlayback ? track : recommendedTrack;
   const status = !hasPlayback
     ? "Recommended CC0"
-    : isPlaying
-      ? "Now playing"
-      : isPriming
-        ? "Cueing"
-        : "Paused";
+    : error
+      ? "Unavailable"
+      : isPlaying
+        ? "Now playing"
+        : isPriming
+          ? "Cueing"
+          : playbackState === "buffering"
+            ? "Buffering"
+            : playbackState === "loading" || playIntent
+              ? "Starting"
+              : playbackState === "ended"
+                ? "Finished"
+                : "Paused";
 
   return (
     <Link
@@ -44,7 +55,7 @@ export function HomeNowPlayingVinyl() {
       <span className={styles.recordFrame}>
         <VinylRecord
           album={album}
-          playing={!hasPlayback || isPlaying}
+          playing={!hasPlayback || playIntent}
           artworkSizes="128px"
           labelSizes="44px"
           className={styles.record}

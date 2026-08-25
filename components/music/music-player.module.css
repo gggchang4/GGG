@@ -55,7 +55,7 @@
     radial-gradient(circle at 17% 23%, rgb(255 255 255 / 11%) 0 0.5px, transparent 0.7px),
     radial-gradient(circle at 67% 61%, rgb(255 255 255 / 7%) 0 0.45px, transparent 0.65px);
   background-size: 5px 5px, 7px 7px;
-  animation: grainShift 0.42s steps(2) infinite;
+  transform: translate3d(0, 0, 0);
 }
 
 .turntableStage,
@@ -638,14 +638,14 @@
     inset 0 1px 0 rgb(255 255 255 / 20%);
 }
 
-.stylus::after {
+.stylusTip {
   position: absolute;
   right: 10%;
   bottom: -18%;
+  display: block;
   width: 7%;
   height: 28%;
   border-radius: 99px;
-  content: "";
   background: #d6d8d4;
   box-shadow: 0 1px 1px rgb(0 0 0 / 70%);
   transform: rotate(-9deg);
@@ -913,7 +913,7 @@
   transform-style: preserve-3d;
   cursor: pointer;
   translate: -50% -50%;
-  will-change: transform, filter, opacity;
+  will-change: auto;
 }
 
 .shelfSlot::after {
@@ -1483,7 +1483,7 @@
   z-index: 2;
   inset: 0.7%;
   opacity: 0.58;
-  will-change: transform;
+  will-change: auto;
 }
 
 .platterMat {
@@ -1764,6 +1764,46 @@
   pointer-events: auto;
 }
 
+/* Authoritative tonearm mechanics: yaw stays on the pivot button while cue
+   height is distributed across the tube, headshell and counterweight. */
+.tonearm .armTube,
+.tonearm .counterweight,
+.tonearm .stylus {
+  translate: 0 0;
+  transition-property: translate, filter;
+  transition-duration: 400ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.7, 1);
+}
+
+.tonearm[data-raised="true"] .armTube {
+  translate: 0 -2.5px;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tonearm[data-raised="true"] .stylus {
+  translate: 0 -5px;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tonearm[data-raised="true"] .counterweight {
+  translate: 0 1.2px;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tonearm[data-state="lifting"],
+.tonearm[data-state="traversing"],
+.tonearm[data-state="returning"] {
+  filter: drop-shadow(0 12px 8px rgb(0 0 0 / 48%));
+  will-change: transform;
+}
+
+.tonearm[data-state="lowering"] {
+  filter: drop-shadow(0 7px 5px rgb(0 0 0 / 44%));
+}
+
 .stylusLamp::before {
   position: absolute;
   right: 42%;
@@ -1827,6 +1867,26 @@
   .deckMark {
     display: none;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tonearm .armTube,
+  .tonearm .counterweight,
+  .tonearm .stylus {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* Keep inactive full-screen layers out of the paint pipeline. */
+.page[data-phase="playing"] .recordRack,
+.page[data-phase="switching"] .recordRack,
+.page[data-phase="playing"] .presentationLayer,
+.page[data-phase="switching"] .presentationLayer {
+  content-visibility: hidden;
+}
+
+.turntableScene:not([data-motor-state="stopped"]) .platterStrobe {
+  will-change: transform;
 }
 
 /* Final playback mechanics: these overrides intentionally avoid the shelf. */
@@ -2237,6 +2297,10 @@
   transform-origin: 50% 50%;
   transform-style: preserve-3d;
   translate: none;
+  will-change: auto;
+}
+
+.shelfSlot[data-layout-visible="true"] {
   will-change: transform;
 }
 
@@ -3186,6 +3250,7 @@
     transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.page[data-phase="loading"] .playerChrome,
 .page[data-phase="playing"] .playerChrome,
 .page[data-phase="switching"] .playerChrome {
   opacity: 1;
@@ -3472,9 +3537,9 @@
   min-height: 104px;
   padding: 13px clamp(22px, 3.4vw, 54px) max(13px, env(safe-area-inset-bottom));
   border-top: 1px solid rgb(255 255 255 / 8%);
-  background: rgb(4 5 6 / 82%);
+  background: rgb(4 5 6 / 94%);
   box-shadow: 0 -22px 60px rgb(0 0 0 / 25%);
-  backdrop-filter: blur(26px) saturate(1.08);
+  backdrop-filter: none;
 }
 
 .barTrack {
@@ -3616,6 +3681,10 @@
 
 .playButton svg[data-lucide="play"] {
   transform: translateX(1px);
+}
+
+.transportSpinner {
+  animation: transportSpin 0.72s linear infinite;
 }
 
 .timeline {
@@ -3788,7 +3857,7 @@
   color: rgb(255 255 255 / 62%);
   font: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
 }
 
 .deviceOption:hover,
@@ -3818,6 +3887,19 @@
 
 .deviceOption[data-active="true"] > svg:last-child {
   color: #83de92;
+}
+
+.deviceNote {
+  margin: 2px 4px 0;
+  color: rgb(255 255 255 / 38%);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.likeLarge:disabled,
+.upNextButton:disabled {
+  opacity: 0.42;
+  cursor: default;
 }
 
 /* Queue */
@@ -3960,6 +4042,15 @@
   scrollbar-color: rgb(255 255 255 / 16%) transparent;
 }
 
+.queueEmpty {
+  margin: 0;
+  padding: 18px 8px;
+  color: rgb(255 255 255 / 42%);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .queueItem {
   width: 100%;
   padding: 8px 7px;
@@ -4020,6 +4111,12 @@
 
   to {
     height: 14px;
+  }
+}
+
+@keyframes transportSpin {
+  to {
+    transform: rotate(1turn);
   }
 }
 
@@ -4216,7 +4313,7 @@
   .playerContext {
     top: auto;
     right: 22px;
-    bottom: calc(128px + max(24px, env(safe-area-inset-bottom)));
+    bottom: calc(158px + max(24px, env(safe-area-inset-bottom)));
     left: 22px;
     display: block;
     width: auto;
@@ -4261,14 +4358,40 @@
   .playerBar {
     grid-template-columns: 1fr;
     gap: 0;
-    min-height: 126px;
+    min-height: 156px;
     padding: 12px 22px max(14px, env(safe-area-inset-bottom));
     background: rgb(4 5 6 / 88%);
   }
 
-  .barTrack,
-  .barUtility {
+  .barTrack {
     display: none;
+  }
+
+  .barUtility {
+    display: flex;
+    justify-content: stretch;
+    width: min(78vw, 330px);
+    margin: 0 auto;
+  }
+
+  .barUtility > .speedButton,
+  .barUtility > [data-queue-trigger],
+  .barUtility > .deviceMenu {
+    display: none;
+  }
+
+  .volumeControl {
+    width: 100%;
+    gap: 9px;
+  }
+
+  .volumeControl .iconButton {
+    width: 30px;
+    height: 30px;
+  }
+
+  .volumeSlider {
+    min-width: 0;
   }
 
   .barCenter {
@@ -4298,7 +4421,7 @@
   .queueDrawer {
     top: 68px;
     right: 12px;
-    bottom: calc(138px + env(safe-area-inset-bottom));
+    bottom: calc(168px + env(safe-area-inset-bottom));
     left: 12px;
     width: auto;
     padding: 17px;
@@ -4403,6 +4526,7 @@
   .playerChrome,
   .queueDrawer,
   .devicePopover,
+  .transportSpinner,
   .playingBars[data-playing="true"] i {
     animation: none;
     transition-duration: 0.01ms;
@@ -4482,4 +4606,29 @@
   .deckMark {
     display: none;
   }
+}
+
+/* A fixed pivot can only trace the groove when the visible effective arm is
+   long enough to intersect both the lead-in and runout circles. The cap keeps
+   that physical length stable once the gimbal reaches its desktop max size. */
+.tonearm {
+  width: min(580%, 420px);
+}
+
+.tonearmPivotDatum,
+.stylusContactDatum {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.tonearmPivotDatum {
+  top: 50%;
+  left: 100%;
+}
+
+.stylusContactDatum {
+  bottom: 0;
+  left: 50%;
 }
