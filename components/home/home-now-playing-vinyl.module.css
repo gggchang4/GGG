@@ -1,118 +1,258 @@
 .nowPlaying {
   position: fixed;
   z-index: 12;
-  right: max(clamp(1rem, 2.6vw, 2.5rem), env(safe-area-inset-right));
-  bottom: max(clamp(1rem, 2.6vw, 2.35rem), env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  gap: clamp(0.7rem, 1.35vw, 1.15rem);
+  right: max(clamp(0.85rem, 2.35vw, 2.2rem), env(safe-area-inset-right));
+  bottom: max(clamp(0.85rem, 2.15vw, 1.9rem), env(safe-area-inset-bottom));
+  display: block;
+  width: clamp(6.45rem, 8.6vw, 7.7rem);
+  height: clamp(5.25rem, 7vw, 6.2rem);
   color: rgb(20 21 18 / 0.9);
   text-decoration: none;
+  outline: none;
   -webkit-tap-highlight-color: transparent;
-  animation: arrive 720ms 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.copy {
-  display: grid;
-  max-width: clamp(7.5rem, 12vw, 11rem);
-  justify-items: end;
-  text-align: right;
-  text-shadow: 0 1px 0 rgb(255 255 255 / 0.34);
-}
-
-.copy small,
-.copy > span {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  text-transform: uppercase;
-}
-
-.copy small {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.28rem;
-  color: rgb(20 21 18 / 0.66);
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
-}
-
-.copy small::before {
-  width: 1rem;
-  height: 1px;
-  background: currentColor;
-  content: "";
-}
-
-.copy strong {
-  overflow: hidden;
-  width: 100%;
-  font-size: clamp(0.7rem, 0.9vw, 0.84rem);
-  font-weight: 680;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.copy > span {
-  overflow: hidden;
-  width: 100%;
-  margin-top: 0.32rem;
-  color: rgb(20 21 18 / 0.64);
-  font-size: 0.56rem;
-  letter-spacing: 0.08em;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.recordFrame {
-  position: relative;
+.deck {
+  position: absolute;
+  inset: 0;
   display: block;
-  width: clamp(5.8rem, 8vw, 7.5rem);
-  aspect-ratio: 1;
-  flex: 0 0 auto;
-  transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: arrive 720ms 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: right bottom;
+  transition:
+    filter 280ms ease,
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.recordFrame::after {
+.deck::after {
   position: absolute;
   z-index: -1;
-  right: 13%;
-  bottom: -6%;
-  left: 13%;
-  height: 12%;
+  right: 22%;
+  bottom: -2%;
+  left: 4%;
+  height: 10%;
   border-radius: 50%;
-  background: rgb(22 29 28 / 0.2);
+  background: rgb(19 25 24 / 0.2);
   content: "";
-  filter: blur(0.7rem);
-  opacity: 0.45;
-  transition: opacity 280ms ease, transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+  filter: blur(0.58rem);
+  opacity: 0.42;
+  transform: scaleX(0.92);
+  transition:
+    opacity 280ms ease,
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .record {
-  filter: drop-shadow(0 0.65rem 0.7rem rgb(14 20 19 / 18%));
+  position: absolute;
+  bottom: 0.08rem;
+  left: 0;
+  display: block;
+  width: clamp(4.65rem, 6.25vw, 5.55rem);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      transparent 0 2.7%,
+      rgb(255 255 255 / 0.028) 2.85%,
+      transparent 3.05% 5.2%
+    ),
+    conic-gradient(
+      from 212deg,
+      #060707,
+      #1d201f 9%,
+      #070808 18%,
+      #202321 25%,
+      #080909 35%,
+      #151716 58%,
+      #050606 72%,
+      #1d201f 88%,
+      #060707
+    );
+  box-shadow:
+    inset 0 0 0 0.12rem rgb(255 255 255 / 0.025),
+    inset 0 0 1.1rem rgb(0 0 0 / 0.72),
+    0 0.5rem 0.9rem rgb(16 22 21 / 0.2);
+  isolation: isolate;
+  animation: recordSpin 9.6s linear infinite;
 }
 
-.nowPlaying:hover .recordFrame {
-  transform: translateY(-0.2rem) scale(1.025);
+.record::before {
+  position: absolute;
+  z-index: 1;
+  inset: 2.5%;
+  border: 1px solid rgb(255 255 255 / 0.04);
+  border-radius: inherit;
+  background:
+    conic-gradient(
+      from 22deg,
+      transparent 0 9%,
+      rgb(255 255 255 / 0.11) 12%,
+      transparent 17% 51%,
+      rgb(255 255 255 / 0.055) 55%,
+      transparent 62%
+    );
+  content: "";
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 
-.nowPlaying:hover .recordFrame::after {
-  opacity: 0.32;
-  transform: translateY(0.2rem) scaleX(0.9);
+.record::after {
+  position: absolute;
+  z-index: 1;
+  inset: 27.5%;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 0.1rem rgb(0 0 0 / 0.42),
+    0 0 0 0.17rem rgb(255 255 255 / 0.04);
+  content: "";
+  pointer-events: none;
 }
 
-.nowPlaying:focus-visible {
+.albumCover {
+  z-index: 2;
+  inset: 30% !important;
+  width: 40% !important;
+  height: 40% !important;
+  border-radius: 50%;
+  filter: saturate(0.86) contrast(1.04);
+  object-fit: cover;
+}
+
+.spindle {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 0.2rem;
+  aspect-ratio: 1;
+  border: 1px solid rgb(255 255 255 / 0.65);
+  border-radius: 50%;
+  background: #babdb8;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.3);
+  transform: translate(-50%, -50%);
+}
+
+.tonearm {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  right: 0;
+  display: block;
+  width: 3.15rem;
+  height: 5.35rem;
+  filter: drop-shadow(0 0.22rem 0.18rem rgb(15 20 19 / 0.2));
+  pointer-events: none;
+}
+
+.pivot {
+  position: absolute;
+  z-index: 2;
+  top: 0.05rem;
+  right: 0.12rem;
+  display: grid;
+  width: 1.02rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.55);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 32%, #f2f2ed 0 12%, #9b9e9a 38%, #4e5351 72%);
+  box-shadow:
+    inset 0 0 0 0.1rem rgb(22 25 24 / 0.16),
+    0 0.2rem 0.42rem rgb(19 24 23 / 0.18);
+}
+
+.pivot span {
+  display: block;
+  width: 0.3rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #242827;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24);
+}
+
+.tonearmArm {
+  position: absolute;
+  z-index: 1;
+  top: 0.76rem;
+  right: 0.52rem;
+  display: block;
+  width: 0.16rem;
+  height: 4.35rem;
+  border: 1px solid rgb(31 34 33 / 0.24);
   border-radius: 999px;
-  outline: 1px solid rgb(20 21 18 / 0.66);
-  outline-offset: 0.45rem;
+  background: linear-gradient(90deg, #656a68, #f0f0eb 42%, #8a8e8b 76%, #4d5250);
+  box-shadow: inset 0 0.08rem 0 rgb(255 255 255 / 0.5);
+  transform: rotate(25deg);
+  transform-origin: 50% 0;
+  transition: transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tonearmArm::before {
+  position: absolute;
+  top: -0.38rem;
+  left: 50%;
+  width: 0.34rem;
+  height: 0.58rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #343837, #9ca09d 50%, #323635);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.cartridge {
+  position: absolute;
+  top: calc(100% - 0.08rem);
+  left: 50%;
+  display: block;
+  width: 0.56rem;
+  height: 0.3rem;
+  border-radius: 0.06rem 0.13rem 0.13rem 0.06rem;
+  background: linear-gradient(180deg, #292d2c, #111312);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  transform: translateX(-50%) rotate(-2deg);
+}
+
+.cartridge::after {
+  position: absolute;
+  top: 85%;
+  left: 50%;
+  width: 1px;
+  height: 0.28rem;
+  background: #5d625f;
+  content: "";
+  transform: rotate(12deg);
+  transform-origin: top;
+}
+
+.nowPlaying:is(:hover, :focus-visible) .deck {
+  filter: saturate(1.04);
+  transform: translateY(-0.16rem) scale(1.025);
+}
+
+.nowPlaying:is(:hover, :focus-visible) .deck::after {
+  opacity: 0.28;
+  transform: translateY(0.18rem) scaleX(0.84);
+}
+
+.nowPlaying:is(:hover, :focus-visible) .tonearmArm {
+  transform: rotate(28deg);
+}
+
+.nowPlaying:focus-visible .deck {
+  border-radius: 50%;
+  outline: 1px solid rgb(20 21 18 / 0.54);
+  outline-offset: 0.42rem;
 }
 
 @keyframes arrive {
   from {
     opacity: 0;
-    transform: translate3d(0.75rem, 0.75rem, 0) scale(0.96);
+    transform: translate3d(0.55rem, 0.55rem, 0) scale(0.96);
   }
 
   to {
@@ -121,51 +261,62 @@
   }
 }
 
+@keyframes recordSpin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 @media (max-width: 640px) {
   .nowPlaying {
-    right: max(0.85rem, env(safe-area-inset-right));
-    bottom: max(0.9rem, env(safe-area-inset-bottom));
-    gap: 0.62rem;
+    right: max(0.72rem, env(safe-area-inset-right));
+    bottom: max(0.72rem, env(safe-area-inset-bottom));
+    width: 5.9rem;
+    height: 4.9rem;
   }
 
-  .copy {
-    max-width: min(7.2rem, 30vw);
+  .record {
+    width: 4.35rem;
   }
 
-  .copy small {
-    font-size: 0.55rem;
-  }
-
-  .copy strong {
-    font-size: 0.72rem;
-  }
-
-  .copy > span {
-    display: none;
-  }
-
-  .recordFrame {
-    width: clamp(4.9rem, 21vw, 5.75rem);
+  .tonearm {
+    width: 2.75rem;
+    height: 4.85rem;
+    transform: scale(0.9);
+    transform-origin: top right;
   }
 }
 
 @media (orientation: landscape) and (max-height: 560px) {
-  .copy {
-    display: none;
+  .nowPlaying {
+    right: max(0.7rem, env(safe-area-inset-right));
+    bottom: max(0.6rem, env(safe-area-inset-bottom));
+    width: 5.25rem;
+    height: 4.4rem;
   }
 
-  .recordFrame {
-    width: clamp(4.25rem, 16vh, 5.25rem);
+  .record {
+    width: 3.9rem;
+  }
+
+  .tonearm {
+    transform: scale(0.8);
+    transform-origin: top right;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nowPlaying {
+  .deck {
     animation: none;
   }
 
-  .recordFrame,
-  .recordFrame::after {
+  .record {
+    animation: none;
+  }
+
+  .deck,
+  .deck::after,
+  .tonearmArm {
     transition: none;
   }
 }

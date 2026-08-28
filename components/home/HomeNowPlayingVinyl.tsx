@@ -1,7 +1,7 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { VinylRecord } from "@/components/music/VinylRecord";
 import { usePlayback } from "@/components/music/PlaybackProvider";
 import { getPlaybackTrack } from "@/data/playbackCatalog";
 import { vinylAlbums } from "@/data/records";
@@ -46,21 +46,27 @@ export function HomeNowPlayingVinyl() {
       className={styles.nowPlaying}
       aria-label={`${status}: ${displayedTrack.title} by ${displayedTrack.artist}, paired with the ${album.title} sleeve. Open the vinyl player.`}
     >
-      <span className={styles.copy} aria-hidden="true">
-        <small>{status}</small>
-        <strong>{displayedTrack.title}</strong>
-        <span>{album.title} sleeve · Open player</span>
-      </span>
+      <span className={styles.deck} aria-hidden="true">
+        <span className={styles.record}>
+          <Image
+            className={styles.albumCover}
+            src={album.cover}
+            alt=""
+            fill
+            sizes="36px"
+            priority
+          />
+          <span className={styles.spindle} />
+        </span>
 
-      <span className={styles.recordFrame}>
-        <VinylRecord
-          album={album}
-          playing={!hasPlayback || playIntent}
-          artworkSizes="128px"
-          labelSizes="44px"
-          className={styles.record}
-          variant="floating"
-        />
+        <span className={styles.tonearm}>
+          <span className={styles.pivot}>
+            <span />
+          </span>
+          <span className={styles.tonearmArm}>
+            <span className={styles.cartridge} />
+          </span>
+        </span>
       </span>
     </Link>
   );
