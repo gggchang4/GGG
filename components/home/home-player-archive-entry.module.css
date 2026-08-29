@@ -1,0 +1,543 @@
+/* Two-card archive entry used only on the homepage. */
+.entry {
+  --cards-shift-x: 0px;
+  --cards-shift-y: 0px;
+  --sheen-x: 50%;
+  position: fixed;
+  z-index: 12;
+  bottom: 0;
+  left: 0;
+  display: block;
+  width: min(20rem, 42vw);
+  height: clamp(11rem, 24vh, 13.5rem);
+  color: rgb(20 21 18 / 0.9);
+  text-decoration: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cornerCue,
+.reveal {
+  left: max(clamp(1rem, 2.6vw, 2.35rem), env(safe-area-inset-left));
+}
+
+.cornerCue {
+  position: absolute;
+  z-index: 2;
+  bottom: max(clamp(1rem, 2.6vw, 2.15rem), env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 0.48rem;
+  height: 1.55rem;
+  color: rgb(20 21 18 / 0.6);
+  animation: cueArrive 680ms 560ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  transition:
+    opacity 180ms ease,
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cueCards {
+  position: relative;
+  display: block;
+  width: 1.1rem;
+  height: 1.45rem;
+}
+
+.cueCards span {
+  position: absolute;
+  bottom: 0.03rem;
+  left: 0.12rem;
+  display: block;
+  width: 0.78rem;
+  aspect-ratio: 5 / 7;
+  border: 1px solid currentColor;
+  border-radius: 0.07rem;
+  background: rgb(247 247 242 / 0.36);
+  box-shadow: 0 0.22rem 0.5rem rgb(29 36 34 / 0.08);
+  transform: rotate(-7deg);
+  transform-origin: center bottom;
+  transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cueCards span:last-child {
+  left: 0.27rem;
+  border-color: rgb(20 21 18 / 0.78);
+  background: rgb(247 247 242 / 0.7);
+  transform: rotate(5deg);
+}
+
+.cueCards span:last-child::after {
+  position: absolute;
+  right: 0.13rem;
+  bottom: 0.15rem;
+  left: 0.13rem;
+  height: 1px;
+  background: currentColor;
+  content: "";
+  opacity: 0.42;
+}
+
+.cueLine {
+  width: 0.92rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.48;
+  transform: scaleX(0.56);
+  transform-origin: left center;
+  transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cueLabel,
+.cueCount {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.47rem;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.cueLabel {
+  opacity: 0.82;
+  transform: translateX(-0.18rem);
+  transition:
+    opacity 180ms ease,
+    transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cueCount {
+  margin-left: -0.18rem;
+  opacity: 0.36;
+}
+
+.reveal {
+  position: absolute;
+  z-index: 2;
+  bottom: max(clamp(0.88rem, 2.2vw, 1.75rem), env(safe-area-inset-bottom));
+  display: block;
+  width: 17rem;
+  height: 9.6rem;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-0.25rem, 0.65rem, 0) scale(0.97);
+  transform-origin: left bottom;
+  transition:
+    opacity 170ms ease,
+    transform 460ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cardDeck {
+  position: absolute;
+  bottom: 0.42rem;
+  left: 0;
+  display: block;
+  width: 8.45rem;
+  height: 8.9rem;
+  perspective: 760px;
+  transform: translate3d(var(--cards-shift-x), var(--cards-shift-y), 0);
+  transform-style: preserve-3d;
+  transition: transform 120ms ease-out;
+}
+
+.cardDeck::after {
+  position: absolute;
+  z-index: 0;
+  right: 0.3rem;
+  bottom: -0.06rem;
+  left: 0.25rem;
+  height: 0.74rem;
+  border-radius: 50%;
+  background: rgb(18 23 22 / 0.3);
+  content: "";
+  filter: blur(0.62rem);
+  opacity: 0;
+  transform: scaleX(0.72);
+  transition:
+    opacity 320ms ease,
+    transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.playerCard {
+  position: absolute;
+  z-index: 1;
+  bottom: 0.3rem;
+  display: block;
+  width: clamp(4.25rem, 5.3vw, 4.85rem);
+  aspect-ratio: 5 / 7;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.56);
+  border-radius: 0.16rem;
+  background: #161817;
+  box-shadow:
+    0 0 0 1px rgb(20 21 18 / 0.14),
+    0 0.85rem 1.5rem rgb(25 31 29 / 0.2);
+  opacity: 0;
+  transform-origin: 50% 92%;
+  transform-style: preserve-3d;
+  will-change: opacity, transform;
+  transition:
+    opacity 190ms ease,
+    transform 520ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 420ms ease;
+}
+
+.playerCard::before {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0.04rem 0 rgb(255 255 255 / 0.44),
+    inset 0 -0.08rem 0.18rem rgb(0 0 0 / 0.28);
+  content: "";
+  pointer-events: none;
+}
+
+.playerCard img {
+  object-fit: cover;
+  filter: saturate(0.84) contrast(1.025);
+  transition: filter 420ms ease;
+}
+
+.kyrie {
+  left: 0.1rem;
+  z-index: 2;
+  transform: translate3d(1.75rem, 2.1rem, -10px) rotate(-1deg) scale(0.74);
+}
+
+.neymar {
+  left: 3.25rem;
+  z-index: 1;
+  transform: translate3d(-1.4rem, 2.25rem, -20px) rotate(1deg) scale(0.72);
+  transition-delay: 25ms;
+}
+
+.cardSheen {
+  position: absolute;
+  z-index: 3;
+  inset: -34% -120%;
+  display: block;
+  background:
+    radial-gradient(circle at var(--sheen-x) 42%, rgb(255 255 255 / 0.2), transparent 16%),
+    linear-gradient(
+      108deg,
+      transparent 42%,
+      rgb(255 255 255 / 0.05) 46%,
+      rgb(193 236 255 / 0.46) 49%,
+      rgb(255 224 174 / 0.4) 52%,
+      transparent 58%
+    );
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transform: translateX(-34%);
+  transition: transform 760ms 110ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.archiveMeta {
+  position: absolute;
+  right: 0;
+  bottom: 1.55rem;
+  display: grid;
+  width: 7.65rem;
+  align-content: end;
+  padding: 0 0 0.05rem 0.92rem;
+  border-left: 1px solid rgb(20 21 18 / 0.17);
+  transform: translate3d(-0.3rem, 0.6rem, 0);
+  transition: transform 480ms 35ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.archiveMeta small,
+.archiveMeta > span {
+  overflow: hidden;
+  color: rgb(20 21 18 / 0.52);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.archiveMeta small {
+  margin-bottom: 0.42rem;
+  font-size: 0.43rem;
+  letter-spacing: 0.11em;
+}
+
+.archiveMeta strong {
+  font-size: 0.73rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.archiveMeta > span {
+  margin-top: 0.46rem;
+  font-size: 0.43rem;
+  letter-spacing: 0.11em;
+}
+
+.arrow {
+  position: absolute;
+  right: 0;
+  bottom: 0.2rem;
+  color: rgb(20 21 18 / 0.48);
+  font-size: 0.72rem;
+  line-height: 1;
+  transition:
+    color 180ms ease,
+    transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.transitionCurtain {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  background: #030403;
+  clip-path: circle(0 at 3rem calc(100% - 3rem));
+  pointer-events: none;
+  transition: clip-path 620ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.entry:is(:hover, :focus-visible) .cornerCue {
+  opacity: 0;
+  transform: translate3d(-0.25rem, 0.45rem, 0);
+}
+
+.entry:is(:hover, :focus-visible) .cueCards span:first-child {
+  transform: translate(-0.1rem, -0.06rem) rotate(-11deg);
+}
+
+.entry:is(:hover, :focus-visible) .cueCards span:last-child {
+  transform: translate(0.12rem, -0.08rem) rotate(8deg);
+}
+
+.entry:is(:hover, :focus-visible) .cueLine {
+  transform: scaleX(1);
+}
+
+.entry:is(:hover, :focus-visible) .cueLabel {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.entry:is(:hover, :focus-visible) .reveal {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.entry:is(:hover, :focus-visible) .cardDeck::after {
+  opacity: 0.52;
+  transform: scaleX(0.92);
+}
+
+.entry:is(:hover, :focus-visible) .playerCard {
+  opacity: 1;
+  box-shadow:
+    0 0 0 1px rgb(20 21 18 / 0.14),
+    0 1rem 1.8rem rgb(25 31 29 / 0.25);
+}
+
+.entry:is(:hover, :focus-visible) .playerCard img {
+  filter: saturate(0.98) contrast(1.03);
+}
+
+.entry:is(:hover, :focus-visible) .kyrie {
+  transform: translate3d(-0.12rem, -0.42rem, 18px) rotate(-8deg) scale(1);
+}
+
+.entry:is(:hover, :focus-visible) .neymar {
+  transform: translate3d(0.08rem, 0.02rem, 4px) rotate(7deg) scale(0.97);
+}
+
+.entry:is(:hover, :focus-visible) .cardSheen {
+  transform: translateX(34%);
+}
+
+.entry:is(:hover, :focus-visible) .archiveMeta {
+  transform: translate3d(0, 0, 0);
+}
+
+.entry:is(:hover, :focus-visible) .arrow {
+  color: rgb(20 21 18 / 0.9);
+  transform: translate(0.14rem, -0.14rem);
+}
+
+.entry:focus-visible .reveal::after {
+  position: absolute;
+  inset: -0.35rem -0.45rem -0.3rem -0.45rem;
+  border: 1px solid rgb(20 21 18 / 0.48);
+  content: "";
+  pointer-events: none;
+}
+
+.entry[data-leaving="true"] {
+  z-index: 90;
+  pointer-events: none;
+}
+
+.entry[data-leaving="true"] .cornerCue {
+  opacity: 0;
+}
+
+.entry[data-leaving="true"] .transitionCurtain {
+  clip-path: circle(150vmax at 3rem calc(100% - 3rem));
+}
+
+.entry[data-leaving="true"] .reveal {
+  opacity: 1;
+  transform: translate3d(0, -0.4rem, 0) scale(1.02);
+}
+
+.entry[data-leaving="true"] .kyrie {
+  opacity: 0;
+  transform: translate3d(0.65rem, -3.25rem, 40px) rotate(-2deg) scale(1.1);
+}
+
+.entry[data-leaving="true"] .neymar {
+  opacity: 0;
+  transform: translate3d(-0.35rem, -2.65rem, 22px) rotate(2deg) scale(1.06);
+}
+
+.entry[data-leaving="true"] .archiveMeta,
+.entry[data-leaving="true"] .arrow {
+  opacity: 0;
+  transform: translateY(-0.8rem);
+}
+
+@keyframes cueArrive {
+  from {
+    opacity: 0;
+    transform: translate3d(-0.5rem, 0.5rem, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (max-width: 640px) {
+  .entry {
+    width: min(16rem, 74vw);
+    height: 9.6rem;
+  }
+
+  .cornerCue,
+  .reveal {
+    bottom: max(0.85rem, env(safe-area-inset-bottom));
+    left: max(0.85rem, env(safe-area-inset-left));
+  }
+
+  .reveal {
+    width: min(14.2rem, calc(100vw - 1.7rem));
+    height: 8.25rem;
+  }
+
+  .cardDeck {
+    width: 7.1rem;
+    height: 7.6rem;
+  }
+
+  .playerCard {
+    width: 3.8rem;
+  }
+
+  .kyrie {
+    left: 0;
+  }
+
+  .neymar {
+    left: 2.6rem;
+  }
+
+  .archiveMeta {
+    right: 0.1rem;
+    bottom: 1.35rem;
+    width: 6.8rem;
+    padding-left: 0.7rem;
+  }
+
+  .archiveMeta small {
+    display: none;
+  }
+
+  .archiveMeta strong {
+    font-size: 0.65rem;
+  }
+
+  .arrow {
+    right: 0.1rem;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .entry {
+    width: 10.2rem;
+    height: 5.8rem;
+  }
+
+  .cornerCue {
+    color: rgb(20 21 18 / 0.7);
+  }
+
+  .cueLine {
+    transform: scaleX(0.78);
+  }
+
+  .cueLabel {
+    opacity: 0.88;
+    transform: translateX(0);
+  }
+
+  .reveal {
+    display: none;
+  }
+
+  .entry:focus-visible .cornerCue {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .entry {
+    height: 8.25rem;
+  }
+
+  .cornerCue,
+  .reveal {
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .reveal {
+    transform: translate3d(-0.25rem, 1.05rem, 0) scale(0.88);
+    transform-origin: left bottom;
+  }
+
+  .entry:is(:hover, :focus-visible) .reveal {
+    transform: translate3d(0, 0, 0) scale(0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cornerCue {
+    animation: none;
+  }
+
+  .cornerCue,
+  .cueCards span,
+  .cueLine,
+  .cueLabel,
+  .reveal,
+  .cardDeck,
+  .cardDeck::after,
+  .playerCard,
+  .playerCard img,
+  .cardSheen,
+  .archiveMeta,
+  .arrow,
+  .transitionCurtain {
+    transition: none;
+  }
+}

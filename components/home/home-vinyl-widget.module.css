@@ -1,3 +1,4 @@
+/* Compact turntable entry used only on the homepage. */
 .nowPlaying {
   position: fixed;
   z-index: 12;
@@ -76,6 +77,10 @@
     0 0.5rem 0.9rem rgb(16 22 21 / 0.2);
   isolation: isolate;
   animation: recordSpin 9.6s linear infinite;
+}
+
+.nowPlaying[data-motor="false"] .record {
+  animation-play-state: paused;
 }
 
 .record::before {
@@ -178,55 +183,104 @@
 .tonearmArm {
   position: absolute;
   z-index: 1;
-  top: 0.76rem;
-  right: 0.52rem;
+  top: 0.56rem;
+  right: 0.2rem;
   display: block;
-  width: 0.16rem;
-  height: 4.35rem;
-  border: 1px solid rgb(31 34 33 / 0.24);
-  border-radius: 999px;
-  background: linear-gradient(90deg, #656a68, #f0f0eb 42%, #8a8e8b 76%, #4d5250);
-  box-shadow: inset 0 0.08rem 0 rgb(255 255 255 / 0.5);
-  transform: rotate(25deg);
+  width: 0.86rem;
+  height: 3.3rem;
+  transform: rotate(44deg);
   transform-origin: 50% 0;
-  transition: transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.tonearmArm::before {
+.armTube {
   position: absolute;
-  top: -0.38rem;
+  top: 0.04rem;
+  bottom: 0.08rem;
   left: 50%;
-  width: 0.34rem;
-  height: 0.58rem;
+  display: block;
+  width: 0.16rem;
+  border: 1px solid rgb(31 34 33 / 0.24);
   border-radius: 999px;
-  background: linear-gradient(90deg, #343837, #9ca09d 50%, #323635);
-  content: "";
+  background: linear-gradient(90deg, #555b58, #f0f0eb 40%, #969b97 72%, #454a48);
+  box-shadow:
+    inset 0 0.08rem 0 rgb(255 255 255 / 0.48),
+    0.05rem 0.08rem 0.1rem rgb(15 20 19 / 0.13);
+  transform: translateX(-50%);
+}
+
+.counterweight {
+  position: absolute;
+  z-index: 0;
+  top: -0.42rem;
+  left: 50%;
+  display: block;
+  width: 0.44rem;
+  height: 0.66rem;
+  border: 1px solid rgb(29 32 31 / 0.2);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #383d3b, #aeb2ae 48%, #444946);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 0.1rem 0.16rem rgb(15 20 19 / 0.16);
   transform: translateX(-50%);
 }
 
 .cartridge {
   position: absolute;
+  z-index: 2;
   top: calc(100% - 0.08rem);
   left: 50%;
   display: block;
-  width: 0.56rem;
-  height: 0.3rem;
-  border-radius: 0.06rem 0.13rem 0.13rem 0.06rem;
-  background: linear-gradient(180deg, #292d2c, #111312);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
-  transform: translateX(-50%) rotate(-2deg);
+  width: 0.66rem;
+  height: 0.32rem;
+  border-radius: 0.07rem 0.15rem 0.13rem 0.07rem;
+  background: linear-gradient(180deg, #343836, #101211 76%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.17),
+    0 0.12rem 0.14rem rgb(12 15 14 / 0.22);
+  transform: translateX(-50%) rotate(-22deg);
+  transform-origin: 50% 0;
 }
 
-.cartridge::after {
+.cartridge::before {
   position: absolute;
-  top: 85%;
-  left: 50%;
-  width: 1px;
-  height: 0.28rem;
-  background: #5d625f;
+  top: 0.08rem;
+  right: 0.08rem;
+  left: 0.08rem;
+  height: 1px;
+  background: rgb(255 255 255 / 0.2);
   content: "";
-  transform: rotate(12deg);
+}
+
+.stylus {
+  position: absolute;
+  top: 82%;
+  left: 57%;
+  display: block;
+  width: 1px;
+  height: 0.3rem;
+  background: linear-gradient(#858a86, #242725);
+  box-shadow: 0 0.04rem 0 rgb(0 0 0 / 0.28);
+  transform: rotate(8deg);
   transform-origin: top;
+}
+
+.stylus::after {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 0.14rem;
+  height: 1px;
+  border-radius: 999px;
+  background: #1c1f1e;
+  content: "";
+  transform: rotate(-8deg);
+  transform-origin: right center;
+}
+
+.nowPlaying[data-motor="true"] .tonearmArm {
+  transform: rotate(46deg);
 }
 
 .nowPlaying:is(:hover, :focus-visible) .deck {
@@ -240,7 +294,7 @@
 }
 
 .nowPlaying:is(:hover, :focus-visible) .tonearmArm {
-  transform: rotate(28deg);
+  transform: rotate(48deg);
 }
 
 .nowPlaying:focus-visible .deck {
