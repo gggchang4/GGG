@@ -1,60 +1,126 @@
-# GGG Profile
+<p align="center">
+  <img src="./public/media/readme-hero.svg" width="100%" alt="GGG Cheese — Computing is my medium. A personal index rendered as glass, player cards, and vinyl." />
+</p>
 
-> **Computing is my medium.**
+<p align="center">
+  <samp>PERSONAL INDEX · WUHAN / 2026 · SIGNAL ONLINE</samp>
+</p>
 
-An interactive personal profile and digital playground by **GGG Cheese**, also known as **Akihisa**.
+<h1 align="center">Computing is my medium.</h1>
 
-## About Me
+<p align="center">
+  Not a résumé wearing a nice skin.<br />
+  A personal exhibition made from glass, water, type, sound, sport, and code.
+</p>
 
-Hi, I am GGG Cheese. I am a Computer Science student at **Wuhan University (WHU)** in Wuhan, China, and a full-stack developer interested in creative coding, interaction design, and expressive web experiences.
+<p align="center">
+  <a href="#side-a">THE PERSON</a>
+  &nbsp;·&nbsp;
+  <a href="#side-b">THE EXPERIENCES</a>
+  &nbsp;·&nbsp;
+  <a href="#signal-chain">SIGNAL CHAIN</a>
+  &nbsp;·&nbsp;
+  <a href="#run">RUN LOCALLY</a>
+</p>
 
-I see computing as more than an engineering discipline: it is also a medium for making ideas tangible. Beyond code, art, music, literature, and sport continue to shape how I think and create.
+<br />
 
-## About This Project
+<a id="side-a"></a>
 
-**GGG Profile** is the source code for my personal profile website. Instead of presenting a single conventional résumé, the site works as a profile index: visitors can explore the same identity through several distinct visual languages.
+## SIDE A / THE PERSON
 
-The project also turns personal interests into interactive experiences. A tactile vinyl player and a digital player-card archive sit alongside the profile pages, making the site feel closer to a small personal exhibition than a standard portfolio template.
+I am **GGG Cheese** — **Akihisa** elsewhere — a Computer Science student at **Wuhan University** and a full-stack developer working in Wuhan, China.
 
-## Experiences
+I like software most when it stops feeling like software: when a drag has weight, light bends around an interface, a record remembers where it was playing, or a collection becomes a small world worth wandering through.
 
-| Route | Experience |
+> Computing is more than engineering to me. It is material — something I can give shape, sound, friction, and memory.
+
+| `01 / ON REPEAT` | `02 / ON THE SHELF` | `03 / BEYOND THE SCREEN` |
+| :--- | :--- | :--- |
+| Kanye West / Asen | Wang Xiaobo | Art / Sport |
+
+<br />
+
+<a id="side-b"></a>
+
+## SIDE B / THE EXPERIENCES
+
+One identity, interpreted through several visual systems. Every portal is a different answer to the same question: **what should a personal website feel like?**
+
+| INDEX | PORTAL | MATERIAL / MOTION |
+| :---: | --- | --- |
+| `00` | **`/` — Glass Index** | A refractive homepage driven by water, light, spatial motion, and custom trackball physics. |
+| `01` | **`/profile/minimal` — Glass / Quiet** | Restrained typography, generous space, and an editorial reading rhythm. |
+| `02` | **`/profile/avant-garde` — Future / Expressive** | A louder field for motion, composition, and art-direction experiments. |
+| `03` | **`/profile/ascii` — Chromatic / Generative** | Canvas, playable typography, and a profile translated into living ASCII. |
+| `04` | **`/music` — Vinyl Study** | Tactile records, route-persistent playback, sleeve art, and a working tonearm. |
+| `05` | **`/cards` — Player Archive** | A 55-card NBA, NFL, and football collection with layered prismatic optics. |
+
+<br />
+
+<a id="signal-chain"></a>
+
+## SIGNAL CHAIN
+
+```text
+INPUT                 SYSTEM                         OUTPUT
+pointer / touch  ───▶ trackball + quaternion  ────▶ water / glass / light
+audio state      ───▶ persistent playback     ────▶ vinyl / tonearm / memory
+card data        ───▶ masks + layered optics  ────▶ prismatic archive
+shared identity  ───▶ visual style registry   ────▶ three profile languages
+```
+
+<p align="center">
+  <samp>NEXT.JS 16 · REACT 19 · TYPESCRIPT 6 · THREE.JS · R3F · GSAP · MOTION · CSS MODULES</samp>
+</p>
+
+<br />
+
+<details>
+<summary><strong>OPEN THE TECHNICAL SLEEVE</strong> &nbsp;—&nbsp; architecture, controls, and workshop notes</summary>
+
+<br />
+
+### Design rules
+
+- **The interaction must carry meaning.** Motion communicates weight, state, hierarchy, or navigation; it is not surface decoration.
+- **One source, many interpretations.** Personal facts live in `data/profileData.ts`; visual directions are registered in `data/stylesConfig.ts`.
+- **The fallback still deserves art direction.** Keyboard navigation, responsive layouts, and reduced-motion behavior are treated as part of the design.
+- **Collections should feel authored.** Music and card data become tactile experiences instead of generic grids.
+
+### Project map
+
+```text
+app/                  routes, layouts, and metadata
+components/home/      lens, water field, navigation, corner portals
+components/profiles/  minimal, avant-garde, and ASCII interpretations
+components/music/     playback state, vinyl collection, turntable UI
+components/cards/     archive, masks, foil, and optical effects
+data/                 shared identity and collection catalogues
+lib/                  interaction physics and common utilities
+public/media/         record art, audio studies, and player cards
+```
+
+### Workshop controls
+
+| COMMAND | USE |
 | --- | --- |
-| `/` | An interactive glass-lens homepage with water, spatial motion, and a hidden corner navigation system. |
-| `/profile/minimal` | A quiet, editorial profile built around glass, whitespace, and restrained typography. |
-| `/profile/avant-garde` | An evolving profile direction for experimentation, motion, and art direction. |
-| `/profile/ascii` | A chromatic, generative profile rendered through ASCII, canvas, and playable typography. |
-| `/music` | A tactile vinyl collection with animated records, a working tonearm, and CC0 preview tracks. |
-| `/cards` | An interactive archive of NBA and football player cards with prismatic optical effects. |
+| `npm run dev` | Start the local studio. |
+| `npm run build` | Produce the release build. |
+| `npm run lint` | Check the code surface. |
+| `npm run typecheck` | Verify TypeScript without emitting files. |
+| `npm run cards:validate` | Audit the generated card archive. |
+| `npm run cards:rebuild` | Rebuild card assets and derived optics. |
 
-## Highlights
+</details>
 
-- Interactive 3D glass lens with pointer, touch, and keyboard input.
-- Multiple profile systems sharing one source of personal data.
-- Custom trackball physics, inertia, and spring-based reset behavior.
-- Responsive layouts with keyboard navigation and reduced-motion support.
-- Persistent audio playback across routes.
-- Carefully art-directed CSS, WebGL, canvas, and typography experiments.
+<br />
 
-## Tech Stack
+<a id="run"></a>
 
-| Area | Technology |
-| --- | --- |
-| Framework | Next.js 16 App Router, React 19 |
-| Language | TypeScript 6 |
-| 3D and creative graphics | Three.js, React Three Fiber, Canvas |
-| Motion | GSAP |
-| Styling | CSS Modules, Tailwind CSS 4 |
-| Tooling | ESLint, npm, Turbopack |
+## RUN THE EXHIBITION
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20.9 or later
-- npm
-
-### Installation
+Requires **Node.js 20.9+** and npm.
 
 ```bash
 git clone https://github.com/gggchang4/GGG.git
@@ -63,43 +129,30 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Then enter [localhost:3000](http://localhost:3000).
 
-### Useful Commands
+<br />
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the local development server. |
-| `npm run build` | Create a production build. |
-| `npm run start` | Run the production server. |
-| `npm run lint` | Run ESLint across the project. |
-| `npm run typecheck` | Run TypeScript without emitting files. |
+## FIELD NOTES / PROVENANCE
 
-## Project Structure
+The record-player previews use public-domain / CC0 music from [FreePD](https://en.freepd.cn/music). They are sound studies for the interface, not recordings from the commercial albums represented by the sleeve artwork.
 
-```text
-app/                  App Router pages and route metadata
-components/home/      Homepage lens, navigation, and corner experiences
-components/profiles/  Alternative visual profile systems
-components/music/     Playback state, vinyl collection, and turntable UI
-components/cards/     Player-card archive and optical effects
-data/                 Shared profile content and collection catalogs
-lib/                  Interaction physics and shared utilities
-public/media/         Record artwork, cards, and audio studies
-```
+Player-card sources and archive decisions are documented in [ATTRIBUTION.md](./public/media/cards/ATTRIBUTION.md) and [ARCHIVE.md](./public/media/cards/ARCHIVE.md).
 
-Personal facts are centralized in `data/profileData.ts`, while profile directions are registered in `data/stylesConfig.ts`. This keeps identity and presentation separate, allowing each profile to interpret the same content without duplicating it.
+This is a personal profile and an ongoing creative-coding laboratory, not a general-purpose portfolio template. Explore the implementation freely; please do not present the identity, writing, or media collection as your own.
 
-## Media Note
+<br />
 
-The audio previews in this project are public-domain / CC0 tracks from [FreePD](https://en.freepd.cn/music). They are used for the interactive record-player study and are not recordings from the commercial albums represented by the sleeve artwork.
+<p align="center">
+  <samp>
+    GGG CHEESE / AKIHISA<br />
+    COMPUTER SCIENCE · CREATIVE CODING · INTERACTION DESIGN<br />
+    WUHAN, CHINA · STILL EXPERIMENTING
+  </samp>
+</p>
 
-## Personal Project
+<p align="center">
+  <a href="https://github.com/gggchang4"><strong>GITHUB / @GGGCHANG4 ↗</strong></a>
+</p>
 
-This repository is a personal profile and creative-coding playground, not a general-purpose portfolio template. You are welcome to explore the implementation, but please do not present the personal content or media collection as your own.
-
-## Connect
-
-- GitHub: [@gggchang4](https://github.com/gggchang4)
-
-Designed and built by **GGG Cheese / Akihisa**.
+<p align="center"><sub>Built as a profile. Kept as a laboratory.</sub></p>
